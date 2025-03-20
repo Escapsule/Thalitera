@@ -15,25 +15,25 @@ spring:
 mybatis-plus:
   configuration:
     # 全局设置
-    map-underscore-to-camel-case: ${dev.mybatis-plus.configuration.map-underscore-to-camel-case}
-    log-impl: ${dev.mybatis-plus.configuration.log-impl}
-    auto-mapping-behavior: ${dev.mybatis-plus.configuration.auto-mapping-behavior}
+    map-underscore-to-camel-case: ${mybatis-plus.configuration.map-underscore-to-camel-case}
+    log-impl: ${mybatis-plus.configuration.log-impl}
+    auto-mapping-behavior: ${mybatis-plus.configuration.auto-mapping-behavior}
 
     # PostgreSQL 特殊配置
-    jdbc-type-for-null: ${dev.mybatis-plus.configuration.jdbc-type-for-null}
+    jdbc-type-for-null: ${mybatis-plus.configuration.jdbc-type-for-null}
 
   global-config:
     db-config:
-      id-type: ${dev.mybatis-plus.global-config.db-config.id-type}
-      logic-delete-field: ${dev.mybatis-plus.global-config.db-config.logic-delete-field}
-      logic-not-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-not-delete-value}
-      logic-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-delete-value}
+      id-type: ${mybatis-plus.global-config.db-config.id-type}
+      logic-delete-field: ${mybatis-plus.global-config.db-config.logic-delete-field}
+      logic-not-delete-value: ${mybatis-plus.global-config.db-config.logic-not-delete-value}
+      logic-delete-value: ${mybatis-plus.global-config.db-config.logic-delete-value}
 
   # Mapper 文件配置
-  mapper-locations: ${dev.mybatis-plus.mapper-locations}
-  type-aliases-package: ${dev.mybatis-plus.type-aliases-package}
+  mapper-locations: ${mybatis-plus.mapper-locations}
+  type-aliases-package: ${mybatis-plus.type-aliases-package}
 
 # 日志配置（显示完整SQL）
 logging:
   level:
-    com.escapsule.thalitera.mapper: ${dev.logging.level.com.escapsule.thalitera.mapper}
+    com.escapsule.thalitera.mapper: ${logging.level.com.escapsule.thalitera.mapper}
