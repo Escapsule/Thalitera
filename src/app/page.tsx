@@ -1,7 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, Users, Building, CheckCircle, BarChart } from "lucide-react"
+import { Calendar, Clock, Users, CheckCircle, BarChart, Building } from "lucide-react"
 
 export default function LandingPage() {
   return (
@@ -9,7 +9,12 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 pl-12">
-            <Building className="h-6 w-6" />
+            <Image 
+              src = "/icon.png?height=36&width=36"
+              alt = "Thalitera"
+              width = {36}
+              height = {36}
+            />
             <span className="text-xl font-bold">Thalitera</span>
           </div>
           <nav className="hidden md:flex gap-6">
@@ -125,7 +130,12 @@ export default function LandingPage() {
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <div className="flex items-center gap-2 pl-12">
-            <Building className="h-6 w-6" />
+            <Image 
+              src = "/icon.png?height=36&width=36"
+              alt = "Thalitera"
+              width = {36}
+              height = {36}
+            />
             <p className="text-sm font-medium">&copy; {new Date().getFullYear()} Thalitera. All rights reserved.</p>
           </div>
           <nav className="flex gap-4 sm:gap-6">
