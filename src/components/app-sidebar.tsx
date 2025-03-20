@@ -1,6 +1,6 @@
 "use client";
 
-import { Inbox, Search, Settings } from "lucide-react"
+import { LayoutDashboard, Search, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -19,9 +19,9 @@ import Image from "next/image"
 // Menu items.
 const items = [
     {
-    title: "Inbox",
+    title: "Dashboard",
     url: "/dashboard",
-    icon: Inbox,
+    icon: LayoutDashboard,
     },
   {
     title: "Search",
