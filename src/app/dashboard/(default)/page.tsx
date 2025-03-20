@@ -42,7 +42,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-[95cvh] flex-col">
+    <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="ml-auto flex items-center gap-4">
           <Avatar>
