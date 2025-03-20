@@ -1,4 +1,8 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+"use client";
+
+import { Inbox, Search, Settings } from "lucide-react"
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 import {
   Sidebar,
@@ -10,54 +14,61 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import Image from "next/image"
 
 // Menu items.
 const items = [
-  {
-    title: "Home",
-    url: "#",
-    icon: Home,
-  },
-  {
+    {
     title: "Inbox",
-    url: "#",
+    url: "/dashboard",
     icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
+    },
   {
     title: "Search",
-    url: "#",
+    url: "/dashboard/search",
     icon: Search,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "/dashboard/settings",
     icon: Settings,
-  },
+  }
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
+  
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupLabel>
+            <Image 
+            src = "/icon.png?height=24&width=24"
+            alt = "Thalitera"
+            width = {24}
+            height = {24}
+            />
+            <p className="text-lg font-bold pl-2">Thalitera</p>
+            </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-4">
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      className={`hover:bg-[#9FE870] ${isActive ? 'bg-[#9FE870]' : ''}`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
