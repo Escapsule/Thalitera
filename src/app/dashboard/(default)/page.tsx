@@ -8,18 +8,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { bookings } from "@/lib/fake_data"
+import { RoomDetail } from "@/components/room_detail"
+import Link from "next/link"
 
 export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showAllBookings, setShowAllBookings] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<typeof bookings[0] | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Calculate statistics
-  const futureBookings = bookings.filter((booking) => booking.date > new Date()).length
+  // Calculate statistics - include today's bookings in the count
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const futureBookings = bookings.filter((booking) => {
+    const bookingDate = new Date(booking.date)
+    bookingDate.setHours(0, 0, 0, 0)
+    return bookingDate >= today
+  }).length
 
-  // Get bookings for selected date or all future bookings
+  // Get bookings for selected date or all future bookings (including today)
   const bookingsToDisplay = showAllBookings 
-    ? bookings.filter((booking) => booking.date > new Date())
+    ? bookings.filter((booking) => {
+        const bookingDate = new Date(booking.date)
+        bookingDate.setHours(0, 0, 0, 0)
+        return bookingDate >= today
+      })
     : bookings.filter((booking) => date && booking.date.toDateString() === date.toDateString())
+
+  // Handle opening the detail modal
+  const handleOpenDetail = (booking: typeof bookings[0]) => {
+    setSelectedBooking(booking)
+    setIsDetailOpen(true)
+  }
 
   return (
     <div className="flex min-h-[95cvh] flex-col">
@@ -51,7 +71,11 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   {bookingsToDisplay.length > 0 ? (
                     bookingsToDisplay.map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between rounded-lg border p-4">
+                      <div 
+                        key={booking.id} 
+                        className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => handleOpenDetail(booking)}
+                      >
                         <div className="space-y-1">
                           <h3 className="font-medium">{booking.roomName}</h3>
                           <div className="flex items-center text-sm text-muted-foreground">
@@ -68,7 +92,7 @@ export default function Dashboard() {
                     <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed">
                       <div className="text-center">
                         <h3 className="font-medium">No bookings for this date</h3>
-                        <p className="text-sm text-muted-foreground">Select another date or book a room</p>
+                        <p className="text-sm text-muted-foreground">Select another date or <Link href="/dashboard/search" className="text-[#163300] underline">book a room</Link></p>
                       </div>
                     </div>
                   )}
@@ -141,6 +165,13 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+      
+      {/* Room Detail Modal */}
+      <RoomDetail 
+        booking={selectedBooking} 
+        isOpen={isDetailOpen} 
+        onClose={() => setIsDetailOpen(false)} 
+      />
     </div>
   )
 }
