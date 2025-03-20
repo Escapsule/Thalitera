@@ -59,7 +59,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
                       asChild 
-                      className={`hover:bg-[#9FE870] ${isActive ? 'bg-[#9FE870]' : ''}`}
+                      className={`hover:bg-[lch(83_56_130)] ${isActive ? 'bg-[lch(83_56_130)]' : ''}`}
                     >
                       <Link href={item.url}>
                         <item.icon />

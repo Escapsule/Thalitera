@@ -43,7 +43,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-xl text-[#163300]">{booking.roomName}</DialogTitle>
+          <DialogTitle className="text-xl text-[lch(17_23_133)]">{booking.roomName}</DialogTitle>
           <DialogDescription>
             Booking details for your meeting
           </DialogDescription>
@@ -52,7 +52,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <div className="grid gap-6 py-4">
           <div className="grid gap-4">
             <div className="flex items-center gap-3">
-              <CalendarIcon className="h-5 w-5 text-[#163300]" />
+              <CalendarIcon className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Date: </span>
                 {format(booking.date, "EEEE, MMMM d, yyyy")}
@@ -60,7 +60,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-[#163300]" />
+              <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Time: </span>
                 {booking.startTime} - {booking.endTime}
@@ -68,7 +68,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-[#163300]" />
+              <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Location: </span>
                 {roomData.location}
@@ -76,7 +76,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-[#163300]" />
+              <Users className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Capacity: </span>
                 {roomData.capacity} people
@@ -86,7 +86,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
           
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-[#163300] mt-0.5" />
+              <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
                 <p className="text-sm text-muted-foreground">{roomData.description}</p>
@@ -99,7 +99,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
                 <div className="grid grid-cols-2 gap-2">
                   {roomData.amenities.map((amenity, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-[#9FE870]" />
+                      <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
                       <span>{amenity}</span>
                     </div>
                   ))}

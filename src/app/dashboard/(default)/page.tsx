@@ -56,16 +56,16 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="text-[#163300]">Future Bookings</CardDescription>
-                <CardTitle className="text-4xl text-[#163300]">{futureBookings}</CardTitle>
+                <CardDescription className="text-[lch(17_23_133)]">Future Bookings</CardDescription>
+                <CardTitle className="text-4xl text-[lch(17_23_133)]">{futureBookings}</CardTitle>
               </CardHeader>
             </Card>
           </div>
           <div className="mt-6 grid gap-6 md:grid-cols-[1fr_300px]">
             <Card>
               <CardHeader>
-                <CardTitle className="text-[#163300]">Your Schedule</CardTitle>
-                <CardDescription className="text-[hsl(0_0_0%)]">View and manage your upcoming room bookings</CardDescription>
+                <CardTitle className="text-[lch(17_23_133)]">Your Schedule</CardTitle>
+                <CardDescription className="text-[lch(0_0_0)]">View and manage your upcoming room bookings</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -73,7 +73,7 @@ export default function Dashboard() {
                     bookingsToDisplay.map((booking) => (
                       <div 
                         key={booking.id} 
-                        className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
                         onClick={() => handleOpenDetail(booking)}
                       >
                         <div className="space-y-1">
@@ -92,7 +92,7 @@ export default function Dashboard() {
                     <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed">
                       <div className="text-center">
                         <h3 className="font-medium">No bookings for this date</h3>
-                        <p className="text-sm text-muted-foreground">Select another date or <Link href="/dashboard/search" className="text-[#163300] underline">book a room</Link></p>
+                        <p className="text-sm text-muted-foreground">Select another date or <Link href="/dashboard/search" className="text-[lch(17_23_133)] underline">book a room</Link></p>
                       </div>
                     </div>
                   )}
@@ -111,8 +111,8 @@ export default function Dashboard() {
                       onClick={() => setShowAllBookings(false)}
                       className={`py-2 px-4 rounded-md text-sm font-medium ${
                         !showAllBookings 
-                          ? 'bg-[#163300] text-white' 
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          ? 'bg-[lch(17_23_133)] text-[lch(100_0_0)]' 
+                          : 'bg-[lch(95_0_0)] text-[lch(32_0_0)] hover:bg-[lch(92_0_0)]'
                       }`}
                     >
                       Date
@@ -124,8 +124,8 @@ export default function Dashboard() {
                       }}
                       className={`py-2 px-4 rounded-md text-sm font-medium ${
                         showAllBookings 
-                          ? 'bg-[#163300] text-white' 
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          ? 'bg-[lch(17_23_133)] text-[lch(100_0_0)]' 
+                          : 'bg-[lch(95_0_0)] text-[lch(32_0_0)] hover:bg-[lch(92_0_0)]'
                       }`}
                     >
                       All
@@ -148,11 +148,11 @@ export default function Dashboard() {
 
                         return (
                           <div className="relative flex h-10 w-10 items-center justify-center p-0">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${date.toDateString() === new Date().toDateString() ? 'bg-[#163300] text-primary-foreground' : ''}`}>
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${date.toDateString() === new Date().toDateString() ? 'bg-[lch(17_23_133)] text-primary-foreground' : ''}`}>
                               {format(date, "d")}
                             </div>
                             {hasBooking && (
-                              <div className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#9FE870]" />
+                              <div className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[lch(83_56_130)]" />
                             )}
                           </div>
                         )
