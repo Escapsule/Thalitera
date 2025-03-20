@@ -41,8 +41,53 @@ export const rooms = [
     location: "Building A, Floor 2",
     description: "Small informal meeting space for quick discussions and brainstorming.",
     amenities: ["Whiteboard", "Comfortable Seating"]
+  },
+  {
+    id: 6,
+    name: "Innovation Lab",
+    capacity: 15,
+    location: "Building C, Floor 1",
+    description: "Creative space with modular furniture and tech equipment for innovation sessions.",
+    amenities: ["Smart Displays", "Modular Furniture", "Video Conference", "Digital Whiteboards"]
+  },
+  {
+    id: 7,
+    name: "Focus Room",
+    capacity: 2,
+    location: "Building C, Floor 2",
+    description: "Small private room for focused work or one-on-one meetings.",
+    amenities: ["Phone", "Desk", "Sound Insulation"]
   }
 ]
+
+// All possible room amenities for filtering
+export const allAmenities = [
+  "Projector",
+  "Whiteboard", 
+  "Video Conference", 
+  "Air Conditioning",
+  "TV Screen",
+  "Catering Available",
+  "Premium Audio", 
+  "Natural Lighting",
+  "Comfortable Seating",
+  "Smart Displays",
+  "Modular Furniture",
+  "Digital Whiteboards",
+  "Phone",
+  "Desk",
+  "Sound Insulation"
+];
+
+// All locations for filtering
+export const allLocations = [
+  "Building A, Floor 1",
+  "Building A, Floor 2",
+  "Building B, Floor 1",
+  "Building B, Floor 3",
+  "Building C, Floor 1",
+  "Building C, Floor 2"
+];
 
 export const bookings = [
   {
@@ -85,5 +130,47 @@ export const bookings = [
     startTime: "13:00",
     endTime: "14:00",
   },
+  {
+    id: 6,
+    roomName: "Innovation Lab",
+    roomId: 6,
+    date: startOfToday(),
+    startTime: "10:00",
+    endTime: "12:00",
+  },
+  {
+    id: 7,
+    roomName: "Meeting Room B",
+    roomId: 2,
+    date: addDays(startOfToday(), 2),
+    startTime: "15:00",
+    endTime: "16:00",
+  }
 ]
+
+// Function to check if a room is available at a specific time
+export function isRoomAvailable(roomId: number, date: Date, startTime: string, endTime: string) {
+  const dateString = date.toDateString();
+  
+  return !bookings.some(booking => {
+    // Check if booking is for the same room and same day
+    if (booking.roomId === roomId && booking.date.toDateString() === dateString) {
+      // Convert times to numbers for easier comparison (e.g., "09:30" -> 9.5)
+      const bookingStart = timeToNumber(booking.startTime);
+      const bookingEnd = timeToNumber(booking.endTime);
+      const requestStart = timeToNumber(startTime);
+      const requestEnd = timeToNumber(endTime);
+      
+      // Check if times overlap
+      return (requestStart < bookingEnd && requestEnd > bookingStart);
+    }
+    return false;
+  });
+}
+
+// Helper to convert time string to number
+function timeToNumber(timeStr: string) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours + (minutes / 60);
+}
   
