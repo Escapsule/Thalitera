@@ -15,6 +15,7 @@
     <groupId>com.escapsule</groupId>
     <artifactId>Thalitera</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>Thalitera-Backend</name>
     <description>Thalitera-Backend</description>
 
@@ -22,6 +23,11 @@
     <url/>
     <licenses><license/></licenses>
     <developers><developer/></developers>
+    <modules>
+        <module>server</module>
+        <module>pojo</module>
+        <module>common</module>
+    </modules>
     <scm>
         <connection/>
         <developerConnection/>
