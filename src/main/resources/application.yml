@@ -1,0 +1,39 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: Thalitera-Backend
+  datasource:
+    url: ${dev.datasource.url}
+    username: ${dev.datasource.username}
+    password: ${dev.datasource.password}
+    driver-class-name: ${dev.datasource.driver-class-name}
+    hikari:
+      connection-timeout: ${dev.datasource.hikari.connection-timeout}
+      maximum-pool-size: ${dev.datasource.hikari.maximum-pool-size}
+
+mybatis-plus:
+  configuration:
+    # 全局设置
+    map-underscore-to-camel-case: ${dev.mybatis-plus.configuration.map-underscore-to-camel-case}
+    log-impl: ${dev.mybatis-plus.configuration.log-impl}
+    auto-mapping-behavior: ${dev.mybatis-plus.configuration.auto-mapping-behavior}
+
+    # PostgreSQL 特殊配置
+    jdbc-type-for-null: ${dev.mybatis-plus.configuration.jdbc-type-for-null}
+
+  global-config:
+    db-config:
+      id-type: ${dev.mybatis-plus.global-config.db-config.id-type}
+      logic-delete-field: ${dev.mybatis-plus.global-config.db-config.logic-delete-field}
+      logic-not-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-not-delete-value}
+      logic-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-delete-value}
+
+  # Mapper 文件配置
+  mapper-locations: ${dev.mybatis-plus.mapper-locations}
+  type-aliases-package: ${dev.mybatis-plus.type-aliases-package}
+
+# 日志配置（显示完整SQL）
+logging:
+  level:
+    com.escapsule.thalitera.mapper: ${dev.logging.level.com.escapsule.thalitera.mapper}
