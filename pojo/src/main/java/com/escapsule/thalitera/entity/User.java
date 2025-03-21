@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
-import java.util.UUID;
+import java.util.List;
 
 @Data
 @Builder
@@ -15,11 +15,15 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User {
 
+    private String avatar;
+
     private String userId;
 
     private String password;
 
     private String email;
+
+    private String username;
 
     /**
      * See {@link com.escapsule.thalitera.constant.UserStatusConstant}
@@ -38,7 +42,7 @@ public class User {
      * and skip MFA verification for this device.<br>
      * See {@link com.escapsule.thalitera.json.TrustedDevice}
      */
-    private TrustedDevice trustedDevice;
+    private List<TrustedDevice> trustedDevice;
 
     private Timestamp createdAt;
 

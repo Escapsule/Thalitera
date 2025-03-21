@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,7 +24,10 @@ public class Reservation {
 
     private Timestamp endTime;
 
-    private short attendeesCount;
+    /**
+     * Email address
+     */
+    private List<String> attendees;
 
     private String purpose;
 

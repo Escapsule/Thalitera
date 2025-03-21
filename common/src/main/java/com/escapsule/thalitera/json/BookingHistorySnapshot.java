@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -19,7 +20,7 @@ public class BookingHistorySnapshot {
 
     private Timestamp endTime;
 
-    private int attendeesCount;
+    private List<String> attendees;
 
     private String purpose;
 

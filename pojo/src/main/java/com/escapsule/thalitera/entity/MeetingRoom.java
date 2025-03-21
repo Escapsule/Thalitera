@@ -14,6 +14,8 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class MeetingRoom {
 
+    private  String image;
+
     private String roomId;
 
     /**
@@ -27,7 +29,7 @@ public class MeetingRoom {
 
     private String building;
 
-    private short floor;
+    private String floor;
 
     /**
      * See {@link com.escapsule.thalitera.constant.MeetingRoomStatusConstant}
