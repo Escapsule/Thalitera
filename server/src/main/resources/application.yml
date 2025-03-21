@@ -1,39 +1,29 @@
 spring:
   profiles:
-    active: dev
+    active: dev  # active profile
   application:
-    name: ${dev.application.name}
+    name: Thalitera-Backend
   datasource:
-    url: ${dev.datasource.url}
-    username: ${dev.datasource.username}
-    password: ${dev.datasource.password}
-    driver-class-name: ${dev.datasource.driver-class-name}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      connection-timeout: ${dev.datasource.hikari.connection-timeout}
-      maximum-pool-size: ${dev.datasource.hikari.maximum-pool-size}
+      connection-timeout: 30000
+      maximum-pool-size: 20
 
 mybatis-plus:
   configuration:
-    # 全局设置
-    map-underscore-to-camel-case: ${dev.mybatis-plus.configuration.map-underscore-to-camel-case}
-    log-impl: ${dev.mybatis-plus.configuration.log-impl}
-    auto-mapping-behavior: ${dev.mybatis-plus.configuration.auto-mapping-behavior}
-
-    # PostgreSQL 特殊配置
-    jdbc-type-for-null: ${dev.mybatis-plus.configuration.jdbc-type-for-null}
-
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    auto-mapping-behavior: full
+    jdbc-type-for-null: 'null'
   global-config:
     db-config:
-      id-type: ${dev.mybatis-plus.global-config.db-config.id-type}
-      logic-delete-field: ${dev.mybatis-plus.global-config.db-config.logic-delete-field}
-      logic-not-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-not-delete-value}
-      logic-delete-value: ${dev.mybatis-plus.global-config.db-config.logic-delete-value}
+      id-type: auto
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.escapsule.thalitera.entity
 
-  # Mapper 文件配置
-  mapper-locations: ${dev.mybatis-plus.mapper-locations}
-  type-aliases-package: ${dev.mybatis-plus.type-aliases-package}
-
-# 日志配置（显示完整SQL）
 logging:
   level:
-    com.escapsule.thalitera.mapper: ${dev.logging.level.com.escapsule.thalitera.mapper}
+    com.escapsule.thalitera.mapper: debug
