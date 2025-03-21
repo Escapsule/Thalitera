@@ -11,11 +11,18 @@ public enum ErrorCode {
 
 
     // 2000 ~ 2999 business logic related
-    USER_NOT_FOUND(2001, "User does not exist.");
+    USER_NOT_FOUND(2001, "User does not exist."),
+    EMAIL_ERROR(2002, "Email error."),
 
 
     // 3000 ~ 3999 database related
 
+
+    // 5000 ~ 5999 system level error
+    SYSTEM_BUSY(5000, "The system is busy, please try again later."),
+
+
+    ;
 
 
     private final int code;

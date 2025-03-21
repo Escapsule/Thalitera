@@ -3,6 +3,7 @@ package com.escapsule.thalitera.handler;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResponse;
+import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    //Handling business exceptions
+    //  Handling business exceptions
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BaseException ex,
                                                                   WebRequest request) {
@@ -48,12 +49,21 @@ public class GlobalExceptionHandler {
         );
     }
 
-    //Handling other uncaught exceptions
+    //  Handling email exceptions
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<ApiResponse<?>> handleEmailException(MessagingException ex) {
+        ApiResponse<?> response = ApiResponse.error(ErrorCode.EMAIL_ERROR.getCode(),
+                ErrorCode.EMAIL_ERROR.getMessage() + ": " + ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+
+    //  Handling other uncaught exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
         log.error("System Exceptions: ", ex);
         return ResponseEntity.internalServerError().body(
-                ApiResponse.error(500, "The system is busy, please try again later.")
+                ApiResponse.error(ErrorCode.SYSTEM_BUSY.getCode(), ErrorCode.SYSTEM_BUSY.getMessage())
         );
     }
 }

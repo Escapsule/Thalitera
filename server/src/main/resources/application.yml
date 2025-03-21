@@ -8,7 +8,8 @@ spring:
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 20
-
+  mail:
+    host: smtp.163.com
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
