@@ -1,0 +1,29 @@
+spring:
+  profiles:
+    active: dev  # active profile
+  application:
+    name: Thalitera-Backend
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 20
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    auto-mapping-behavior: full
+    jdbc-type-for-null: 'null'
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.escapsule.thalitera.entity
+
+logging:
+  level:
+    com.escapsule.thalitera.mapper: debug
