@@ -25,7 +25,7 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/meetingroom")
-    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
+    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody MeetingRoomDTO meetingRoomDTO) {
         List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(meetingRoomDTO);
         return ApiResult.success(
                 suitableMeetingRooms

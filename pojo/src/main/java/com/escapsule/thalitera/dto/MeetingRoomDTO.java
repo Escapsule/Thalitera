@@ -1,7 +1,6 @@
 package com.escapsule.thalitera.dto;
 
 import lombok.Data;
-import org.json.JSONObject;
 
 import java.time.OffsetDateTime;
 
@@ -12,6 +11,6 @@ public class MeetingRoomDTO {
     public short attendeesCount;
     public String building;
     public short floor;
-    public String facilities;
+    public Object facilities;
     public int page;
 }

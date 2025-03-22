@@ -4,8 +4,9 @@
     <select id="getMeetingRoom" resultType="com.escapsule.thalitera.entity.MeetingRoom">
         SELECT * FROM meeting_rooms
         WHERE
+            status = 'active'
             <if test="attendeesCount != null">
-                capacity_min &lt;= #{attendeesCount} AND capacity_max &gt;= #{attendeesCount}
+                AND capacity_min &lt;= #{attendeesCount} AND capacity_max &gt;= #{attendeesCount}
             </if>
             <if test="building != null">
                 AND building = #{building}
@@ -14,27 +15,19 @@
                 AND floor = #{floor}
             </if>
             <if test="facilities != null">
-                <if test="facilities.getProjector() != null">
-                    AND facilities @> '{"projector": #{facilities.getProjector()}}'
+                AND facilities @> '{"projector": ${facilities.projector}}'
+                <if test="facilities.whiteboard != null">
+                    AND (facilities->>'whiteboard')::int &gt;= #{facilities.whiteboard, jdbcType=INTEGER}
                 </if>
-                <if test="facilities.getWhiteboard() != null">
-                    AND facilities->>'whiteboard'::int &gt;= #{facilities.getWhiteboard()}
+                <if test="facilities.powerSockets != null">
+                    AND (facilities->>'power_sockets')::int &gt;= #{facilities.powerSockets, jdbcType=INTEGER}
                 </if>
-                <if test="facilities.getPowerSockets() != null">
-                    AND facilities->>'power_sockets'::int &gt;= #{facilities.getPowerSockets()}
-                </if>
-                <if test="facilities.getCoffeeBreak() != null">
-                    AND facilities @> '{"coffee_break": #{facilities.getCoffeeBreak()}}'
-                </if>
+                AND facilities @> '{"coffee_break": ${facilities.coffeeBreak}}'
                 <if test="facilities.getSpecialNotes() != null">
-                    <foreach collection="facilities.getSpecialNotes()" item="note" separator=" AND ">
+                    <foreach collection="facilities.specialNotes" item="note" separator=" AND ">
                         facilities @> '{"special_notes": #{note}}'
                     </foreach>
                 </if>
             </if>
-    </select>
-    <select id="getReservationsByRoomId" resultType="com.escapsule.thalitera.entity.Reservation">
-        SELECT * FROM reservations
-        WHERE room_id = #{roomId}
     </select>
 </mapper>
