@@ -14,7 +14,10 @@ public enum ErrorCode {
     USER_NOT_FOUND(2001, "User does not exist."),
     EMAIL_ERROR(2002, "Email error."),
     INVALID_PASSWORD_FORMAT(2003, "Invalid encoded password"),
-
+    USER_EXIST(2004, "User exist."),
+    USER_EMAIL_OR_TOKEN_INVALID(2005, "User email error or token expired"),
+    USER_TOKEN_MISMATCH(2006, "User email verification token not equal"),
+    USER_REGIESTER_FAILED(2007, "User register failed, please try again"),
 
     // 3000 ~ 3999 database related
 

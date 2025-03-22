@@ -19,6 +19,11 @@ spring:
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 3000
       mail.smtp.writetimeout: 5000
+  data:
+    redis:
+      host: localhost
+      password:
+      database: 0
 ```
 
 # env

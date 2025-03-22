@@ -3,6 +3,8 @@ spring:
     active: dev  # active profile
   application:
     name: Thalitera-Backend
+#  autoconfigure:
+#    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
   datasource:
     driver-class-name: org.postgresql.Driver
     hikari:
@@ -10,6 +12,14 @@ spring:
       maximum-pool-size: 20
   mail:
     host: smtp.163.com
+  data:
+    redis:
+      port: 6379
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    enabled: true
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
