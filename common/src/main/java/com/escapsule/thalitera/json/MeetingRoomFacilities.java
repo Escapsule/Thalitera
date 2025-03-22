@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeetingRoomFacility {
+public class MeetingRoomFacilities {
 
     /**
      * Projector availability

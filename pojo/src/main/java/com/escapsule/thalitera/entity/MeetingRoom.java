@@ -1,18 +1,19 @@
 package com.escapsule.thalitera.entity;
 
-import com.escapsule.thalitera.json.MeetingRoomFacility;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeetingRoom {
+public class MeetingRoom implements Serializable {
 
     private  String image;
 
@@ -37,9 +38,9 @@ public class MeetingRoom {
     private String status;
 
     /**
-     * See {@link com.escapsule.thalitera.json.MeetingRoomFacility}
+     * See {@link com.escapsule.thalitera.json.MeetingRoomFacilities}
      */
-    private MeetingRoomFacility facilities;
+    private String facilities;
 
     /**
      * Created by user ID
