@@ -2,42 +2,39 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.escapsule.thalitera.mapper.MeetingRoomMapper">
     <select id="getMeetingRoom" resultType="com.escapsule.thalitera.entity.MeetingRoom">
-# TODO: Not thoroughly tested, especially the facilities part and the date-time part
-        SELECT * FROM meeting_rooms LEFT JOIN reservations ON meeting_rooms.room_id = reservations.room_id
+        SELECT * FROM meeting_rooms
         WHERE
             <if test="attendeesCount != null">
-                meeting_rooms.capacity_min &lt;= #{attendeesCount} AND meeting_rooms.capacity_max &gt;= #{attendeesCount}
+                capacity_min &lt;= #{attendeesCount} AND capacity_max &gt;= #{attendeesCount}
             </if>
             <if test="building != null">
-                AND meeting_rooms.building = #{building}
+                AND building = #{building}
             </if>
             <if test="floor != null">
-                AND meeting_rooms.floor = #{floor}
+                AND floor = #{floor}
             </if>
             <if test="facilities != null">
                 <if test="facilities.getProjector() != null">
-                    AND meeting_rooms.facilities @> '{"projector": #{facilities.getProjector()}}'
+                    AND facilities @> '{"projector": #{facilities.getProjector()}}'
                 </if>
                 <if test="facilities.getWhiteboard() != null">
-                    AND meeting_rooms.facilities->>'whiteboard'::int &gt;= #{facilities.getWhiteboard()}
+                    AND facilities->>'whiteboard'::int &gt;= #{facilities.getWhiteboard()}
                 </if>
                 <if test="facilities.getPowerSockets() != null">
-                    AND meeting_rooms.facilities->>'power_sockets'::int &gt;= #{facilities.getPowerSockets()}
+                    AND facilities->>'power_sockets'::int &gt;= #{facilities.getPowerSockets()}
                 </if>
                 <if test="facilities.getCoffeeBreak() != null">
-                    AND meeting_rooms.facilities @> '{"coffee_break": #{facilities.getCoffeeBreak()}}'
+                    AND facilities @> '{"coffee_break": #{facilities.getCoffeeBreak()}}'
                 </if>
                 <if test="facilities.getSpecialNotes() != null">
                     <foreach collection="facilities.getSpecialNotes()" item="note" separator=" AND ">
-                        meeting_rooms.facilities @> '{"special_notes": #{note}}'
+                        facilities @> '{"special_notes": #{note}}'
                     </foreach>
                 </if>
             </if>
-            <if test="startTime != null">
-                AND reservations.end_time &lt;= #{startTime}
-            </if>
-            <if test="endTime != null">
-                AND reservations.start_time &gt;= #{endTime}
-            </if>
+    </select>
+    <select id="getReservationsByRoomId" resultType="com.escapsule.thalitera.entity.Reservation">
+        SELECT * FROM reservations
+        WHERE room_id = #{roomId}
     </select>
 </mapper>
