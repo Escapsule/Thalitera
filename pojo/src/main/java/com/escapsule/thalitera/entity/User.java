@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.escapsule.thalitera.json.TrustedDevice;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -18,7 +20,7 @@ public class User {
 
     private String avatar;
 
-    private String userId;
+    private UUID userId;
 
     private String passwordHash;
 
