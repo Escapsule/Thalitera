@@ -13,6 +13,7 @@ public enum ErrorCode {
     // 2000 ~ 2999 business logic related
     USER_NOT_FOUND(2001, "User does not exist."),
     EMAIL_ERROR(2002, "Email error."),
+    INVALID_PASSWORD_FORMAT(2003, "Invalid encoded password"),
 
 
     // 3000 ~ 3999 database related
