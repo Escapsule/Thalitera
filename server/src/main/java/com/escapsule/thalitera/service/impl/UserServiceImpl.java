@@ -139,6 +139,7 @@ public class UserServiceImpl implements UserService {
 
         Context context = new Context();
         context.setVariable("verification_url", url);
+        context.setVariable("email", dto.getTo());
 
         String html = mailTemplateEngine.process(dto.getTemplateContent(), context);
 

@@ -2,48 +2,196 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Registration Verification Email</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Secure Verification | Thalitera</title>
     <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+            padding: 60px 0;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f9 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.65;
+            color: #2d3436;
         }
         .container {
-            width: 80%;
+            max-width: 640px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            border-radius: 5px;
+            background: rgba(255,255,255,0.98);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2d3436 0%, #4a5362 100%);
+            padding: 32px;
             text-align: center;
         }
-        .content {
-            margin-bottom: 20px;
+        .logo {
+            height: 56px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .footer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #777;
+        .logo:hover {
+            transform: rotate(-8deg) scale(1.05);
+        }
+        .content {
+            padding: 48px 40px;
+        }
+        .cta-wrapper {
+            position: relative;
+            justify-content: center;
+            display: flex;
+            margin: 32px auto;
+            padding: 24px;
+            background: rgba(74,144,226,0.05);
+            border-radius: 12px;
+        }
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(74,144,226,0.25);
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74,144,226,0.35);
+        }
+        .security-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #e3fcef;
+            color: #2d9d78;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        .feature-list {
+            text-align: left;
+            margin: 32px auto;
+            max-width: 480px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .dynamic-link {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 1px dashed #4a90e2;
+            border-radius: 6px;
+            margin: 16px 0;
+            transition: background 0.3s ease;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <img src="https://k1ng-image.oss-cn-hongkong.aliyuncs.com/%E9%BB%91%E7%8C%AB.svg" alt="Logo" style="width: 50px;">
-    <div class="content">
-        <p>Hello, this is a verification email from the Thalitera. Please click the link below to complete the verification.</p>
-        <a th:href="${verification_url}">Click here to verify</a>
-        <p>If the above link cannot be clicked, please copy it to your browser's address bar for access. The link will be valid within 5 minutes.</p>
-        <p>If the above link is not accessible, try resending the verification email.</p>
-        <p>If the email was not requested by you, please ignore and delete it.</p>
+    <div class="header">
+        <img src="https://k1ng-image.oss-cn-hongkong.aliyuncs.com/%E9%BB%91%E7%8C%AB.svg"
+             alt="Thalitera"
+             class="logo">
     </div>
+
+    <div class="content">
+        <div class="security-badge">
+            🔒 Secure Verification Required
+        </div>
+
+        <h2 style="margin:0 0 8px 0;font-weight:700;color:#2d3436">
+            Welcome to Thalitera!
+        </h2>
+
+        <p style="color:#636e72;margin-bottom:32px">
+            Thank you for using our platform. To ensure your account security,
+            please verify your email address within the next 5 minutes.
+        </p>
+
+        <div class="cta-wrapper">
+            <a th:href="${verification_url}" class="cta-button">
+                <span style="margin-right:12px">👉</span>
+                Verify Email Now
+            </a>
+        </div>
+
+        <div class="feature-list">
+            <div style="display:flex;align-items:center;margin:12px 0">
+                <span style="font-size:20px;margin-right:12px">⏳</span>
+                <div>
+                    <h3 style="margin:0;font-size:15px">Temporary Access</h3>
+                    <p style="margin:4px 0;color:#636e72;font-size:14px">
+                        Verification link expires in 5 minutes
+                    </p>
+                </div>
+            </div>
+            <hr style="border-color:#eee">
+            <div style="display:flex;align-items:center;margin:12px 0">
+                <span style="font-size:20px;margin-right:12px">🔑</span>
+                <div>
+                    <h3 style="margin:0;font-size:15px">Security Assurance</h3>
+                    <p style="margin:4px 0;color:#636e72;font-size:14px">
+                        Encrypted connection with 256-bit SSL protection
+                    </p>
+                </div>
+            </div>
+            <hr style="border-color:#eee">
+            <div style="display:flex;align-items:center;margin:12px 0">
+                <span style="font-size:20px;margin-right:12px">🚀</span>
+                <div>
+                    <h3 style="margin:0;font-size:15px">Fast Platform Access</h3>
+                    <p style="margin:4px 0;color:#636e72;font-size:14px">
+                        Unlock and enjoy a convenient and fast interactive experience
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin:40px 0">
+            <p style="color:#636e72;font-size:14px">
+                Having trouble? Try copy this URL and paste into your browser:
+            </p>
+            <div class="dynamic-link">
+                <a th:href="${verification_url}"
+                   style="color:#4a90e2;text-decoration:none;word-break:break-all"
+                   th:text="${verification_url}"></a>
+            </div>
+            <p style="color:#636e72;font-size:14px;margin-top:16px">
+                📩 Didn't request this?
+                <span style="color:#636e72;text-decoration:none">
+                    Ignore this email
+                </span>
+            </p>
+        </div>
+    </div>
+
     <div class="footer">
-        <p>This email was automatically generated by the Thalitera.</p>
-        <p>Please do not reply.</p>
-        <p>&copy; 2025 Thalitera. All rights reserved.</p>
+        <div style="padding:24px;border-top:1px solid #eee">
+            <p style="margin:8px 0;color:#636e72;font-size:13px">
+                This email was sent to <span style="color:#4a90e2">
+                <span th:text="${email}"></span>
+            </span>
+            </p>
+            <p style="margin:8px 0;color:#636e72;font-size:13px">
+                © 2025 Thalitera Technologies ·
+                <a href="#" style="color:#4a90e2;text-decoration:none">Privacy Policy</a>
+                ·
+                <a href="#" style="color:#4a90e2;text-decoration:none">Support</a>
+            </p>
+            <p style="margin:16px 0 0 0;color:#b2bec3;font-size:12px">
+                Please do not reply to this automated message
+            </p>
+        </div>
     </div>
 </div>
 </body>
