@@ -6,7 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -19,7 +20,7 @@ public class User {
 
     private String userId;
 
-    private String password;
+    private String passwordHash;
 
     private String email;
 
@@ -35,7 +36,7 @@ public class User {
      */
     private String mfaSecret;
 
-    private Timestamp lastPasswordUpdate;
+    private OffsetDateTime lastPasswordUpdate;
 
     /**
      * When "Trusted Device" is enabled, add a new record to the table
@@ -44,8 +45,8 @@ public class User {
      */
     private List<TrustedDevice> trustedDevice;
 
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
 
-    private Timestamp updatedAt;
+    private OffsetDateTime updatedAt;
 
 }

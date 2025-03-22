@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -25,9 +25,9 @@ public class Session {
 
     private String ipAddress;
 
-    private Timestamp lastActive;
+    private OffsetDateTime lastActive;
 
-    private Timestamp expiresAt;
+    private OffsetDateTime expiresAt;
 
     private boolean isRevoked;
 

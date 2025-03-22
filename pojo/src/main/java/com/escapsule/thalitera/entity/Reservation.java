@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -20,9 +20,9 @@ public class Reservation {
 
     private String roomId;
 
-    private Timestamp startTime;
+    private OffsetDateTime startTime;
 
-    private Timestamp endTime;
+    private OffsetDateTime endTime;
 
     /**
      * Email address
@@ -43,8 +43,8 @@ public class Reservation {
      */
     private String qrToken;
 
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
 
-    private Timestamp updatedAt;
+    private OffsetDateTime updatedAt;
 
 }

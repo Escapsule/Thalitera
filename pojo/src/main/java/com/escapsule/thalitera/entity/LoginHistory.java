@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -19,7 +19,7 @@ public class LoginHistory {
 
     private String userId;
 
-    private Timestamp loginTime;
+    private OffsetDateTime loginTime;
 
     private String ipAddress;
 
