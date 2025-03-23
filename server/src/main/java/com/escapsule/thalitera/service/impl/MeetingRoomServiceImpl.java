@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +33,6 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         this.meetingRoomMapper = meetingRoomMapper;
     }
 
-
     @Override
     public List<MeetingRoom> getAllActiveMeetingRooms() {
         return meetingRoomMapper.getAllActiveMeetingRooms();
@@ -41,10 +41,12 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Override
     @SuppressWarnings("unchecked")
     public List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
+        // Check if the start time is after the end time
         if (meetingRoomDTO.getStartTime().isAfter(meetingRoomDTO.getEndTime())
                 || meetingRoomDTO.getStartTime().isEqual(meetingRoomDTO.getEndTime())) {
             throw new BaseException(ErrorCode.INVALID_TIME_RANGE);
         }
+        // Construct the query object
         MeetingRoomPO meetingRoomPO = MeetingRoomPO.builder()
                 .startTime(meetingRoomDTO.getStartTime())
                 .endTime(meetingRoomDTO.getEndTime())
@@ -53,6 +55,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .floor(meetingRoomDTO.getFloor())
                 .page(meetingRoomDTO.getPage())
                 .build();
+        // Check if the facilities are provided
         if (meetingRoomDTO.facilities != null) {
             LinkedHashMap<String, Object> facilitiesMap = (LinkedHashMap<String, Object>) meetingRoomDTO.facilities;
             MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
@@ -64,39 +67,24 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                     .build();
             meetingRoomPO.setFacilities(facilities);
         }
+        // Get the list of meeting rooms
         List<MeetingRoom> suitableMeetingRooms = meetingRoomMapper.getMeetingRoom(meetingRoomPO);
         Set<String> conflictRoomIds = new HashSet<>();
+        // Check conflicts
         for (MeetingRoom meetingRoom : suitableMeetingRooms) {
             List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(meetingRoom.getRoomId());
-            for (Reservation reservation : reservations) {
-                // 1. st <= rst < et
-                // 2. st < ret <= et
-                // 3. rst <= st < et <= ret
+            for (Reservation r : reservations) {
                 if (
-                        // case 1
-                        // st <= rst
-                        (meetingRoomDTO.getStartTime().isBefore(reservation.getStartTime())
-                            || meetingRoomDTO.getStartTime().isEqual(reservation.getStartTime()))
-                        // rst < et
-                        && meetingRoomDTO.getEndTime().isAfter(reservation.getStartTime()) ||
-                        // case 2
-                        // st < ret
-                        (meetingRoomDTO.getStartTime().isBefore(reservation.getEndTime())
-                        // ret <= et
-                        && (meetingRoomDTO.getEndTime().isEqual(reservation.getEndTime())
-                            || meetingRoomDTO.getEndTime().isAfter(reservation.getEndTime()) ||
-                        // case 3
-                        // rst <= st
-                        (reservation.getStartTime().isBefore(meetingRoomDTO.getStartTime())
-                            || reservation.getStartTime().isEqual(meetingRoomDTO.getStartTime()))
-                        // et <= ret
-                        && (reservation.getEndTime().isEqual(meetingRoomDTO.getEndTime())
-                            || reservation.getEndTime().isAfter(meetingRoomDTO.getEndTime()))))
+                        checkConflict(
+                            meetingRoomDTO.getStartTime(), meetingRoomDTO.getEndTime(),
+                            r.getStartTime(),              r.getEndTime()
+                        )
                 ) {
                     conflictRoomIds.add(meetingRoom.getRoomId());
                 }
             }
         }
+        // Remove the conflicting meeting rooms
         suitableMeetingRooms.removeIf(meetingRoom -> conflictRoomIds.contains(meetingRoom.getRoomId()));
         return suitableMeetingRooms;
     }
@@ -104,7 +92,9 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Override
     @Transactional
     public boolean bookMeetingRoom(BookingDTO bookingDTO) {
+        // Generate a reservation ID
         String reservationId = UUID.randomUUID().toString();
+        // Construct the reservation object
         Reservation reservation = Reservation.builder()
                 .reservationId(reservationId)
                 .roomId(bookingDTO.getRoomId())
@@ -115,11 +105,21 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .endTime(bookingDTO.getEndTime())
                 .build();
         meetingRoomMapper.bookMeetingRoom(reservation);
-        boolean conflict = checkConflict(bookingDTO);
-        if (conflict) {
-            meetingRoomMapper.deleteReservation(reservationId);
-            throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
+        // Get the list of confirmed reservations
+        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
+        // Check conflicts
+        for (Reservation r : reservations) {
+            if (
+                    checkConflict(
+                            bookingDTO.getStartTime(), bookingDTO.getEndTime(),
+                            r.getStartTime(),          r.getEndTime()
+                    )
+                    && r.getStatus().equals(BookingStatusConstant.CONFIRMED)) {
+                meetingRoomMapper.deleteReservation(reservationId);
+                throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
+            }
         }
+        // Update the reservation status
         meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CONFIRMED);
         return true;
     }
@@ -127,10 +127,12 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Override
     @Transactional
     public boolean updateMeetingRoom(BookingDTO bookingDTO) {
+        // Get the old reservation
         Reservation oldReservation = meetingRoomMapper.getReservationsByReservationId(bookingDTO.getReservationId());
         if (oldReservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
+        // Construct the new reservation object
         Reservation newReservation = Reservation.builder()
                 .reservationId(bookingDTO.getReservationId())
                 .roomId(bookingDTO.getRoomId())
@@ -142,51 +144,75 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .version(oldReservation.getVersion() + 1)
                 .build();
         meetingRoomMapper.updateReservation(newReservation);
-        boolean conflict = checkConflict(bookingDTO);
-        if (conflict) {
-            meetingRoomMapper.deleteReservation(newReservation.getReservationId());
-            throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
+        // Get the list of confirmed reservations
+        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
+        for (Reservation r : reservations) {
+            // Skip the current reservation
+            if (r.getReservationId().equals(bookingDTO.getReservationId())) {
+                continue;
+            }
+            // Check conflicts
+            if (
+                    checkConflict(
+                            bookingDTO.getStartTime(), bookingDTO.getEndTime(),
+                            r.getStartTime(),          r.getEndTime()
+                    )
+                    && r.getStatus().equals(BookingStatusConstant.CONFIRMED)
+            ) {
+                meetingRoomMapper.deleteReservation(newReservation.getReservationId());
+                throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
+            }
         }
+        // Update the reservation status
         meetingRoomMapper.updateReservationStatus(newReservation.getReservationId(), BookingStatusConstant.CONFIRMED);
         return true;
     }
 
     @Override
     @Transactional
-    public boolean deleteMeetingRoom(String reservationId) {
-        if (reservationId == null) {
+    public boolean cancelMeetingRoom(String reservationId) {
+        // Check if the reservation ID is provided
+        if (reservationId == null || reservationId.isEmpty()) {
             throw new BaseException(ErrorCode.PARAM_ERROR);
         }
+        // Get the reservation
         Reservation reservation = meetingRoomMapper.getReservationsByReservationId(reservationId);
+        // Check if the reservation exists
         if (reservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
+        // Update the reservation status
         meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CANCELED);
         return true;
     }
 
-    private boolean checkConflict(BookingDTO bookingDTO) {
-        boolean conflict = false;
-        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
-        for (Reservation r : reservations) {
-            if (
-                    (bookingDTO.getStartTime().isBefore(r.getStartTime())
-                        || bookingDTO.getStartTime().isEqual(r.getStartTime()))
-                    && bookingDTO.getEndTime().isAfter(r.getStartTime()) ||
-                    (bookingDTO.getStartTime().isBefore(r.getEndTime())
-                    && (bookingDTO.getEndTime().isEqual(r.getEndTime())
-                        || bookingDTO.getEndTime().isAfter(r.getEndTime()) ||
-                    (r.getStartTime().isBefore(bookingDTO.getStartTime())
-                        || r.getStartTime().isEqual(bookingDTO.getStartTime()))
-                    && (r.getEndTime().isEqual(bookingDTO.getEndTime())
-                        || r.getEndTime().isAfter(bookingDTO.getEndTime()))))
-            ) {
-                if (r.getStatus().equals(BookingStatusConstant.CONFIRMED)) {
-                    conflict = true;
-                    break;
-                }
-            }
-        }
-        return conflict;
+    private boolean checkConflict(OffsetDateTime startTime,            OffsetDateTime endTime,
+                                  OffsetDateTime reservationStartTime, OffsetDateTime reservationEndTime) {
+        // 1. st <= rs < et
+        // 2. st < re <= et
+        // 3. rs <= st < et <= re
+        return (
+                //case 1
+                (
+                    // st <= rs
+                    (startTime.isBefore(reservationStartTime) || startTime.isEqual(reservationStartTime)) &&
+                    // rs < et
+                    endTime.isAfter(reservationStartTime)
+                ) ||
+                //case 2
+                (
+                    // st < re
+                    startTime.isBefore(reservationEndTime) &&
+                    // re <= et
+                    (endTime.isEqual(reservationEndTime) || endTime.isAfter(reservationEndTime))
+                ) ||
+                //case 3
+                (
+                    // rs <= st
+                    (reservationStartTime.isBefore(startTime) || reservationStartTime.isEqual(startTime)) &&
+                    // st < et
+                    (reservationEndTime.isEqual(endTime) || reservationEndTime.isAfter(endTime))
+                )
+        );
     }
 }
