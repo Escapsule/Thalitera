@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.service;
 
+import com.escapsule.thalitera.dto.BookingDTO;
 import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 
@@ -16,4 +17,8 @@ public interface MeetingRoomService {
     List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO);
 
     List<MeetingRoom> getAllActiveMeetingRooms();
+
+    boolean bookMeetingRoom(BookingDTO bookingDTO);
+
+    boolean updateMeetingRoom(BookingDTO bookingDTO);
 }

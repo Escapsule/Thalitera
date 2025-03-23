@@ -1,4 +1,4 @@
-package com.escapsule.thalitera.json;
+package com.escapsule.thalitera.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,22 +12,12 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingHistorySnapshot {
-
-    private String userId;
-
+public class BookingDTO {
+    private String reservationId;
     private String roomId;
-
-    private OffsetDateTime startTime;
-
-    private OffsetDateTime endTime;
-
-    public List<String> attendees;
-
+    private String userId;
+    private List<String> attendees;
     private String purpose;
-
-    /**
-     * See {@link com.escapsule.thalitera.constant.BookingStatusConstant}
-     */
-    private String status;
+    private OffsetDateTime startTime;
+    private OffsetDateTime endTime;
 }

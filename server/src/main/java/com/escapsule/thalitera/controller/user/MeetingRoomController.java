@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.controller.user;
 
+import com.escapsule.thalitera.dto.BookingDTO;
 import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
@@ -45,5 +46,25 @@ public class MeetingRoomController {
                         .map(MeetingRoomTransfer.INSTANCE::meetingRoom2MeetingRoomVO)
                         .toList()
         );
+    }
+
+    @RequestMapping("/booking")
+    public ApiResult<String> bookMeetingRoom(@RequestBody BookingDTO bookingDTO) {
+        boolean success = meetingRoomService.bookMeetingRoom(bookingDTO);
+        if (success) {
+            return ApiResult.success("Booking successful.");
+        } else {
+            return ApiResult.success("Booking failed.");
+        }
+    }
+
+    @RequestMapping("/update")
+    public ApiResult<String> updateMeetingRoom(@RequestBody BookingDTO bookingDTO) {
+        boolean success = meetingRoomService.updateMeetingRoom(bookingDTO);
+        if (success) {
+            return ApiResult.success("Update successful.");
+        } else {
+            return ApiResult.success("Update failed.");
+        }
     }
 }
