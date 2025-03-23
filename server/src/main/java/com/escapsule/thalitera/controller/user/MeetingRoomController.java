@@ -67,4 +67,14 @@ public class MeetingRoomController {
             return ApiResult.success("Update failed.");
         }
     }
+
+    @RequestMapping("/delete")
+    public ApiResult<String> deleteMeetingRoom(@RequestBody String reservationId) {
+        boolean success = meetingRoomService.deleteMeetingRoom(reservationId);
+        if (success) {
+            return ApiResult.success("Delete successful.");
+        } else {
+            return ApiResult.success("Delete failed.");
+        }
+    }
 }

@@ -21,4 +21,6 @@ public interface MeetingRoomService {
     boolean bookMeetingRoom(BookingDTO bookingDTO);
 
     boolean updateMeetingRoom(BookingDTO bookingDTO);
+
+    boolean deleteMeetingRoom(String reservationId);
 }

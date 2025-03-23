@@ -18,16 +18,16 @@ public interface MeetingRoomMapper {
     @Select("SELECT * FROM meeting_rooms WHERE status = 'active'")
     List<MeetingRoom> getAllActiveMeetingRooms();
 
-    @Select("SELECT * FROM reservations WHERE room_id = #{roomId}::uuid")
-    List<Reservation> getReservationsByRoomId(String roomId);
+    @Select("SELECT * FROM reservations WHERE room_id = #{roomId}::uuid AND status = 'confirmed'")
+    List<Reservation> getConfirmedReservationsByRoomId(String roomId);
 
     void bookMeetingRoom(Reservation reservation);
 
     @Delete("DELETE FROM reservations WHERE reservation_id = #{reservationId}::uuid")
     void deleteReservation(String reservationId);
 
-    @Update("UPDATE reservations SET status = #{confirmed} WHERE reservation_id = #{reservationId}::uuid")
-    void updateReservationStatus(String reservationId, String confirmed);
+    @Update("UPDATE reservations SET status = #{status} WHERE reservation_id = #{reservationId}::uuid")
+    void updateReservationStatus(String reservationId, String status);
 
     @Select("SELECT * FROM reservations WHERE reservation_id = #{reservationId}::uuid")
     Reservation getReservationsByReservationId(String reservationId);

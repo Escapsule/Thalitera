@@ -36,6 +36,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         MeetingRoomPO meetingRoomPO = MeetingRoomPO.builder()
                 .startTime(meetingRoomDTO.getStartTime())
@@ -64,7 +65,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         }
         Set<String> conflictRoomIds = new HashSet<>();
         for (MeetingRoom meetingRoom : suitableMeetingRooms) {
-            List<Reservation> reservations = meetingRoomMapper.getReservationsByRoomId(meetingRoom.getRoomId());
+            List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(meetingRoom.getRoomId());
             for (Reservation reservation : reservations) {
                 // 1. st < rst < et
                 // 2. st < ret < et
@@ -132,9 +133,21 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         return true;
     }
 
+    @Override
+    @Transactional
+    public boolean deleteMeetingRoom(String reservationId) {
+        Reservation reservation = meetingRoomMapper.getReservationsByReservationId(reservationId);
+        if (reservation == null) {
+            log.error("The reservation does not exist.");
+            throw new IllegalArgumentException("The reservation does not exist.");
+        }
+        meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CANCELED);
+        return true;
+    }
+
     private boolean checkConflict(BookingDTO bookingDTO) {
         boolean conflict = false;
-        List<Reservation> reservations = meetingRoomMapper.getReservationsByRoomId(bookingDTO.getRoomId());
+        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
         for (Reservation r : reservations) {
             if ((bookingDTO.getStartTime().isBefore(r.getStartTime()) && bookingDTO.getEndTime().isAfter(r.getStartTime())) ||
                     (bookingDTO.getStartTime().isBefore(r.getEndTime()) && bookingDTO.getEndTime().isAfter(r.getEndTime())) ||
