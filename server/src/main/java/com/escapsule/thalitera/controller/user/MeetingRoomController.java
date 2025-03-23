@@ -7,6 +7,7 @@ import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,7 +39,7 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/filter")
-    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody MeetingRoomDTO meetingRoomDTO) {
+    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(meetingRoomDTO);
         return ApiResult.success(
                 suitableMeetingRooms
@@ -49,7 +50,7 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/booking")
-    public ApiResult<String> bookMeetingRoom(@RequestBody BookingDTO bookingDTO) {
+    public ApiResult<String> bookMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
         boolean success = meetingRoomService.bookMeetingRoom(bookingDTO);
         if (success) {
             return ApiResult.success("Booking successful.");
@@ -59,7 +60,7 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/update")
-    public ApiResult<String> updateMeetingRoom(@RequestBody BookingDTO bookingDTO) {
+    public ApiResult<String> updateMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
         boolean success = meetingRoomService.updateMeetingRoom(bookingDTO);
         if (success) {
             return ApiResult.success("Update successful.");

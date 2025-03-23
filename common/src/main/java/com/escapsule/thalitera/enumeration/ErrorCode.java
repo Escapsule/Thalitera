@@ -18,6 +18,9 @@ public enum ErrorCode {
     USER_EMAIL_OR_TOKEN_INVALID(2005, "User email error or token expired"),
     USER_TOKEN_MISMATCH(2006, "User email verification token not equal"),
     USER_REGIESTER_FAILED(2007, "User register failed, please try again"),
+    INVALID_TIME_RANGE(2008, "The start time should be before the end time."),
+    CONFLICT_RESERVATION(2009, "The meeting room has been reserved during this time."),
+    RESERVATION_NOT_FOUND(2010, "Reservation not found."),
 
     // 3000 ~ 3999 database related
 
