@@ -14,4 +14,6 @@ public interface MeetingRoomService {
      * @return The list of meeting rooms.
      */
     List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO);
+
+    List<MeetingRoom> getAllActiveMeetingRooms();
 }

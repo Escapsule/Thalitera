@@ -13,6 +13,9 @@ public interface MeetingRoomMapper {
 
     List<MeetingRoom> getMeetingRoom(MeetingRoomPO meetingRoomPO);
 
+    @Select("SELECT * FROM meeting_rooms WHERE status = 'active'")
+    List<MeetingRoom> getAllActiveMeetingRooms();
+
     @Select("SELECT * FROM reservations WHERE room_id = #{roomId}::uuid")
     List<Reservation> getReservationsByRoomId(String roomId);
 }

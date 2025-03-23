@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 @Data
 @Builder
@@ -27,6 +28,6 @@ public class MeetingRoomVO {
 
     private String floor;
 
-    private String facilities;
+    private Map<String, Object> facilities;
 
 }

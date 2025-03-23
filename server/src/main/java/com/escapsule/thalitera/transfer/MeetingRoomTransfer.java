@@ -2,13 +2,25 @@ package com.escapsule.thalitera.transfer;
 
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
+import org.json.JSONObject;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
+
+import java.util.Map;
 
 @Mapper
 public interface MeetingRoomTransfer {
 
     MeetingRoomTransfer INSTANCE = Mappers.getMapper(MeetingRoomTransfer.class);
 
-    MeetingRoomVO meetingRoom2MeetingRoomVO(MeetingRoom meetingRoom);
+    @Mapping(target = "facilities", source = "facilities")
+    MeetingRoomVO meetingRoom2MeetingRoomVO(MeetingRoom source);
+
+    default Map<String, Object> convertStringToMap(String facilities) {
+        if (facilities == null) {
+            return null;
+        }
+        return new JSONObject(facilities).toMap();
+    }
 }

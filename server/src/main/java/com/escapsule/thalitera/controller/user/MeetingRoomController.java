@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequestMapping("/meetingroom")
 @Slf4j
 public class MeetingRoomController {
 
@@ -24,7 +25,18 @@ public class MeetingRoomController {
         this.meetingRoomService = meetingRoomService;
     }
 
-    @RequestMapping("/meetingroom")
+    @RequestMapping("/all")
+    public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
+        List<MeetingRoom> meetingRooms = meetingRoomService.getAllActiveMeetingRooms();
+        return ApiResult.success(
+                meetingRooms
+                        .stream()
+                        .map(MeetingRoomTransfer.INSTANCE::meetingRoom2MeetingRoomVO)
+                        .toList()
+        );
+    }
+
+    @RequestMapping("/filter")
     public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody MeetingRoomDTO meetingRoomDTO) {
         List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(meetingRoomDTO);
         return ApiResult.success(

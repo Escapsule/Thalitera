@@ -25,6 +25,12 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         this.meetingRoomMapper = meetingRoomMapper;
     }
 
+
+    @Override
+    public List<MeetingRoom> getAllActiveMeetingRooms() {
+        return meetingRoomMapper.getAllActiveMeetingRooms();
+    }
+
     @Override
     public List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         MeetingRoomPO meetingRoomPO = MeetingRoomPO.builder()
@@ -47,6 +53,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
             meetingRoomPO.setFacilities(facilities);
         }
         List<MeetingRoom> suitableMeetingRooms = meetingRoomMapper.getMeetingRoom(meetingRoomPO);
+        // TODO: params validation
         if (meetingRoomDTO.getAttendeesCount() <= 0) {
             log.error("The number of attendees must be greater than 0.");
             throw new IllegalArgumentException("The number of attendees must be greater than 0.");
