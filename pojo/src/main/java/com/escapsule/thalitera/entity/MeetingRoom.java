@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class MeetingRoom implements Serializable {
 
-    private  String image;
+    private String image;
 
     private String roomId;
 
@@ -23,13 +23,13 @@ public class MeetingRoom implements Serializable {
      */
     private String name;
 
-    private short capacityMin;
+    private int capacityMin;
 
-    private short capacityMax;
+    private int capacityMax;
 
     private String building;
 
-    private String floor;
+    private int floor;
 
     /**
      * See {@link com.escapsule.thalitera.constant.MeetingRoomStatusConstant}

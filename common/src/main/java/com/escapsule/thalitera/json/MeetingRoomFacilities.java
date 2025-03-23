@@ -16,26 +16,26 @@ public class MeetingRoomFacilities {
     /**
      * Projector availability
      */
-    private boolean projector;
+    public boolean projector;
 
     /**
      * Number of whiteboards
      */
-    private int whiteboard;
+    public int whiteboard;
 
     /**
      * Number of power sockets
      */
-    private int powerSockets;
+    public int powerSockets;
 
     /**
      * Coffee break availability
      */
-    private boolean coffeeBreak;
+    public boolean coffeeBreak;
 
     /**
      * Special notes
      */
-    private List<String> specialNotes;
+    public List<String> specialNotes;
 
 }

@@ -8,6 +8,7 @@ import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,14 +40,24 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/filter")
-    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
-        List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(meetingRoomDTO);
+    public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
+        List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(bookingDTO);
         return ApiResult.success(
                 suitableMeetingRooms
                         .stream()
                         .map(MeetingRoomTransfer.INSTANCE::meetingRoom2MeetingRoomVO)
                         .toList()
         );
+    }
+
+    @RequestMapping("/modify")
+    public ApiResult<String> modifyMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
+        boolean success = meetingRoomService.modifyMeetingRoom(meetingRoomDTO);
+        if (success) {
+            return ApiResult.success("Modify successful.");
+        } else {
+            return ApiResult.success("Modify failed.");
+        }
     }
 
     @RequestMapping("/booking")
@@ -70,7 +81,7 @@ public class MeetingRoomController {
     }
 
     @RequestMapping("/cancel")
-    public ApiResult<String> cancelMeetingRoom(@RequestBody String reservationId) {
+    public ApiResult<String> cancelMeetingRoom(@RequestBody @NotBlank String reservationId) {
         boolean success = meetingRoomService.cancelMeetingRoom(reservationId);
         if (success) {
             return ApiResult.success("Delete successful.");

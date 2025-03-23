@@ -33,4 +33,9 @@ public interface MeetingRoomMapper {
     Reservation getReservationsByReservationId(String reservationId);
 
     void updateReservation(Reservation newReservation);
+
+    @Select("SELECT * FROM meeting_rooms WHERE room_id = #{roomId}::uuid")
+    MeetingRoom getMeetingRoomByRoomId(String roomId);
+
+    void updateMeetingRoom(MeetingRoom newMeetingRoom);
 }

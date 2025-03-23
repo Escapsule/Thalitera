@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_TIME_RANGE(2008, "The start time should be before the end time."),
     CONFLICT_RESERVATION(2009, "The meeting room has been reserved during this time."),
     RESERVATION_NOT_FOUND(2010, "Reservation not found."),
+    MEETING_ROOM_NOT_FOUND(2011, "Meeting room not found."),
 
     // 3000 ~ 3999 database related
 

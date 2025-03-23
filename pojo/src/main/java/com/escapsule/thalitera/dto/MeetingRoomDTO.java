@@ -1,6 +1,5 @@
 package com.escapsule.thalitera.dto;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
@@ -9,19 +8,29 @@ import java.time.OffsetDateTime;
 @Data
 public class MeetingRoomDTO {
 
-    @Future
-    public OffsetDateTime startTime;
+    public String roomId;
 
-    @Future
-    public OffsetDateTime endTime;
+    public String name;
 
     @Positive
-    public short attendeesCount;
+    public int capacityMin;
+
+    @Positive
+    public int capacityMax;
 
     public String building;
-    public short floor;
+
+    public int floor;
+
+    public String status;
+
     public Object facilities;
 
-    @Positive
-    public int page;
+    public String createdBy;
+
+    public OffsetDateTime createdAt;
+
+    public OffsetDateTime updatedAt;
+
+    public String image;
 }

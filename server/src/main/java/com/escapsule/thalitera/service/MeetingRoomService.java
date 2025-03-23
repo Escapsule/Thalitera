@@ -11,10 +11,10 @@ public interface MeetingRoomService {
     /**
      * Get the list of meeting rooms.
      *
-     * @param meetingRoomDTO The DTO object containing the parameters for the meeting room.
+     * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return The list of meeting rooms.
      */
-    List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO);
+    List<MeetingRoom> getMeetingRoom(BookingDTO bookingDTO);
 
     List<MeetingRoom> getAllActiveMeetingRooms();
 
@@ -23,4 +23,6 @@ public interface MeetingRoomService {
     boolean updateMeetingRoom(BookingDTO bookingDTO);
 
     boolean cancelMeetingRoom(String reservationId);
+
+    boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO);
 }

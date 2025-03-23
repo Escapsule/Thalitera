@@ -12,7 +12,9 @@ import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.po.MeetingRoomPO;
 import com.escapsule.thalitera.service.MeetingRoomService;
+import com.escapsule.thalitera.utils.TokenUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,24 +42,23 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<MeetingRoom> getMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
+    public List<MeetingRoom> getMeetingRoom(BookingDTO bookingDTO) {
         // Check if the start time is after the end time
-        if (meetingRoomDTO.getStartTime().isAfter(meetingRoomDTO.getEndTime())
-                || meetingRoomDTO.getStartTime().isEqual(meetingRoomDTO.getEndTime())) {
+        if (bookingDTO.getStartTime().isAfter(bookingDTO.getEndTime())
+                || bookingDTO.getStartTime().isEqual(bookingDTO.getEndTime())) {
             throw new BaseException(ErrorCode.INVALID_TIME_RANGE);
         }
         // Construct the query object
         MeetingRoomPO meetingRoomPO = MeetingRoomPO.builder()
-                .startTime(meetingRoomDTO.getStartTime())
-                .endTime(meetingRoomDTO.getEndTime())
-                .attendeesCount(meetingRoomDTO.getAttendeesCount())
-                .building(meetingRoomDTO.getBuilding())
-                .floor(meetingRoomDTO.getFloor())
-                .page(meetingRoomDTO.getPage())
+                .startTime(bookingDTO.getStartTime())
+                .endTime(bookingDTO.getEndTime())
+                .attendeesCount(bookingDTO.getAttendeesCount())
+                .building(bookingDTO.getBuilding())
+                .floor(bookingDTO.getFloor())
                 .build();
         // Check if the facilities are provided
-        if (meetingRoomDTO.facilities != null) {
-            LinkedHashMap<String, Object> facilitiesMap = (LinkedHashMap<String, Object>) meetingRoomDTO.facilities;
+        if (bookingDTO.facilities != null) {
+            LinkedHashMap<String, Object> facilitiesMap = (LinkedHashMap<String, Object>) bookingDTO.facilities;
             MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
                     .projector((Boolean) facilitiesMap.get(FacilitiesItemsConstant.PROJECTOR))
                     .whiteboard((Integer) facilitiesMap.get(FacilitiesItemsConstant.WHITEBOARD))
@@ -76,8 +77,8 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
             for (Reservation r : reservations) {
                 if (
                         checkConflict(
-                            meetingRoomDTO.getStartTime(), meetingRoomDTO.getEndTime(),
-                            r.getStartTime(),              r.getEndTime()
+                            bookingDTO.getStartTime(), bookingDTO.getEndTime(),
+                            r.getStartTime(),          r.getEndTime()
                         )
                 ) {
                     conflictRoomIds.add(meetingRoom.getRoomId());
@@ -103,6 +104,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .purpose(bookingDTO.getPurpose())
                 .startTime(bookingDTO.getStartTime())
                 .endTime(bookingDTO.getEndTime())
+                .qrToken(TokenUtils.generateShortToken())
                 .build();
         meetingRoomMapper.bookMeetingRoom(reservation);
         // Get the list of confirmed reservations
@@ -114,7 +116,8 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                             bookingDTO.getStartTime(), bookingDTO.getEndTime(),
                             r.getStartTime(),          r.getEndTime()
                     )
-                    && r.getStatus().equals(BookingStatusConstant.CONFIRMED)) {
+                    && r.getStatus().equals(BookingStatusConstant.CONFIRMED)
+            ) {
                 meetingRoomMapper.deleteReservation(reservationId);
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
             }
@@ -142,6 +145,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .startTime(bookingDTO.getStartTime())
                 .endTime(bookingDTO.getEndTime())
                 .version(oldReservation.getVersion() + 1)
+                .qrToken(oldReservation.getQrToken())
                 .build();
         meetingRoomMapper.updateReservation(newReservation);
         // Get the list of confirmed reservations
@@ -183,6 +187,41 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         }
         // Update the reservation status
         meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CANCELED);
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
+        // Check if the room ID is provided
+        if (meetingRoomDTO.getRoomId() == null || meetingRoomDTO.getRoomId().isEmpty()) {
+            throw new BaseException(ErrorCode.PARAM_ERROR);
+        }
+        // Get the meeting room
+        MeetingRoom meetingRoom = meetingRoomMapper.getMeetingRoomByRoomId(meetingRoomDTO.getRoomId());
+        // Check if the meeting room exists
+        if (meetingRoom == null) {
+            throw new BaseException(ErrorCode.MEETING_ROOM_NOT_FOUND);
+        }
+        MeetingRoom newMeetingRoom = MeetingRoom.builder()
+                .roomId(meetingRoomDTO.getRoomId())
+                .name(meetingRoomDTO.getName())
+                .capacityMin(meetingRoomDTO.getCapacityMin())
+                .capacityMax(meetingRoomDTO.getCapacityMax())
+                .building(meetingRoomDTO.getBuilding())
+                .floor(meetingRoomDTO.getFloor())
+                .status(meetingRoomDTO.getStatus())
+                .createdBy(meetingRoom.getCreatedBy())
+                .createdAt(meetingRoom.getCreatedAt())
+                .updatedAt(OffsetDateTime.now())
+                .image(meetingRoomDTO.getImage())
+                .build();
+        if (meetingRoomDTO.getFacilities() != null) {
+            String facilities = JSONObject.valueToString(meetingRoomDTO.getFacilities());
+            newMeetingRoom.setFacilities(facilities);
+        }
+        // Update the meeting room
+        meetingRoomMapper.updateMeetingRoom(newMeetingRoom);
         return true;
     }
 

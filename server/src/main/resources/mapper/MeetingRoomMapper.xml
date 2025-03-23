@@ -56,4 +56,26 @@
         WHERE
             reservation_id = #{reservationId}::uuid
     </update>
+    <update id="updateMeetingRoom">
+        UPDATE
+            meeting_rooms
+        SET
+            name = #{name},
+            capacity_min = #{capacityMin},
+            capacity_max = #{capacityMax},
+            building = #{building},
+            floor = #{floor},
+            status = #{status},
+            created_by = #{createdBy},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt},
+            image = #{image},
+            facilities = '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
+                <foreach collection="facilities.specialNotes" item="note" separator=",">
+                    "${note}"
+                </foreach>
+            ]}'::jsonb
+        WHERE
+            room_id = #{roomId}::uuid
+    </update>
 </mapper>

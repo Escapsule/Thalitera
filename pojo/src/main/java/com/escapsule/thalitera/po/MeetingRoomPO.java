@@ -16,9 +16,9 @@ public class MeetingRoomPO {
 
     public OffsetDateTime startTime;
     public OffsetDateTime endTime;
-    public short attendeesCount;
+    public int attendeesCount;
     public String building;
-    public short floor;
+    public int floor;
     public MeetingRoomFacilities facilities;
     public int page;
 }
