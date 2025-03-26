@@ -11,25 +11,25 @@ export interface ApiResponse<T = null> {
 }
 
 export interface User {
-  email_address: string;
+  email: string;
   username?: string;
 }
 
-// Get the backend URL from environment variables
-const getBackendUrl = () => {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
-  return `http://${backendUrl}`;
+// Get the API URL - using the Next.js proxy to avoid CORS issues
+const getApiUrl = () => {
+  // Use relative URL to leverage Next.js API routes proxy
+  return '/api';
 };
 
 // Login function to authenticate users
-export async function login(email_address: string, password: string): Promise<ApiResponse> {
+export async function login(email: string, password: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${getBackendUrl()}/user/login`, {
+    const response = await fetch(`${getApiUrl()}/user/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email_address, password }),
+      body: JSON.stringify({ email, password }),
       credentials: 'include', // Important to include cookies in the request
     });
 
@@ -46,14 +46,14 @@ export async function login(email_address: string, password: string): Promise<Ap
 }
 
 // Register function to create new users
-export async function register(email_address: string, password: string): Promise<ApiResponse> {
+export async function register(email: string, password: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${getBackendUrl()}/user/register`, {
+    const response = await fetch(`${getApiUrl()}/user/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email_address, password }),
+      body: JSON.stringify({ email, password }),
     });
 
     const result = await response.json();
@@ -76,7 +76,8 @@ export async function register(email_address: string, password: string): Promise
 // Function to check if user is authenticated
 export async function checkAuth(): Promise<boolean> {
   try {
-    const response = await fetch(`${getBackendUrl()}/user/check-auth`, {
+    const response = await fetch(`${getApiUrl()}/user/check-auth`, {
+      method: 'GET',
       credentials: 'include', // Important to include cookies in the request
     });
     
@@ -91,7 +92,7 @@ export async function checkAuth(): Promise<boolean> {
 // Function for logging out
 export async function logout(): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${getBackendUrl()}/user/logout`, {
+    const response = await fetch(`${getApiUrl()}/user/logout`, {
       method: 'POST',
       credentials: 'include',
     });
