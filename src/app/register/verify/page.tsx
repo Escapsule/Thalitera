@@ -7,6 +7,12 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+// Get the backend URL from environment variables
+const getBackendUrl = () => {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+  return `http://${backendUrl}`;
+};
+
 export default function VerifyPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('Verifying your account...');
@@ -17,16 +23,16 @@ export default function VerifyPage() {
       try {
         // Get the uuid and email from the URL
         const uuid = searchParams.get('uuid');
-        const email = searchParams.get('email_address');
+        const email_address = searchParams.get('email_address');
         
-        if (!uuid || !email) {
+        if (!uuid || !email_address) {
           setStatus('error');
           setMessage('Invalid verification link. Please request a new one.');
           return;
         }
         
         // Call the verification endpoint
-        const response = await fetch(`/api/register/verify?uuid=${uuid}&email_address=${email}`, {
+        const response = await fetch(`${getBackendUrl()}/user/register/verify?uuid=${uuid}&email_address=${email_address}`, {
           method: 'GET',
         });
         
