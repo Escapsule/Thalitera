@@ -20,11 +20,11 @@ export default function LandingPage() {
           <nav className="hidden md:flex gap-6">
           </nav>
           <div className="flex items-center gap-4">
-            <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+            <Link href="/login" className="text-sm font-medium hover:underline underline-offset-4">
               Sign In
             </Link>
             <Button asChild>
-              <Link href="#">Get Started</Link>
+              <Link href="/login">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button size="lg" asChild>
-                    <Link href="#">Start Free Trial</Link>
+                    <Link href="/login">Start Free Trial</Link>
                   </Button>
                 </div>
               </div>
