@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeetingRoomFacilities {
+public class MeetingRoomFacilities extends Jsonb {
 
     /**
      * Projector availability

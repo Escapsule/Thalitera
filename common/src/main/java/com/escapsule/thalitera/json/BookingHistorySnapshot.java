@@ -12,7 +12,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingHistorySnapshot {
+public class BookingHistorySnapshot extends Jsonb{
 
     private String userId;
 
