@@ -1,13 +1,19 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import com.escapsule.thalitera.json.TrustedDevice;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.ibatis.type.JdbcType;
 
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -16,10 +22,12 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+@TableName(value = "users")
+public class User implements Serializable {
 
     private String avatar;
 
+    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
     private UUID userId;
 
     private String passwordHash;

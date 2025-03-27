@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.User;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -22,6 +23,8 @@ public interface UserMapper {
      *
      * @param user user entity
      */
+    @Insert("INSERT INTO users (user_id, email, password_hash, username)" +
+            "VALUES (#{userId}, #{email}, #{passwordHash}, #{username})")
     void insert(User user);
 
     /**
