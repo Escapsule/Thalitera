@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { getSessionCookie } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,20 @@ export default function LoginPage() {
         // Handle login
         const success = await login(email, password);
         if (success) {
+          // After successful login, check if the cookie is set
+          const sessionCookie = getSessionCookie();
+          console.log('Login success, session cookie value:', sessionCookie ? 'exists' : 'not found');
+          
+          // If the cookie wasn't automatically set by the browser, we could set it manually
+          // This is a fallback and should rarely be needed if the server is configured correctly
+          if (!sessionCookie) {
+            console.warn('No session cookie found after login, this might cause authentication issues');
+            // You could use the session ID from the login response if available
+            // But the login function in auth.ts should have already handled this
+          }
+          
+          // Redirect to dashboard after successful login
+          console.log('Redirecting to dashboard...');
           router.push('/dashboard');
         }
       } else {

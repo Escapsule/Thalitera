@@ -46,8 +46,20 @@ export function useAuth(): UseAuthReturn {
       const response = await loginApi(email, password);
       
       if (response.code === 200) {
-        setIsAuthenticated(true);
-        return true;
+        // After successful login, the cookie should be set
+        // Check if the THALITERA_SESSION_ID cookie exists in the browser
+        const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
+        
+        if (hasCookie) {
+          console.log('Session cookie detected after login');
+          setIsAuthenticated(true);
+          return true;
+        } else {
+          console.warn('Login seemed successful but no session cookie was found');
+          // Even without cookie, let's trust the backend response
+          setIsAuthenticated(true);
+          return true;
+        }
       } else {
         setError(response.message || 'Login failed');
         return false;
