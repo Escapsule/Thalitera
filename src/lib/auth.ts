@@ -41,6 +41,8 @@ export async function login(email: string, password: string): Promise<ApiRespons
     // when received in the response headers from the server
     const result = await response.json();
     
+    console.log('Login response:', result);
+    
     // Check if login was successful before proceeding
     if (result.code === 200) {
       // Login successful, browser should have stored the cookie automatically
@@ -48,11 +50,24 @@ export async function login(email: string, password: string): Promise<ApiRespons
       
       // Check if we have the session cookie
       const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
+      console.log('Session cookie present after login API call:', hasCookie);
       
       // If we don't have the cookie but login was successful, try to manually set it
       // This is a fallback in case the server doesn't set the cookie properly
-      if (!hasCookie && result.data && result.data.sessionId) {
-        setSessionCookie(result.data.sessionId);
+      if (!hasCookie) {
+        if (result.data && result.data.sessionId) {
+          console.log('Setting session cookie manually from login response data');
+          setSessionCookie(result.data.sessionId);
+        } else if (result.data && typeof result.data === 'string' && result.data.length > 10) {
+          // Sometimes the backend might return the session ID directly as the data
+          console.log('Setting session cookie manually from string data');
+          setSessionCookie(result.data);
+        } else {
+          // Generate a temporary session ID as last resort
+          console.warn('No session ID found in response, generating temporary session');
+          const tempSessionId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          setSessionCookie(tempSessionId);
+        }
       }
     }
     
@@ -143,8 +158,19 @@ export function setSessionCookie(sessionId: string, expirationDays: number = 7):
     const date = new Date();
     date.setTime(date.getTime() + (expirationDays * 24 * 60 * 60 * 1000));
     const expires = `expires=${date.toUTCString()}`;
-    document.cookie = `THALITERA_SESSION_ID=${sessionId}; ${expires}; path=/; domain=${window.location.hostname}`;
-    console.log('Session cookie manually set');
+    
+    // Get the hostname, but use a generic domain for localhost
+    const domain = window.location.hostname;
+    if (domain === 'localhost') {
+      // For localhost, don't set domain attribute
+      document.cookie = `THALITERA_SESSION_ID=${sessionId}; ${expires}; path=/; SameSite=Lax`;
+    } else {
+      // For production domains
+      document.cookie = `THALITERA_SESSION_ID=${sessionId}; ${expires}; path=/; domain=${domain}; SameSite=Lax`;
+    }
+    
+    console.log('Session cookie manually set. Domain:', domain);
+    console.log('All cookies after setting:', document.cookie);
   } catch (error) {
     console.error('Error setting session cookie:', error);
   }

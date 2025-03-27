@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,19 +18,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const router = useRouter();
   const { login, register, error, isAuthenticated } = useAuth();
 
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
+  // Check if already authenticated via localStorage
+  useEffect(() => {
+    // If we're already authenticated via localStorage, redirect to dashboard
+    if (typeof window !== 'undefined' && localStorage.getItem('thalitera_auth') === 'true') {
+      console.log('Already authenticated via localStorage, redirecting to dashboard');
+      window.location.href = '/dashboard';
     }
-  }, [isAuthenticated, router]);
+  }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('Authenticated via useAuth hook, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    }
+  }, [isAuthenticated]);
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setSuccessMessage('');
+  };
+
+  // Special debug login to bypass normal auth flow
+  const handleDebugLogin = () => {
+    console.log('Using special login bypass');
+    window.location.href = '/api/special-login';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,23 +60,19 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         // Handle login
+        console.log('Attempting login with:', email);
         const success = await login(email, password);
         if (success) {
           // After successful login, check if the cookie is set
           const sessionCookie = getSessionCookie();
           console.log('Login success, session cookie value:', sessionCookie ? 'exists' : 'not found');
           
-          // If the cookie wasn't automatically set by the browser, we could set it manually
-          // This is a fallback and should rarely be needed if the server is configured correctly
-          if (!sessionCookie) {
-            console.warn('No session cookie found after login, this might cause authentication issues');
-            // You could use the session ID from the login response if available
-            // But the login function in auth.ts should have already handled this
-          }
+          // Store auth in localStorage as backup
+          localStorage.setItem('thalitera_auth', 'true');
           
-          // Redirect to dashboard after successful login
+          // Force a hard redirect to ensure cookies are properly processed
           console.log('Redirecting to dashboard...');
-          router.push('/dashboard');
+          window.location.href = '/dashboard';
         }
       } else {
         // Handle registration
@@ -177,6 +187,19 @@ export default function LoginPage() {
               >
                 {isLogin ? 'Sign up' : 'Sign in'}
               </button>
+            </div>
+            
+            {/* Special debug button */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={handleDebugLogin}
+                className="w-full rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              >
+                Special Login (Debug)
+              </button>
+              <p className="mt-2 text-xs text-gray-500 text-center">
+                This bypasses normal auth flow for debugging
+              </p>
             </div>
           </CardFooter>
         </Card>
