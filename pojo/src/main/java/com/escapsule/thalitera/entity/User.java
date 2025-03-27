@@ -1,25 +1,40 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import com.escapsule.thalitera.json.TrustedDevice;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.ibatis.type.JdbcType;
 
-import java.sql.Timestamp;
+
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+@TableName(value = "users")
+public class User implements Serializable {
 
-    private String userId;
+    private String avatar;
 
-    private String password;
+    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID userId;
+
+    private String passwordHash;
 
     private String email;
+
+    private String username;
 
     /**
      * See {@link com.escapsule.thalitera.constant.UserStatusConstant}
@@ -31,17 +46,17 @@ public class User {
      */
     private String mfaSecret;
 
-    private Timestamp lastPasswordUpdate;
+    private OffsetDateTime lastPasswordUpdate;
 
     /**
      * When "Trusted Device" is enabled, add a new record to the table
      * and skip MFA verification for this device.<br>
      * See {@link com.escapsule.thalitera.json.TrustedDevice}
      */
-    private TrustedDevice trustedDevice;
+    private List<TrustedDevice> trustedDevice;
 
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
 
-    private Timestamp updatedAt;
+    private OffsetDateTime updatedAt;
 
 }

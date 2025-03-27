@@ -1,25 +1,28 @@
 package com.escapsule.thalitera.json;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingHistorySnapshot {
+public class BookingHistorySnapshot extends Jsonb{
 
     private String userId;
 
     private String roomId;
 
-    private Timestamp startTime;
+    private OffsetDateTime startTime;
 
-    private Timestamp endTime;
+    private OffsetDateTime endTime;
 
-    private int attendeesCount;
+    public List<String> attendees;
 
     private String purpose;
 

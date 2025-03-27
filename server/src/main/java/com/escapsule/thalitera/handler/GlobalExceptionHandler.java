@@ -2,7 +2,8 @@ package com.escapsule.thalitera.handler;
 
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
-import com.escapsule.thalitera.response.ApiResponse;
+import com.escapsule.thalitera.response.ApiResult;
+import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,18 +21,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    //Handling business exceptions
+    //  Handling business exceptions
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<?>> handleBusinessException(BaseException ex,
-                                                                  WebRequest request) {
-        ApiResponse<?> response = ApiResponse.error(ex.getCode(), ex.getMessage());
+    public ResponseEntity<ApiResult<?>> handleBusinessException(BaseException ex,
+                                                                WebRequest request) {
+        ApiResult<?> response = ApiResult.error(ex.getCode(), ex.getMessage());
         log.error("Business Exceptions: {}", ex.getCode());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     // Handling parameter validation exceptions
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResult<?>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -42,18 +43,27 @@ public class GlobalExceptionHandler {
                 ));
         log.error("Parameter validation errors: {} ", errors);
         return ResponseEntity.badRequest().body(
-                ApiResponse.error(ErrorCode.PARAM_ERROR.getCode(),
+                ApiResult.error(ErrorCode.PARAM_ERROR.getCode(),
                         ErrorCode.PARAM_ERROR.getMessage(),
                         errors)
         );
     }
 
-    //Handling other uncaught exceptions
+    //  Handling email exceptions
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<ApiResult<?>> handleEmailException(MessagingException ex) {
+        ApiResult<?> response = ApiResult.error(ErrorCode.EMAIL_ERROR.getCode(),
+                ErrorCode.EMAIL_ERROR.getMessage() + ": " + ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+
+    //  Handling other uncaught exceptions
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
+    public ResponseEntity<ApiResult<?>> handleGlobalException(Exception ex) {
         log.error("System Exceptions: ", ex);
         return ResponseEntity.internalServerError().body(
-                ApiResponse.error(500, "The system is busy, please try again later.")
+                ApiResult.error(ErrorCode.SYSTEM_BUSY.getCode(), ErrorCode.SYSTEM_BUSY.getMessage())
         );
     }
 }

@@ -1,18 +1,20 @@
 package com.escapsule.thalitera.entity;
 
-import com.escapsule.thalitera.json.MeetingRoomFacility;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.io.Serializable;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeetingRoom {
+public class MeetingRoom implements Serializable {
+
+    private String image;
 
     private String roomId;
 
@@ -21,13 +23,13 @@ public class MeetingRoom {
      */
     private String name;
 
-    private short capacityMin;
+    private int capacityMin;
 
-    private short capacityMax;
+    private int capacityMax;
 
     private String building;
 
-    private short floor;
+    private int floor;
 
     /**
      * See {@link com.escapsule.thalitera.constant.MeetingRoomStatusConstant}
@@ -35,17 +37,17 @@ public class MeetingRoom {
     private String status;
 
     /**
-     * See {@link com.escapsule.thalitera.json.MeetingRoomFacility}
+     * See {@link com.escapsule.thalitera.json.MeetingRoomFacilities}
      */
-    private MeetingRoomFacility facilities;
+    private String facilities;
 
     /**
      * Created by user ID
      */
     private String createdBy;
 
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
 
-    private Timestamp updatedAt;
+    private OffsetDateTime updatedAt;
 
 }

@@ -1,37 +1,41 @@
 package com.escapsule.thalitera.json;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MeetingRoomFacility {
+public class MeetingRoomFacilities extends Jsonb {
 
     /**
      * Projector availability
      */
-    private boolean projector;
+    public boolean projector;
 
     /**
      * Number of whiteboards
      */
-    private int whiteboard;
+    public int whiteboard;
 
     /**
      * Number of power sockets
      */
-    private int powerSockets;
+    public int powerSockets;
 
     /**
      * Coffee break availability
      */
-    private boolean coffeeBreak;
+    public boolean coffeeBreak;
 
     /**
      * Special notes
      */
-    private String[] specialNotes;
+    public List<String> specialNotes;
 
 }

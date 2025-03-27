@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -20,7 +20,7 @@ public class CheckIn {
 
     private String userId;
 
-    private Timestamp checkinTime;
+    private OffsetDateTime checkinTime;
 
     /**
      * See {@link com.escapsule.thalitera.constant.CheckinTypeConstant}

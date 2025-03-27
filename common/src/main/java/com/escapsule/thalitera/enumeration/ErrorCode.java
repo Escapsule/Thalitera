@@ -11,11 +11,35 @@ public enum ErrorCode {
 
 
     // 2000 ~ 2999 business logic related
-    USER_NOT_FOUND(2001, "User does not exist.");
+    USER_NOT_FOUND(2001, "User does not exist."),
+    EMAIL_ERROR(2002, "Email error."),
+    INVALID_PASSWORD_FORMAT(2003, "Invalid encoded password."),
+    USER_EXIST(2004, "User exist."),
+    USER_EMAIL_OR_TOKEN_INVALID(2005, "User email error or token expired."),
+    USER_TOKEN_MISMATCH(2006, "User email verification token not equal."),
+    USER_REGISTER_FAILED(2007, "User register failed, please try again."),
+    USER_NOT_ACTIVE(2008, "User not active."),
+    USER_PASSWORD_INCORRECT(2009, "User password incorrect."),
+    USER_IP_ADDRESS_INVALID(2010, "User ip address invalid."),
+    USER_AGENT_INVALID(2011, "User agent invalid."),
+    USER_REGIESTER_FAILED(2012, "User register failed, please try again"),
+    USER_NOT_LOGIN(2013, "User not login"),
 
+
+
+    INVALID_TIME_RANGE(2014, "The start time should be before the end time."),
+    CONFLICT_RESERVATION(2015, "The meeting room has been reserved during this time."),
+    RESERVATION_NOT_FOUND(2016, "Reservation not found."),
+    MEETING_ROOM_NOT_FOUND(2017, "Meeting room not found."),
 
     // 3000 ~ 3999 database related
 
+
+    // 5000 ~ 5999 system level error
+    SYSTEM_BUSY(5000, "The system is busy, please try again later."),
+
+
+    ;
 
 
     private final int code;

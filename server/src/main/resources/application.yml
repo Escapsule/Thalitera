@@ -1,14 +1,28 @@
 spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   profiles:
     active: dev  # active profile
   application:
     name: Thalitera-Backend
+#  autoconfigure:
+#    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
   datasource:
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 20
-
+      schema: public
+  mail:
+    host: smtp.163.com
+  data:
+    redis:
+      port: 6379
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    enabled: true
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
@@ -23,6 +37,7 @@ mybatis-plus:
       logic-delete-value: 1
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.escapsule.thalitera.entity
+  type-handlers-package: com.escapsule.thalitera.handler
 
 logging:
   level:

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -29,9 +29,9 @@ public class Notification {
      */
     private String status;
 
-    private Timestamp sentAt;
+    private OffsetDateTime sentAt;
 
     private short retries;
 
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
 }
