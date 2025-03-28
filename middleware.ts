@@ -49,7 +49,7 @@ export function middleware(request: NextRequest) {
 
   // Log all cookies for debugging
   const allCookies = request.cookies.getAll();
-  console.log("All cookies in middleware:", allCookies.map(c => `${c.name}=${c.value}`).join('; '));
+  console.log("All cookies in middleware:", allCookies.map(c => `${c.name}=${c.value}`).join('; ') || 'none');
 
   // Check for any of the session cookies
   const hasSessionCookie = THALITERA_SESSION_COOKIE_NAMES.some(name => 
@@ -58,9 +58,16 @@ export function middleware(request: NextRequest) {
 
   // Get the bypass parameter (used in debugging)
   const bypassAuth = request.nextUrl.searchParams.get('bypassAuth') === 'true';
+  
+  console.log("Auth check:", { 
+    path: pathname, 
+    hasSessionCookie, 
+    bypassAuth,
+    cookieCount: allCookies.length
+  });
 
   if (!hasSessionCookie && !bypassAuth) {
-    console.log("No session cookie found - redirecting to login");
+    console.log("No session cookie found and no bypass - redirecting to login");
     
     // Create a new URL to redirect to login
     const loginUrl = new URL('/login', request.url);
@@ -74,7 +81,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  console.log("Session cookie found - allowing access");
+  console.log("Authentication passed - allowing access to protected route");
   return NextResponse.next();
 }
 
