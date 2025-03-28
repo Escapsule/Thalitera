@@ -104,7 +104,7 @@ public class UserController {
     })
     @GetMapping("/verify")
     public ApiResult<?> verifyEmail(@RequestParam String email,
-                                  @RequestParam String token) {
+                                    @RequestParam String token) {
         userService.verifyEmail(email, token);
         return ApiResult.success();
     }
@@ -119,9 +119,9 @@ public class UserController {
             description = "Check user auth.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User verified successfully"),
-            @ApiResponse(responseCode = "2013", description = "User not login"),
+            @ApiResponse(responseCode = "2012", description = "User not login"),
     })
-    @GetMapping("/checkAuth")
+    @GetMapping("/check-auth")
     public ApiResult<?> checkAuth(HttpSession session) {
         User user = (User) session.getAttribute("user");
         if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);

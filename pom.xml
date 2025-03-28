@@ -50,6 +50,9 @@
         <postgis-jdbc.version>2.5.1</postgis-jdbc.version>
         <jts-core.version>1.20.0</jts-core.version>
         <yauaa.version>7.30.0</yauaa.version>
+        <ip-info.version>2.2.0</ip-info.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
     </properties>
 
     <dependencies>
@@ -176,17 +179,17 @@
         <dependency>
             <groupId>com.jthinking.common</groupId>
             <artifactId>ip-info</artifactId>
-            <version>2.2.0</version>
+            <version>${ip-info.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>1.5.5.Final</version>
+            <version>${mapstruct.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok-mapstruct-binding</artifactId>
-            <version>0.2.0</version>
+            <version>${lombok-mapstruct-binding.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -226,7 +229,7 @@
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
-                            <version>1.5.5.Final</version>
+                            <version>${mapstruct.version}</version>
                         </path>
                         <path>
                             <groupId>org.projectlombok</groupId>
