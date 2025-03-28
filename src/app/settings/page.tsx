@@ -72,18 +72,27 @@ const page = () => {
 
                 {/* Right side content */}
                 <Card className="flex-1 p-4 md:p-6">
-                    {activeTab === "profile" && (
-                        <ProfileSettings />
-                    )}
-                    {activeTab === "notifications" && (
-                        <NotificationSettings />
-                    )}
-                    {activeTab === "security" && (
-                        <SecuritySettings />
-                    )}
-                    {activeTab === "bookings" && (
-                        <BookingRecords />
-                    )}
+                    {/* title */}
+                    <div className="border-b pb-4 mb-6">
+                        <h2 className="text-lg font-medium">
+                            {navItems.find(item => item.value === activeTab)?.title}
+                        </h2>
+                    </div>
+                    {/* content */}
+                    <div className="min-h-[400px]">
+                        {activeTab === "profile" && (
+                            <ProfileSettings />
+                        )}
+                        {activeTab === "notifications" && (
+                            <NotificationSettings />
+                        )}
+                        {activeTab === "security" && (
+                            <SecuritySettings />
+                        )}
+                        {activeTab === "bookings" && (
+                            <BookingRecords />
+                        )}
+                    </div>
                 </Card>
 
             </div>
