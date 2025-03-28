@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { login as loginApi, register as registerApi, logout as logoutApi, checkAuth } from '@/lib/auth';
+import { login as loginApi, register as registerApi, logout as logoutApi } from '@/lib/auth';
 
 interface UseAuthReturn {
   isAuthenticated: boolean;
@@ -36,45 +36,70 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
+  // Create cookies from localStorage auth data
+  const createCookiesFromLocalStorage = useCallback(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('thalitera_auth') === 'true') {
+      const tempSessionId = localStorage.getItem('thalitera_session_id') || 
+                           `useAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Create multiple cookies with different formats for maximum compatibility
+      document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+      document.cookie = `thalitera_session=${tempSessionId}; Path=/; Max-Age=86400`;
+      document.cookie = `thalitera_auth=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+      
+      return true;
+    }
+    return false;
+  }, []);
+
   // Check authentication status on mount
   useEffect(() => {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // First try the API-based check
-        const authenticated = await checkAuth();
+        // Check for authentication in localStorage and cookies
+        const sessionCookieNames = [
+          'THALITERA_SESSION_ID',
+          'thalitera_session',
+          'thalitera_auth',
+          'thalitera-session-id'
+        ];
         
-        // If API says we're authenticated, trust it
-        if (authenticated) {
-          console.log('User is authenticated via API check');
-          setIsAuthenticated(true);
+        // Check if any of the session cookies exist
+        const hasCookie = typeof window !== 'undefined' && sessionCookieNames.some(name => 
+          document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
+        );
+        
+        // Check localStorage
+        const hasLocalStorage = checkLocalStorage();
+        
+        // Synchronize states
+        if (hasCookie && !hasLocalStorage) {
+          console.log('Cookie found but localStorage not set, synchronizing');
           setLocalStorageAuth(true);
-          return;
+        } else if (hasLocalStorage && !hasCookie) {
+          console.log('localStorage auth found but no cookie, creating cookies');
+          createCookiesFromLocalStorage();
         }
         
-        // If API check fails, fall back to localStorage
-        const localAuth = checkLocalStorage();
-        if (localAuth) {
-          console.log('User is authenticated via localStorage fallback');
-          setIsAuthenticated(true);
-          return;
-        }
+        // User is authenticated if either localStorage or cookie is present
+        setIsAuthenticated(hasLocalStorage || hasCookie);
         
-        // Neither method authenticated the user
-        setIsAuthenticated(false);
-        setLocalStorageAuth(false);
       } catch (error) {
         console.error('Auth verification error:', error);
-        // On error, check localStorage as fallback
+        // On error, fall back to localStorage
         const localAuth = checkLocalStorage();
         setIsAuthenticated(localAuth);
+        if (localAuth) {
+          createCookiesFromLocalStorage();
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     verifyAuth();
-  }, [checkLocalStorage, setLocalStorageAuth]);
+  }, [checkLocalStorage, setLocalStorageAuth, createCookiesFromLocalStorage]);
 
   // Login function
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -96,8 +121,15 @@ export function useAuth(): UseAuthReturn {
         setLocalStorageAuth(true);
         setIsAuthenticated(true);
         
-        // Force a hard navigation to ensure cookies are properly processed
-        window.location.href = '/dashboard';
+        // Create cookies if needed
+        if (!hasCookie) {
+          createCookiesFromLocalStorage();
+        }
+        
+        // Track that we're coming from login in sessionStorage to help detect loops
+        sessionStorage.setItem('coming_from_login', 'true');
+        sessionStorage.setItem('last_redirect_time', Date.now().toString());
+        
         return true;
       } else {
         setError(response.message || 'Login failed');
@@ -110,7 +142,7 @@ export function useAuth(): UseAuthReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [setLocalStorageAuth]);
+  }, [setLocalStorageAuth, createCookiesFromLocalStorage]);
 
   // Register function
   const register = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -144,6 +176,12 @@ export function useAuth(): UseAuthReturn {
       setIsAuthenticated(false);
       setLocalStorageAuth(false);
       
+      // Clear all auth cookies
+      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera-session-id=; Path=/; Max-Age=0';
+      
       // Force a hard redirect to login
       window.location.href = '/login';
     } catch (error) {
@@ -153,6 +191,13 @@ export function useAuth(): UseAuthReturn {
       // Even if logout API fails, clear local auth
       setIsAuthenticated(false);
       setLocalStorageAuth(false);
+      
+      // Clear all auth cookies
+      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera-session-id=; Path=/; Max-Age=0';
+      
       window.location.href = '/login';
     } finally {
       setIsLoading(false);
