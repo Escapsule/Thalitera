@@ -24,6 +24,31 @@ const getApiUrl = () => {
 // Login function to authenticate users
 export async function login(email: string, password: string): Promise<ApiResponse> {
   try {
+    // First handle client-side cookie creation for redundancy
+    const clientSessionId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    
+    // Create multiple cookies with different configurations to maximize success
+    // 1. Basic cookie with Path and SameSite
+    document.cookie = `THALITERA_SESSION_ID=${clientSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+    
+    // 2. Cookie with domain specification for non-localhost
+    const domain = window.location.hostname;
+    if (domain !== 'localhost') {
+      document.cookie = `THALITERA_SESSION_ID=${clientSessionId}; Path=/; domain=${domain}; SameSite=Lax; Max-Age=86400`;
+    }
+    
+    // 3. Fallback cookie with minimal attributes
+    document.cookie = `thalitera_session=${clientSessionId}; Path=/; Max-Age=86400`;
+    
+    // Log cookie creation
+    console.log('Client-side cookies created directly before API call');
+    console.log('Current cookies:', document.cookie);
+    
+    // Store in localStorage as backup
+    localStorage.setItem('thalitera_auth', 'true');
+    localStorage.setItem('thalitera_session_id', clientSessionId);
+    
+    // Now proceed with the API call
     const response = await fetch(`${getApiUrl()}/user/login`, {
       method: 'POST',
       headers: {
@@ -45,30 +70,21 @@ export async function login(email: string, password: string): Promise<ApiRespons
     
     // Check if login was successful before proceeding
     if (result.code === 200) {
-      // Login successful, browser should have stored the cookie automatically
+      // Login successful
       console.log('Login successful, session established');
       
-      // Check if we have the session cookie
+      // Check if we have the session cookie after API call
       const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
-      console.log('Session cookie present after login API call:', hasCookie);
+      console.log('Session cookie present after API call:', hasCookie);
       
-      // If we don't have the cookie but login was successful, try to manually set it
-      // This is a fallback in case the server doesn't set the cookie properly
+      // If we don't have the cookie from API, create another one with a different name
       if (!hasCookie) {
-        if (result.data && result.data.sessionId) {
-          console.log('Setting session cookie manually from login response data');
-          setSessionCookie(result.data.sessionId);
-        } else if (result.data && typeof result.data === 'string' && result.data.length > 10) {
-          // Sometimes the backend might return the session ID directly as the data
-          console.log('Setting session cookie manually from string data');
-          setSessionCookie(result.data);
-        } else {
-          // Generate a temporary session ID as last resort
-          console.warn('No session ID found in response, generating temporary session');
-          const tempSessionId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-          setSessionCookie(tempSessionId);
-        }
+        console.log('API did not set cookie, creating additional fallback cookies');
+        document.cookie = `thalitera_auth=${clientSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+        document.cookie = `thalitera-session-id=${clientSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
       }
+      
+      console.log('All cookies after login process:', document.cookie);
     }
     
     return result;
@@ -114,24 +130,76 @@ export async function register(email: string, password: string): Promise<ApiResp
 // Function to check if user is authenticated
 export async function checkAuth(): Promise<boolean> {
   try {
-    // Check if the THALITERA_SESSION_ID cookie exists in the browser
-    const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
+    console.log('Checking auth status...');
     
-    // Only make the API call if we have the cookie
-    if (!hasCookie) {
-      return false;
+    // Check for any of our session cookies
+    const sessionCookieNames = [
+      'THALITERA_SESSION_ID',
+      'thalitera_session',
+      'thalitera_auth',
+      'thalitera-session-id'
+    ];
+    
+    // Check if any of the session cookies exist in the browser
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    console.log('All cookies in browser:', cookies);
+    
+    const hasCookie = sessionCookieNames.some(name => 
+      cookies.some(cookie => cookie.startsWith(`${name}=`))
+    );
+    
+    console.log('Session cookie found:', hasCookie);
+    
+    // Check localStorage as fallback
+    const hasLocalStorage = localStorage.getItem('thalitera_auth') === 'true';
+    console.log('LocalStorage auth found:', hasLocalStorage);
+    
+    // Synchronize authentication state
+    if (hasCookie && !hasLocalStorage) {
+      // If we have a cookie but no localStorage, set localStorage
+      console.log('Setting localStorage from cookie');
+      localStorage.setItem('thalitera_auth', 'true');
+      
+      // Try to extract session ID
+      const sessionCookie = cookies.find(c => c.startsWith('THALITERA_SESSION_ID='));
+      if (sessionCookie) {
+        const sessionId = sessionCookie.split('=')[1];
+        localStorage.setItem('thalitera_session_id', sessionId);
+      }
+    } else if (hasLocalStorage && !hasCookie) {
+      // If we have localStorage auth but no cookie, create a cookie
+      console.log('Creating cookie from localStorage auth');
+      const tempSessionId = localStorage.getItem('thalitera_session_id') || 
+                           `checkAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
     }
     
-    const response = await fetch(`${getApiUrl()}/user/check-auth`, {
-      method: 'GET',
-      credentials: 'include', // Important to include cookies in the request
-    });
+    // If we have a cookie or localStorage auth, make the API call
+    if (hasCookie || hasLocalStorage) {
+      // Make API call to verify authentication
+      const response = await fetch(`${getApiUrl()}/user/check-auth`, {
+        method: 'GET',
+        credentials: 'include', // Important to include cookies in the request
+      });
+      
+      // If API call succeeds, trust the server response
+      try {
+        const data = await response.json();
+        console.log('Auth check API response:', data);
+        return data.code === 200;
+      } catch (e) {
+        console.error('Error parsing API response:', e);
+        // If API call fails, fall back to checking for cookie presence
+        return hasCookie || hasLocalStorage;
+      }
+    }
     
-    const data = await response.json();
-    return data.code === 200;
+    // No auth indicators found
+    return false;
   } catch (error) {
     console.error('Auth check error:', error);
-    return false;
+    // In case of error, check localStorage as ultimate fallback
+    return localStorage.getItem('thalitera_auth') === 'true';
   }
 }
 

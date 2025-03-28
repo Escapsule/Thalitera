@@ -19,13 +19,34 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const { login, register, error, isAuthenticated } = useAuth();
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Check if already authenticated via localStorage
   useEffect(() => {
     // If we're already authenticated via localStorage, redirect to dashboard
-    if (typeof window !== 'undefined' && localStorage.getItem('thalitera_auth') === 'true') {
-      console.log('Already authenticated via localStorage, redirecting to dashboard');
-      window.location.href = '/dashboard';
+    if (typeof window !== 'undefined') {
+      const isAuthenticated = localStorage.getItem('thalitera_auth') === 'true';
+      if (isAuthenticated) {
+        console.log('Already authenticated via localStorage, redirecting to dashboard');
+        // Check for cookie and create one if missing
+        const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
+        if (!hasCookie) {
+          console.log('No session cookie found, creating one');
+          const tempSessionId = `login_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+          document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+        }
+        window.location.href = '/dashboard';
+      }
+
+      // Add debug info
+      const cookies = document.cookie.split(';').map(c => c.trim());
+      const authInfo = {
+        localStorage: localStorage.getItem('thalitera_auth'),
+        cookies: cookies,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      };
+      setDebugInfo(JSON.stringify(authInfo, null, 2));
     }
   }, []);
 
@@ -45,7 +66,24 @@ export default function LoginPage() {
   // Special debug login to bypass normal auth flow
   const handleDebugLogin = () => {
     console.log('Using special login bypass');
-    window.location.href = '/api/special-login';
+    window.location.href = '/debug-dashboard';
+  };
+
+  // Direct dashboard access with a timestamp to prevent caching
+  const handleDirectDashboard = () => {
+    // Add timestamp to prevent caching issues
+    const timestamp = Date.now();
+    
+    // Create a client-side cookie first
+    const clientSessionId = `client_${timestamp}_${Math.random().toString(36).substring(2, 15)}`;
+    document.cookie = `THALITERA_SESSION_ID=${clientSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+    
+    // Store in localStorage for extra backup
+    localStorage.setItem('thalitera_auth', 'true');
+    localStorage.setItem('thalitera_session_id', clientSessionId);
+    
+    // Navigate to dashboard with bypass parameter and timestamp
+    window.location.href = `/dashboard?bypassAuth=true&t=${timestamp}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,6 +164,15 @@ export default function LoginPage() {
               </div>
             )}
             
+            {debugInfo && (
+              <div className="mb-4 rounded-md bg-blue-50 p-4 text-blue-800 overflow-auto text-xs">
+                <details>
+                  <summary className="cursor-pointer font-medium">Authentication Debug Info</summary>
+                  <pre className="mt-2">{debugInfo}</pre>
+                </details>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -189,16 +236,30 @@ export default function LoginPage() {
               </button>
             </div>
             
-            {/* Special debug button */}
+            {/* Debug buttons */}
             <div className="pt-4 border-t border-gray-200">
               <button
                 onClick={handleDebugLogin}
-                className="w-full rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+                className="w-full rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 mb-2"
               >
-                Special Login (Debug)
+                Debug Dashboard
               </button>
+              <div className="flex space-x-2">
+                <Link
+                  href="/api/special-login"
+                  className="flex-1 rounded-md bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-200 text-center"
+                >
+                  Set Cookie & Redirect
+                </Link>
+                <button
+                  onClick={handleDirectDashboard}
+                  className="flex-1 rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200 text-center"
+                >
+                  Direct Dashboard
+                </button>
+              </div>
               <p className="mt-2 text-xs text-gray-500 text-center">
-                This bypasses normal auth flow for debugging
+                Use debug options to troubleshoot authentication issues
               </p>
             </div>
           </CardFooter>

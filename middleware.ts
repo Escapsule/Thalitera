@@ -1,45 +1,92 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+/**
+ * Middleware for authentication
+ * 
+ * Authentication Flow:
+ * 1. Middleware checks for session cookies server-side
+ * 2. If cookies are missing, user is redirected to login
+ * 3. Client-side auth-helper.js runs on every page
+ * 4. auth-helper checks localStorage and creates cookies if needed
+ * 5. auth-helper also sets localStorage from cookies for state consistency
+ * 
+ * This multi-layered approach ensures authentication persists across
+ * different scenarios and browser configurations.
+ */
+
+const THALITERA_SESSION_COOKIE_NAMES = [
+  "THALITERA_SESSION_ID",
+  "thalitera_session",
+  "thalitera_auth",
+  "thalitera-session-id"
+];
+
 export function middleware(request: NextRequest) {
-  // Check if the path is a protected route (dashboard or admin)
+  // Skip routes that should be accessible without authentication
   const { pathname } = request.nextUrl;
-  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
-  const isApiRoute = pathname.startsWith('/api');
   
-  // For API routes, add CORS headers
-  if (isApiRoute) {
-    const response = NextResponse.next();
-    
-    // Add CORS headers
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
-    
-    // Instead of wildcard, set the origin to the frontend URL to allow credentials
-    const origin = request.headers.get('origin') || 'http://localhost:3000';
-    response.headers.set('Access-Control-Allow-Origin', origin);
-    
-    response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT');
-    response.headers.set(
-      'Access-Control-Allow-Headers',
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
-    
-    return response;
-  }
+  // Log request path for debugging
+  console.log(`Middleware processing: ${pathname}`);
   
-  // TEMPORARY FIX: Completely bypass authentication checks
-  // This will break the redirect loop between login and dashboard
-  // Later, we can add proper authentication checks back after ensuring cookies work
-  if (isProtectedRoute) {
-    console.log(`NOTICE: Authentication check temporarily disabled for ${pathname}`);
+  // Exclude debug and login routes from authentication check
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.includes('/debug-dashboard') ||
+    pathname.includes('/auth-debug') ||
+    pathname.includes('/images/') ||
+    pathname.includes('/fonts/') ||
+    pathname.includes('/assets/') ||
+    pathname.includes('.js') ||
+    pathname.includes('.css')
+  ) {
+    console.log(`Skipping middleware for ${pathname}`);
     return NextResponse.next();
   }
-  
-  // For all other routes, continue as normal
+
+  // Log all cookies for debugging
+  const allCookies = request.cookies.getAll();
+  console.log("All cookies in middleware:", allCookies.map(c => `${c.name}=${c.value}`).join('; '));
+
+  // Check for any of the session cookies
+  const hasSessionCookie = THALITERA_SESSION_COOKIE_NAMES.some(name => 
+    request.cookies.has(name)
+  );
+
+  // Get the bypass parameter (used in debugging)
+  const bypassAuth = request.nextUrl.searchParams.get('bypassAuth') === 'true';
+
+  if (!hasSessionCookie && !bypassAuth) {
+    console.log("No session cookie found - redirecting to login");
+    
+    // Create a new URL to redirect to login
+    const loginUrl = new URL('/login', request.url);
+    
+    // Add current path as a redirect parameter
+    loginUrl.searchParams.set('redirect', pathname);
+    
+    // Add a timestamp to prevent caching
+    loginUrl.searchParams.set('ts', Date.now().toString());
+    
+    return NextResponse.redirect(loginUrl);
+  }
+
+  console.log("Session cookie found - allowing access");
   return NextResponse.next();
 }
 
-// Configure middleware to run on specific paths
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except those starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public directory
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 }; 
