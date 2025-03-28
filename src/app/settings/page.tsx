@@ -42,16 +42,16 @@ const page = () => {
     const [activeTab, setActiveTab] = useState("profile")
 
     return (
-        <div>
+        <div className="container min-w-[80vw] py-6 ml-12">
 
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-[lch(17_23_133)] mb-2">Settings</h1>
                 <p className="text-muted-foreground">Manage your account settings</p>
             </div>
 
-            <div className="flex gap-6">
+            <div className="flex flex-col md:flex-row gap-6">
                 {/* Left Navigation */}
-                <Card className="w-64 p-2">
+                <Card className="w-full md:w-64 p-2">
                     <nav className="space-y-3">
                         {navItems.map((item) => (
                             <Button
@@ -71,7 +71,7 @@ const page = () => {
                 </Card>
 
                 {/* Right side content */}
-                <Card className="flex-1 p-6">
+                <Card className="flex-1 p-4 md:p-6">
                     {activeTab === "profile" && (
                         <ProfileSettings />
                     )}
