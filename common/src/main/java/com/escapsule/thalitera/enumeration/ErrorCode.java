@@ -25,7 +25,7 @@ public enum ErrorCode {
     USER_IP_ADDRESS_INVALID(2010, "User ip address invalid."),
     USER_AGENT_INVALID(2011, "User agent invalid."),
     USER_NOT_LOGIN(2012, "User not login"),
-
+    EMAIL_VERIFICATION_FAILED(2013, "Email verification failed"),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),

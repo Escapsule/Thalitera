@@ -107,6 +107,7 @@ public class UserServiceImpl implements UserService {
             log.info("User verified successfully: {}", email);
         } catch (BaseException e) {
             log.error("Email verification failed for user: {}", email, e);
+            throw new BaseException(ErrorCode.EMAIL_VERIFICATION_FAILED);
         }
     }
 
