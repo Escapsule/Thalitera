@@ -8,6 +8,7 @@ import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.IpUtils;
+import com.escapsule.thalitera.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -127,6 +128,32 @@ public class UserController {
         if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         return ApiResult.success(true);
     }
+
+    /**
+     * Get user info
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @return Returns the result of the login operation.
+     */
+    @Operation(summary = "User info",
+            description = "Get user info.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User info"),
+            @ApiResponse(responseCode = "2012", description = "User not login"),
+    })
+    @GetMapping("/info")
+    public ApiResult<?> getUserInfo(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        UserVO vo = UserVO.builder()
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .avatar(user.getAvatar())
+                .build();
+        if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        log.info("User check info: {}", vo.getEmail());
+        return ApiResult.success(vo);
+    }
+
 
     // user queries
     // disabling of users

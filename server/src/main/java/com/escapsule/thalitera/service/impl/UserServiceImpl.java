@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.service.impl;
 
+import com.escapsule.thalitera.config.StaticConfiguration;
 import com.escapsule.thalitera.constant.UserStatusConstant;
 import com.escapsule.thalitera.dto.MailDTO;
 import com.escapsule.thalitera.dto.UserLoginDTO;
@@ -9,6 +10,7 @@ import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.json.DeviceFingerprint;
+import com.escapsule.thalitera.json.RegisterVerifyContent;
 import com.escapsule.thalitera.mapper.LoginHistoryMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.service.EmailService;
@@ -16,13 +18,11 @@ import com.escapsule.thalitera.service.LoginHistoryService;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.GeometryUtils;
 import com.escapsule.thalitera.utils.PasswordUtils;
-import com.escapsule.thalitera.utils.TokenUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import org.locationtech.jts.geom.Point;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -37,27 +37,28 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    @Value("${spring.mail.url}")
-    private String VERIFICATION_URL; // TODO: Move to config until Notification System is ready
     private final UserMapper userMapper;
     private final RedisTemplate<String, String> redisMailTemplate;
     private final EmailService emailService;
     private final TemplateEngine mailTemplateEngine;
     private final LoginHistoryMapper loginHistoryMapper;
     private final LoginHistoryService loginHistoryService;
+    private final StaticConfiguration staticConfiguration;
 
     public UserServiceImpl(UserMapper userMapper,
                            RedisTemplate<String, String> redisTemplate,
                            TemplateEngine mailTemplateEngine,
                            EmailService emailService,
                            LoginHistoryMapper loginHistoryMapper,
-                           LoginHistoryService loginHistoryService) {
+                           LoginHistoryService loginHistoryService,
+                           StaticConfiguration staticConfiguration) {
         this.userMapper = userMapper;
         this.redisMailTemplate = redisTemplate;
         this.mailTemplateEngine = mailTemplateEngine;
         this.emailService = emailService;
         this.loginHistoryMapper = loginHistoryMapper;
         this.loginHistoryService = loginHistoryService;
+        this.staticConfiguration = staticConfiguration;
     }
 
     /**
@@ -201,15 +202,17 @@ public class UserServiceImpl implements UserService {
      */
     private String sendEmail(MailDTO dto) {
         log.info("Send email message initializing: {}", dto);
-        String token = TokenUtils.generateShortToken();
+        // String token = TokenUtils.generateShortToken();
         // TODO: notification module need dynamically generate email template
         // hard code for now
         // String url = "http://localhost:8080/user/verify" + "?email=" + dto.getTo() + "&token=" + token;
-        String url = VERIFICATION_URL + "?email=" + dto.getTo() + "&token=" + token;
+        // String url = VERIFICATION_URL + "?email=" + dto.getTo() + "&token=" + token;
+
+        RegisterVerifyContent content = new RegisterVerifyContent(dto.getTo(), staticConfiguration.getVerifyUrl());
 
         Context context = new Context();
-        context.setVariable("verification_url", url);
-        context.setVariable("email", dto.getTo());
+        context.setVariable("verification_url", content.getVerifyUrl());
+        context.setVariable("email", content.getEmail());
 
         String html = mailTemplateEngine.process(dto.getTemplateContent(), context);
 
@@ -219,7 +222,7 @@ public class UserServiceImpl implements UserService {
                 html
         );
 
-        return token;
+        return content.getToken();
     }
 
     /**

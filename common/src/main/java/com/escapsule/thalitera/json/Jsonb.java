@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.json;
 
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
