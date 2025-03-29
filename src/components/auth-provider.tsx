@@ -71,8 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // If we've redirected too recently, use the bypass to break potential loops
           if (fromLogin === 'true' && (now - lastRedirect < 2000)) {
-            console.log('Detected potential redirect loop, adding bypass');
-            window.location.href = `/dashboard?bypassAuth=true&ts=${now}`;
+            console.log('Detected potential redirect loop, adding forceBreak');
+            window.location.href = `/dashboard?forceBreak=true&ts=${now}`;
             return;
           }
           

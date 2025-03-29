@@ -45,9 +45,9 @@ export default function LoginPage() {
         // Store session ID in localStorage
         localStorage.setItem('thalitera_session_id', tempSessionId);
         
-        // Force redirect with bypass
-        console.log('Breaking potential loop by forcing dashboard with bypass');
-        window.location.href = `/dashboard?bypassAuth=true&forceBreak=true&ts=${Date.now()}`;
+        // Force redirect to dashboard
+        console.log('Breaking potential loop by forcing dashboard');
+        window.location.href = `/dashboard?forceBreak=true&ts=${Date.now()}`;
         return;
       }
       
@@ -71,8 +71,8 @@ export default function LoginPage() {
           console.log('Cookies after setting:', document.cookie);
         }
         
-        // Add bypassAuth parameter to ensure middleware allows access
-        window.location.href = `/dashboard?bypassAuth=true&ts=${Date.now()}`;
+        // Redirect to dashboard
+        window.location.href = `/dashboard?ts=${Date.now()}`;
       }
 
       // Add debug info
@@ -107,8 +107,8 @@ export default function LoginPage() {
         localStorage.setItem('thalitera_session_id', tempSessionId);
       }
       
-      // Add bypassAuth parameter to avoid potential middleware issues
-      window.location.href = `/dashboard?bypassAuth=true&ts=${Date.now()}`;
+      // Redirect to dashboard
+      window.location.href = `/dashboard?ts=${Date.now()}`;
     }
   }, [isAuthenticated]);
 
@@ -136,8 +136,8 @@ export default function LoginPage() {
     localStorage.setItem('thalitera_auth', 'true');
     localStorage.setItem('thalitera_session_id', clientSessionId);
     
-    // Navigate to dashboard with bypass parameter and timestamp
-    window.location.href = `/dashboard?bypassAuth=true&t=${timestamp}`;
+    // Navigate to dashboard with timestamp
+    window.location.href = `/dashboard?ts=${timestamp}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +182,7 @@ export default function LoginPage() {
           
           // Force a hard redirect to ensure cookies are properly processed
           console.log('Redirecting to dashboard...');
-          window.location.href = `/dashboard?bypassAuth=true&ts=${Date.now()}`;
+          window.location.href = `/dashboard?ts=${Date.now()}`;
         }
       } else {
         // Handle registration

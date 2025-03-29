@@ -250,13 +250,41 @@ export async function logout(): Promise<ApiResponse> {
       credentials: 'include',
     });
     
-    // Clear the session cookie on the client side as well
-    // This is a belt-and-suspenders approach in case the server doesn't properly clear the cookie
-    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/; domain=' + window.location.hostname;
+    // Clear all session cookies using different approaches for maximum compatibility
+    
+    // 1. Clear with path and domain
+    const domain = window.location.hostname;
+    document.cookie = `THALITERA_SESSION_ID=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera_session=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera_auth=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera-session-id=; Max-Age=0; path=/; domain=${domain}`;
+    
+    // 2. Clear with just path (for localhost)
+    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_session=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_auth=; Max-Age=0; path=/';
+    document.cookie = 'thalitera-session-id=; Max-Age=0; path=/';
+    
+    // 3. Clear localStorage
+    localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('thalitera_session_id');
+    
+    console.log('All auth cookies and localStorage cleared during logout');
+    console.log('Cookies after logout:', document.cookie);
     
     return await response.json();
   } catch (error) {
     console.error('Logout error:', error);
+    
+    // Even if the API call fails, still clear cookies and localStorage
+    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_session=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_auth=; Max-Age=0; path=/';
+    document.cookie = 'thalitera-session-id=; Max-Age=0; path=/';
+    
+    localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('thalitera_session_id');
+    
     return {
       code: 500,
       message: 'An error occurred during logout',

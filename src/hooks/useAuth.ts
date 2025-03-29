@@ -173,14 +173,30 @@ export function useAuth(): UseAuthReturn {
     
     try {
       await logoutApi();
+      
+      // Update local state
       setIsAuthenticated(false);
       setLocalStorageAuth(false);
       
-      // Clear all auth cookies
+      // Clear all auth data from localStorage directly
+      localStorage.removeItem('thalitera_auth');
+      localStorage.removeItem('thalitera_session_id');
+      
+      // Clear all auth cookies with different strategies for maximum compatibility
+      // 1. Clear with domain
+      const domain = window.location.hostname;
+      document.cookie = `THALITERA_SESSION_ID=; Path=/; domain=${domain}; Max-Age=0`;
+      document.cookie = `thalitera_session=; Path=/; domain=${domain}; Max-Age=0`;
+      document.cookie = `thalitera_auth=; Path=/; domain=${domain}; Max-Age=0`;
+      document.cookie = `thalitera-session-id=; Path=/; domain=${domain}; Max-Age=0`;
+      
+      // 2. Clear without domain for localhost
       document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
       document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
       document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
       document.cookie = 'thalitera-session-id=; Path=/; Max-Age=0';
+      
+      console.log('All auth data cleared in useAuth');
       
       // Force a hard redirect to login
       window.location.href = '/login';
@@ -188,11 +204,15 @@ export function useAuth(): UseAuthReturn {
       console.error('Logout error:', error);
       setError('Logout failed');
       
-      // Even if logout API fails, clear local auth
+      // Even if logout API fails, clear local auth data
       setIsAuthenticated(false);
       setLocalStorageAuth(false);
       
-      // Clear all auth cookies
+      // Clear local storage
+      localStorage.removeItem('thalitera_auth');
+      localStorage.removeItem('thalitera_session_id');
+      
+      // Clear all cookies
       document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
       document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
       document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';

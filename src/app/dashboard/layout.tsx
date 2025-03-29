@@ -1,52 +1,65 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppSidebar } from "@/components/user/app-sidebar"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
-  const bypassAuth = searchParams.get('bypassAuth') === 'true';
+  const router = useRouter();
+  const forceBreak = searchParams.get('forceBreak') === 'true';
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   useEffect(() => {
-    // Set localStorage auth flag as fallback authentication mechanism
+    // Check authentication instead of automatically setting it
     if (typeof window !== 'undefined') {
-      // Always set localStorage auth when dashboard loads
-      localStorage.setItem('thalitera_auth', 'true');
-      console.log('Dashboard loaded, localStorage auth set');
+      // Verify existing authentication
+      const hasLocalStorageAuth = localStorage.getItem('thalitera_auth') === 'true';
+      const hasCookie = document.cookie.split(';').some(cookie => 
+        cookie.trim().startsWith('THALITERA_SESSION_ID=') || 
+        cookie.trim().startsWith('thalitera_session=') ||
+        cookie.trim().startsWith('thalitera_auth=') ||
+        cookie.trim().startsWith('thalitera-session-id=')
+      );
       
-      // Check if we have a session cookie
-      const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
-      
-      // If no session cookie, set one client-side (non-HttpOnly version)
-      if (!hasCookie) {
-        console.log('No session cookie found, setting one client-side');
-        
-        // Generate a temporary UUID-like session ID
-        const now = new Date();
-        const tempSessionId = `${now.getTime().toString(16)}-${Math.random().toString(16).substring(2, 10)}-${Math.random().toString(16).substring(2, 10)}`;
-        
-        // Set the cookie with a long expiration
-        document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
-        
-        // For debugging - confirm the cookie was set
-        setTimeout(() => {
-          const cookieSet = document.cookie.includes('THALITERA_SESSION_ID=');
-          console.log('Cookie set successful:', cookieSet, 'All cookies:', document.cookie);
-        }, 50);
-      }
-      
-      // Show the auth state for debugging
+      // Log authentication state for debugging
       console.log('Auth state in dashboard layout:', {
         localStorage: localStorage.getItem('thalitera_auth'),
         hasCookie,
-        bypassAuth,
+        forceBreak,
         allCookies: document.cookie
       });
+      
+      // If we detect missing authentication and not forcing a break for a loop
+      if (!hasLocalStorageAuth && !hasCookie && !forceBreak) {
+        console.log('No authentication detected, redirecting to login');
+        router.push('/login');
+        return;
+      }
+      
+      // If we have localStorage auth but no cookie, set cookie for middleware
+      if (hasLocalStorageAuth && !hasCookie) {
+        console.log('Has localStorage auth but no cookie, setting cookie for middleware');
+        const tempSessionId = localStorage.getItem('thalitera_session_id') || 
+                             `dashboard_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        
+        document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+        
+        // Store session ID in localStorage for future reference
+        localStorage.setItem('thalitera_session_id', tempSessionId);
+      }
+      
+      setIsCheckingAuth(false);
     }
-  }, [bypassAuth]);
+  }, [router, forceBreak]);
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return <div className="flex h-screen items-center justify-center">Checking authentication...</div>;
+  }
 
   return (
     <SidebarProvider>

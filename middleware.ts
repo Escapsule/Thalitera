@@ -8,7 +8,6 @@ import type { NextRequest } from 'next/server';
  * 1. Middleware checks for session cookies server-side
  * 2. If cookies are missing, user is redirected to login
  * 3. Client-side auth logic creates cookies if needed
- * 4. Special bypassAuth parameter helps break redirect loops
  */
 
 const THALITERA_SESSION_COOKIE_NAMES = [
@@ -55,26 +54,24 @@ export function middleware(request: NextRequest) {
     request.cookies.has(name)
   );
 
-  // Get bypass parameters (used for breaking redirect loops)
-  const bypassAuth = request.nextUrl.searchParams.get('bypassAuth') === 'true';
+  // Get forceBreak parameter (used only for breaking infinite redirect loops in debugging)
   const forceBreak = request.nextUrl.searchParams.get('forceBreak') === 'true';
   
   console.log("Auth check:", { 
     path: pathname, 
     hasSessionCookie, 
-    bypassAuth,
     forceBreak,
     cookieCount: allCookies.length
   });
 
-  // If we have session cookies or a bypass parameter, allow access
-  if (hasSessionCookie || bypassAuth) {
+  // If we have session cookies, allow access
+  if (hasSessionCookie) {
     console.log("Authentication passed - allowing access to protected route");
     return NextResponse.next();
   }
   
   // If we get here, the user is not authenticated and trying to access a protected route
-  console.log("No session cookie found and no bypass - redirecting to login");
+  console.log("No session cookie found - redirecting to login");
   
   // Create a new URL to redirect to login
   const loginUrl = new URL('/login', request.url);
