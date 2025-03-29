@@ -154,8 +154,24 @@ export async function checkAuth(): Promise<boolean> {
     const hasLocalStorage = localStorage.getItem('thalitera_auth') === 'true';
     console.log('LocalStorage auth found:', hasLocalStorage);
     
-    // Synchronize authentication state
-    if (hasCookie && !hasLocalStorage) {
+    // IMPROVED COOKIE SYNCHRONIZATION:
+    // Always create a cookie when we have localStorage auth
+    // This ensures middleware can detect the authenticated state
+    if (hasLocalStorage) {
+      // If we have localStorage auth, always ensure there's a cookie
+      console.log('Creating/refreshing cookie from localStorage auth');
+      const tempSessionId = localStorage.getItem('thalitera_session_id') || 
+                           `checkAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Set multiple cookies with different configurations to maximize success chance
+      document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+      document.cookie = `thalitera_session=${tempSessionId}; Path=/; Max-Age=86400`;
+      document.cookie = `thalitera_auth=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+      
+      // Force refresh the flag
+      const refreshedCookies = document.cookie.split(';').map(c => c.trim());
+      console.log('Cookies after refresh:', refreshedCookies);
+    } else if (hasCookie && !hasLocalStorage) {
       // If we have a cookie but no localStorage, set localStorage
       console.log('Setting localStorage from cookie');
       localStorage.setItem('thalitera_auth', 'true');
@@ -166,36 +182,18 @@ export async function checkAuth(): Promise<boolean> {
         const sessionId = sessionCookie.split('=')[1];
         localStorage.setItem('thalitera_session_id', sessionId);
       }
-    } else if (hasLocalStorage && !hasCookie) {
-      // If we have localStorage auth but no cookie, create a cookie
-      console.log('Creating cookie from localStorage auth');
-      const tempSessionId = localStorage.getItem('thalitera_session_id') || 
-                           `checkAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
     }
     
-    // If we have a cookie or localStorage auth, make the API call
-    if (hasCookie || hasLocalStorage) {
-      // Make API call to verify authentication
-      const response = await fetch(`${getApiUrl()}/user/check-auth`, {
-        method: 'GET',
-        credentials: 'include', // Important to include cookies in the request
-      });
-      
-      // If API call succeeds, trust the server response
-      try {
-        const data = await response.json();
-        console.log('Auth check API response:', data);
-        return data.code === 200;
-      } catch (e) {
-        console.error('Error parsing API response:', e);
-        // If API call fails, fall back to checking for cookie presence
-        return hasCookie || hasLocalStorage;
-      }
-    }
+    // Refresh hasCookie check after potentially creating cookies
+    const refreshedHasCookie = sessionCookieNames.some(name => 
+      document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
+    );
     
-    // No auth indicators found
-    return false;
+    // COMPLETELY REMOVED API CALL TO CHECK-AUTH
+    // Now we rely entirely on localStorage and cookies for authentication
+
+    // Consider user authenticated if either localStorage or cookies indicate authentication
+    return refreshedHasCookie || hasLocalStorage;
   } catch (error) {
     console.error('Auth check error:', error);
     // In case of error, check localStorage as ultimate fallback
@@ -252,13 +250,41 @@ export async function logout(): Promise<ApiResponse> {
       credentials: 'include',
     });
     
-    // Clear the session cookie on the client side as well
-    // This is a belt-and-suspenders approach in case the server doesn't properly clear the cookie
-    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/; domain=' + window.location.hostname;
+    // Clear all session cookies using different approaches for maximum compatibility
+    
+    // 1. Clear with path and domain
+    const domain = window.location.hostname;
+    document.cookie = `THALITERA_SESSION_ID=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera_session=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera_auth=; Max-Age=0; path=/; domain=${domain}`;
+    document.cookie = `thalitera-session-id=; Max-Age=0; path=/; domain=${domain}`;
+    
+    // 2. Clear with just path (for localhost)
+    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_session=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_auth=; Max-Age=0; path=/';
+    document.cookie = 'thalitera-session-id=; Max-Age=0; path=/';
+    
+    // 3. Clear localStorage
+    localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('thalitera_session_id');
+    
+    console.log('All auth cookies and localStorage cleared during logout');
+    console.log('Cookies after logout:', document.cookie);
     
     return await response.json();
   } catch (error) {
     console.error('Logout error:', error);
+    
+    // Even if the API call fails, still clear cookies and localStorage
+    document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_session=; Max-Age=0; path=/';
+    document.cookie = 'thalitera_auth=; Max-Age=0; path=/';
+    document.cookie = 'thalitera-session-id=; Max-Age=0; path=/';
+    
+    localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('thalitera_session_id');
+    
     return {
       code: 500,
       message: 'An error occurred during logout',

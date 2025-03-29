@@ -506,10 +506,10 @@ export default function DebugDashboard() {
                     </Link>
                     
                     <Link 
-                      href={`/dashboard?bypassAuth=true&t=${Date.now()}`}
+                      href={`/dashboard?t=${Date.now()}`}
                       className="flex justify-center items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
                     >
-                      Bypass Auth Check
+                      Go to Dashboard
                     </Link>
                   </div>
                 </div>
