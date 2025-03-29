@@ -8,11 +8,13 @@ import ProfileSettings from './ProfileSettings'
 import NotificationSettings from './NotificationSettings'
 import SecuritySettings from './SecuritySettings'
 import BookingRecords from './BookingRecords'
+import PreferenceSettings from './PreferenceSettings'
 import {
     UserIcon,
     BellIcon,
     ShieldCheckIcon,
     CalendarDaysIcon,
+    BrushIcon
   } from "lucide-react"
 
 // Navigation item configuration
@@ -32,6 +34,11 @@ const navItems = [
       icon: ShieldCheckIcon,
       value: "security"
     },
+    {
+        title: "Preference Settings",
+        icon: BrushIcon,
+        value: "preference"
+      },
     {
       title: "Booking Records",
       icon: CalendarDaysIcon,
@@ -88,6 +95,9 @@ const page = () => {
                         )}
                         {activeTab === "security" && (
                             <SecuritySettings />
+                        )}
+                        {activeTab === "preference" && (
+                            <PreferenceSettings />
                         )}
                         {activeTab === "bookings" && (
                             <BookingRecords />
