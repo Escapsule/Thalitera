@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ProfileSettings from './ProfileSettings'
-import NotificationSettings from './NotificationSettings'
 import SecuritySettings from './SecuritySettings'
 import BookingRecords from './BookingRecords'
 import PreferenceSettings from './PreferenceSettings'
@@ -23,11 +22,6 @@ const navItems = [
       title: "Profile Settings",
       icon: UserIcon,
       value: "profile"
-    },
-    {
-      title: "Notification Settings",
-      icon: BellIcon,
-      value: "notifications"
     },
     {
       title: "Security Settings",
@@ -89,9 +83,6 @@ const page = () => {
                     <div className="min-h-[400px]">
                         {activeTab === "profile" && (
                             <ProfileSettings />
-                        )}
-                        {activeTab === "notifications" && (
-                            <NotificationSettings />
                         )}
                         {activeTab === "security" && (
                             <SecuritySettings />
