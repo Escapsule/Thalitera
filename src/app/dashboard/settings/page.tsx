@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ProfileSettings from './ProfileSettings'
 import SecuritySettings from './SecuritySettings'
-import BookingRecords from './BookingRecords'
-import PreferenceSettings from './PreferenceSettings'
 import {
     UserIcon,
-    BellIcon,
     ShieldCheckIcon,
-    CalendarDaysIcon,
-    BrushIcon
   } from "lucide-react"
 
 // Navigation item configuration
@@ -28,16 +23,6 @@ const navItems = [
       icon: ShieldCheckIcon,
       value: "security"
     },
-    {
-        title: "Preference Settings",
-        icon: BrushIcon,
-        value: "preference"
-      },
-    {
-      title: "Booking Records",
-      icon: CalendarDaysIcon,
-      value: "bookings"
-    }
 ]
 const page = () => {
     const [activeTab, setActiveTab] = useState("profile")
@@ -75,7 +60,7 @@ const page = () => {
                 <Card className="flex-1 p-4 md:p-6">
                     {/* title */}
                     <div className="border-b pb-4 mb-6">
-                        <h2 className="text-lg font-medium">
+                        <h2 className="text-xl font-medium">
                             {navItems.find(item => item.value === activeTab)?.title}
                         </h2>
                     </div>
@@ -86,12 +71,6 @@ const page = () => {
                         )}
                         {activeTab === "security" && (
                             <SecuritySettings />
-                        )}
-                        {activeTab === "preference" && (
-                            <PreferenceSettings />
-                        )}
-                        {activeTab === "bookings" && (
-                            <BookingRecords />
                         )}
                     </div>
                 </Card>
