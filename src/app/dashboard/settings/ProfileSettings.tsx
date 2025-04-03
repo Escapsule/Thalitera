@@ -6,7 +6,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 interface UserProfile {
   user_id: string;
   user_name: string;
-  password: string;
   email: string;
   telephone: string;
   avatar: string;
@@ -16,11 +15,13 @@ const ProfileSettings = () => {
   const [profile, setProfile] = useState<UserProfile>({
     user_id: '',
     user_name: '',
-    password: '',
     email: '',
     telephone: '',
     avatar: ''
   });
+
+  // Add edit mode status
+  const [isEditing, setIsEditing] = useState(false);
 
   // Status
   const [status, setStatus] = useState({
@@ -28,9 +29,6 @@ const ProfileSettings = () => {
     error: null as string | null,
     success: null as string | null,
   });
-
-  // Password visibility status
-  const [showPassword, setShowPassword] = useState(false);
 
   // Get user data
   const fetchUserProfile = async () => {
@@ -40,7 +38,8 @@ const ProfileSettings = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
@@ -49,7 +48,13 @@ const ProfileSettings = () => {
 
       const result = await response.json();
       if (result.code === 200 && result.data) {
-        setProfile(result.data);
+        setProfile({
+          user_id: result.data.user_id || '',
+          user_name: result.data.user_name || '',
+          email: result.data.email || '',
+          telephone: result.data.telephone || '',
+          avatar: result.data.avatar || ''
+        });
       } else {
         throw new Error(result.message || 'Failed to obtain user information');
       }
@@ -107,8 +112,6 @@ const ProfileSettings = () => {
         },
         body: JSON.stringify({
           user_name: profile.user_name,
-          password: profile.password,
-          avatar: profile.avatar
         }),
       });
 
@@ -118,7 +121,8 @@ const ProfileSettings = () => {
 
       const result = await response.json();
       if (result.code === 200) {
-        setStatus(prev => ({ ...prev, success: 'Successfully saved！' }));
+        setIsEditing(false); // Exit editing mode after successful saving
+        setStatus(prev => ({ ...prev, success: 'Information saved successfully!' }));
         setTimeout(() => {
           setStatus(prev => ({ ...prev, success: null }));
         }, 3000);
@@ -133,6 +137,13 @@ const ProfileSettings = () => {
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
     }
+  };
+
+  // Cancel editing, restore original data
+  const handleCancel = () => {
+    setIsEditing(false);
+    fetchUserProfile(); // Re-fetch data
+    setStatus(prev => ({ ...prev, error: null }));
   };
 
   // Handle avatar upload
@@ -177,7 +188,10 @@ const ProfileSettings = () => {
           ...prev,
           avatar: result.data.avatar
         }));
-        setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully！' }));
+        setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully!' }));
+        setTimeout(() => {
+          setStatus(prev => ({ ...prev, success: null }));
+        }, 3000);
       } else {
         throw new Error(result.message || 'Avatar upload failed');
       }
@@ -202,18 +216,19 @@ const ProfileSettings = () => {
       <div className="flex gap-8">
         {/* Left personal information */}
         <div className="flex-1">
-          <div className="space-y-6"> 
+          <div className="space-y-6">
             {/* user_id */}
-            <div className="grid gap-2"> 
+            <div className="grid gap-2">
               <label htmlFor="user_id">ID</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 id="user_id"
                 value={profile.user_id}
-                className="w-full p-2 border rounded-md"
-                disabled={true} // Not allowed to change user ID
-             />
+                className="w-full p-2 border rounded-md bg-gray-50"
+                disabled={true}
+              />
             </div>
+
             {/* user_name */}
             <div className="grid gap-2">
               <label htmlFor="name">Name</label>
@@ -222,29 +237,11 @@ const ProfileSettings = () => {
                 id="user_name"
                 value={profile.user_name}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded-md"
-             />
+                className={`w-full p-2 border rounded-md ${!isEditing ? 'bg-gray-50' : ''}`}
+                disabled={!isEditing}
+              />
             </div>
-            {/* password */}
-            <div className="grid gap-2">
-              <label htmlFor="password">Password</label>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  value={profile.password}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded-md pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
+
             {/* email */}
             <div className="grid gap-2">
               <label htmlFor="email">Email</label>
@@ -252,10 +249,11 @@ const ProfileSettings = () => {
                 type="email" 
                 id="email"
                 value={profile.email}
-                className="w-full p-2 border rounded-md"
-                disabled={true} // Not allowed to change email
+                className="w-full p-2 border rounded-md bg-gray-50"
+                disabled={true}
               />
             </div>
+
             {/* telephone */}
             <div className="grid gap-2">
               <label htmlFor="telephone">Telephone</label>
@@ -264,8 +262,8 @@ const ProfileSettings = () => {
                 id="telephone"
                 value={profile.telephone}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded-md"
-                disabled={status.loading}
+                className={`w-full p-2 border rounded-md ${!isEditing ? 'bg-gray-50' : ''}`}
+                disabled={!isEditing}
               />
             </div>
           </div>
@@ -282,10 +280,36 @@ const ProfileSettings = () => {
             </div>
           )}
 
-          <Button onClick={handleSave} disabled={status.loading}>Save Changes</Button>
+          {/* Buttons */}
+          <div className="mt-6 flex gap-4">
+            {!isEditing ? (
+              <Button 
+                onClick={() => setIsEditing(true)}
+                disabled={status.loading}
+              >
+                Change Information
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  onClick={handleSave}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={status.loading}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Right profile picture */}
+        {/* Right avatar section - remains unchanged */}
         <div className="w-[240px]">
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-40 h-40">
@@ -302,22 +326,31 @@ const ProfileSettings = () => {
               )}
             </Avatar>
             
-            <label htmlFor="avatar" className="w-full">
+            <div className="w-full">
               <input
                 type="file"
-                id="avatar"
+                id="avatar-upload"
                 className="hidden"
                 accept="image/*"
                 onChange={handleAvatarUpload}
                 disabled={status.loading}
               />
-              <Button variant="outline" className="w-full" disabled={status.loading}>
-                {status.loading ? 'Uploading...' : 'Change Avatar'}
-              </Button>
-            </label>
+              <label 
+                htmlFor="avatar-upload" 
+                className="w-full block"
+              >
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  disabled={status.loading}
+                  type="button"
+                >
+                  {status.loading ? 'Uploading...' : 'Change Avatar'}
+                </Button>
+              </label>
+            </div>
           </div>
         </div>
-
       </div>
 
     </div>
