@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 public class MeetingRoomController {
 
-    private MeetingRoomService meetingRoomService;
+    private final MeetingRoomService meetingRoomService;
 
 
     public MeetingRoomController(MeetingRoomService meetingRoomService) {

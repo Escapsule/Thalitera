@@ -1,8 +1,6 @@
 package com.escapsule.thalitera.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import com.escapsule.thalitera.json.TrustedDevice;
@@ -10,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.ibatis.type.JdbcType;
 
 
 import java.io.Serializable;

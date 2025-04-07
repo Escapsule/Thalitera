@@ -14,6 +14,7 @@ import com.escapsule.thalitera.po.MeetingRoomPO;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.utils.TokenUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ import java.util.UUID;
 @Slf4j
 public class MeetingRoomServiceImpl implements MeetingRoomService {
 
-    private MeetingRoomMapper meetingRoomMapper;
+    private final MeetingRoomMapper meetingRoomMapper;
 
     public MeetingRoomServiceImpl(MeetingRoomMapper meetingRoomMapper) {
         this.meetingRoomMapper = meetingRoomMapper;
@@ -176,7 +177,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Transactional
     public boolean cancelMeetingRoom(String reservationId) {
         // Check if the reservation ID is provided
-        if (reservationId == null || reservationId.isEmpty()) {
+        if (StringUtils.isBlank(reservationId)) {
             throw new BaseException(ErrorCode.PARAM_ERROR);
         }
         // Get the reservation
@@ -194,7 +195,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Transactional
     public boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         // Check if the room ID is provided
-        if (meetingRoomDTO.getRoomId() == null || meetingRoomDTO.getRoomId().isEmpty()) {
+        if (StringUtils.isBlank(meetingRoomDTO.getRoomId())) {
             throw new BaseException(ErrorCode.PARAM_ERROR);
         }
         // Get the meeting room
@@ -225,12 +226,20 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         return true;
     }
 
+    /**
+     * Check if the reservation time conflicts with the existing reservations
+     * @param startTime requested start time
+     * @param endTime requested end time
+     * @param reservationStartTime existing reservation start time
+     * @param reservationEndTime existing reservation end time
+     * @return <code>true</code> if there is a conflict, <code>false</code> otherwise
+     */
     private boolean checkConflict(OffsetDateTime startTime,            OffsetDateTime endTime,
                                   OffsetDateTime reservationStartTime, OffsetDateTime reservationEndTime) {
         // 1. st <= rs < et
         // 2. st < re <= et
         // 3. rs <= st < et <= re
-        return (
+        return
                 //case 1
                 (
                     // st <= rs
@@ -252,6 +261,6 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                     // st < et
                     (reservationEndTime.isEqual(endTime) || reservationEndTime.isAfter(endTime))
                 )
-        );
+        ;
     }
 }

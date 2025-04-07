@@ -1,9 +1,8 @@
 package com.escapsule.thalitera.json;
 
 import com.escapsule.thalitera.utils.TokenUtils;
-import lombok.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.util.UriComponentsBuilder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 
