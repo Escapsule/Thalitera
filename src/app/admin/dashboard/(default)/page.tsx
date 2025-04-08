@@ -1,9 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DoorClosed, Calendar, BarChart2, Users2, UserRound, CalendarCheck, Clock, MapPin, Users, Info, CheckCircle2 } from 'lucide-react'
+import { DoorClosed, Calendar, BarChart2, Users2, UserRound, CalendarCheck, Users, Search } from 'lucide-react'
 import { RoomDetail } from "@/components/admin/meetingroom_detail"
 import RoomCharts from "@/components/admin/RoomCharts"
+import UserDetail from "@/components/admin/user_detail"
 
 // Define types for room data
 type Room = {
@@ -27,6 +28,23 @@ type Room = {
     averageUtilization: number
     peakHours: string[]
   }
+}
+
+// Define types for user data
+type User = {
+  id: number
+  name: string
+  email: string
+  status: 'online' | 'offline'
+  lastLogin: string
+  totalBookings: number
+  currentBookings: {
+    id: number
+    roomName: string
+    startTime: string
+    endTime: string
+    purpose: string
+  }[]
 }
 
 // Pagination props
@@ -55,9 +73,11 @@ interface CardProps {
 }
 
 const Card = ({ children, title }: CardProps) => (
-  <div className="bg-white rounded-lg shadow-md p-6 h-full">
+  <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
     <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
+    <div className="flex-1 flex flex-col min-h-0">
+      {children}
+    </div>
   </div>
 )
 
@@ -110,35 +130,42 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
   }
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-4">
+    <div className="flex justify-center items-center gap-1 text-sm">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-3 py-1 rounded-md border disabled:opacity-50"
+        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
         previous page
       </button>
-      <div className="flex items-center gap-2">
-        <span className="text-sm">page</span>
+      <div className="flex items-center gap-1">
+        <span className="text-xs">page</span>
         <input
           type="text"
           value={inputPage}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           onBlur={handleInputSubmit}
-          className="w-12 px-2 py-1 text-center border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-8 px-1 py-0.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <span className="text-sm">, total {totalPages} pages</span>
+        <span className="text-xs">, total {totalPages} pages</span>
       </div>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-1 rounded-md border disabled:opacity-50"
+        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
         next page
       </button>
     </div>
   )
+}
+
+// 首先定义用户统计数据的类型
+type UserStats = {
+  totalUsers: number
+  activeUsers: number
+  bookingsToday: number
 }
 
 /**
@@ -151,8 +178,8 @@ const DashboardPage = () => {
     activeBookings: 0,
     utilizationRate: 0
   })
-  
-  const [userStats, setUserStats] = useState({
+
+  const [userStats, setUserStats] = useState<UserStats>({
     totalUsers: 0,
     activeUsers: 0,
     bookingsToday: 0
@@ -162,22 +189,50 @@ const DashboardPage = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  // Conference room pagination status
+  const [roomCurrentPage, setRoomCurrentPage] = useState(1)
 
-  // Calculate total pages
-  const totalPages = Math.ceil(rooms.length / itemsPerPage)
+  // User status
+  const [users, setUsers] = useState<User[]>([])
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isUserDetailOpen, setIsUserDetailOpen] = useState(false)
+  const [userCurrentPage, setUserCurrentPage] = useState(1)
 
-  // Get current page rooms
-  const currentRooms = rooms.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const [roomSearchQuery, setRoomSearchQuery] = useState('')
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+
+  const roomItemsPerPage = 4;
+  const userItemsPerPage = 5; 
+
+  // Conference room pagination calculation
+  const filteredRooms = rooms.filter(room => 
+    room.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
   )
+  const roomTotalPages = Math.ceil(filteredRooms.length / roomItemsPerPage);
+  const currentRooms = filteredRooms.slice(
+    (roomCurrentPage - 1) * roomItemsPerPage,
+    roomCurrentPage * roomItemsPerPage
+  );
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+  // User pagination calculation
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || 
+    user.id.toString().includes(userSearchQuery)
+  )
+  const userTotalPages = Math.ceil(filteredUsers.length / userItemsPerPage);
+  const currentUsers = filteredUsers.slice(
+    (userCurrentPage - 1) * userItemsPerPage,
+    userCurrentPage * userItemsPerPage
+  );
+
+  // Conference room pagination handling function
+  const handleRoomPageChange = (page: number) => {
+    setRoomCurrentPage(page)
+  }
+
+  // User pagination handling function
+  const handleUserPageChange = (page: number) => {
+    setUserCurrentPage(page)
   }
 
   /**
@@ -246,7 +301,7 @@ const DashboardPage = () => {
             id: 1,
             startTime: "09:00",
             endTime: "10:00",
-            userName: "John Doe",
+            userName: "John",
             purpose: "Team Meeting"
           }],
           weeklyStats: {
@@ -269,15 +324,86 @@ const DashboardPage = () => {
     }
   }
 
+  const fetchUserStats = async () => {
+    try {
+      // Import mock data
+      const { users: mockUsers } = await import('@/lib/admin/userMock_data')
+      
+      // Format user data
+      const formattedUsers = mockUsers.map((user) => ({
+        id: user.id,
+        name: user.name.trim(),
+        email: user.email,
+        status: user.status as 'online' | 'offline',
+        lastLogin: user.lastLogin,
+        totalBookings: user.totalBookings,
+        currentBookings: user.currentBookings || []
+      }))
+      
+      // Get today's date
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
+      
+      setUsers(formattedUsers)
+      setUserStats({
+        totalUsers: formattedUsers.length,
+        activeUsers: formattedUsers.filter(user => {
+          // Check if user has bookings today
+          const hasBookingsToday = user.currentBookings?.some(booking => {
+            // Process time format
+            const [hours, minutes] = booking.startTime.split(':')
+            const bookingDate = new Date()
+            bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+            return bookingDate.toDateString() === today.toDateString()
+          }) || false
 
+          // Check user last login time
+          try {
+            const lastLoginDate = new Date(user.lastLogin)
+            const isLoginToday = lastLoginDate.toDateString() === today.toDateString()
+            return hasBookingsToday || isLoginToday
+          } catch {
+            return false
+          }
+        }).length,
+        bookingsToday: formattedUsers.reduce((sum, user) => 
+          sum + (user.currentBookings?.length || 0), 0
+        )
+      })
+
+      console.log('Formatted users:', formattedUsers) // Add log
+    } catch (error) {
+      console.error('Failed to get user statistics:', error)
+      // If import fails, use hardcoded mock data
+      const fallbackUsers = [
+        {
+          id: 1,
+          name: "John",
+          email: "john@example.com",
+          status: "online",
+          lastLogin: "2024-03-07 09:30",
+          totalBookings: 0,
+          currentBookings: []
+        }
+      ]
+      setUsers(fallbackUsers as User[])
+      setUserStats({
+        totalUsers: fallbackUsers.length,
+        activeUsers: 0,
+        bookingsToday: 0
+      })
+    }
+  }
 
   // When the component is loaded, get the data
   useEffect(() => {
     fetchRoomStats()
+    fetchUserStats()
     
     // Set the timer to refresh every minute
     const timer = setInterval(() => {
       fetchRoomStats()
+      fetchUserStats()
     }, 60000) // Refresh every minute
 
     return () => clearInterval(timer)
@@ -286,6 +412,11 @@ const DashboardPage = () => {
   const handleViewRoom = (room: Room) => {
     setSelectedRoom(room)
     setIsDetailOpen(true)
+  }
+
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user)
+    setIsUserDetailOpen(true)
   }
 
   return (
@@ -299,108 +430,214 @@ const DashboardPage = () => {
         </div>
       </header>
       
-      {/* Use grid layout to create two columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left - Meeting room statistics card */}
-        <div className="w-full">
-          <Card title="Meeting Room Usage">
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <StatCard
-                title="Total Rooms"
-                value={roomStats.totalRooms}
-                icon={<DoorClosed className="w-6 h-6" />}
-              />
-              <StatCard
-                title="Currently in Use"
-                value={roomStats.activeBookings}
-                icon={<Calendar className="w-6 h-6" />}
-              />
-              <StatCard
-                title="Utilization Rate"
-                value={roomStats.utilizationRate}
-                suffix="%"
-                icon={<BarChart2 className="w-6 h-6" />}
-              />
-            </div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="w-full">
+            <Card title="Meeting Room Usage">
+              <div className="flex flex-col h-full">
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <StatCard
+                    title="Total Rooms"
+                    value={roomStats.totalRooms}
+                    icon={<DoorClosed className="w-6 h-6" />}
+                  />
+                  <StatCard
+                    title="Currently in Use"
+                    value={roomStats.activeBookings}
+                    icon={<CalendarCheck className="w-6 h-6" />}
+                  />
+                  <StatCard
+                    title="Utilization Rate"
+                    value={roomStats.utilizationRate}
+                    suffix="%"
+                    icon={<BarChart2 className="w-6 h-6" />}
+                  />
+                </div>
 
-            {/* Room Usage List */}
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-4">Metting Rooms</h3>
-              <div className="space-y-4">
-                {currentRooms.map((room) => (
-                  <div 
-                    key={room.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => handleViewRoom(room)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-medium">{room.name}</h4>
-                        <p className="text-sm text-gray-500">{room.location}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        room.status === 'available' ? 'bg-green-100 text-green-800' :
-                        room.status === 'booked' ? 'bg-yellow-100 text-yellow-800' :
-                        room.status === 'in_use' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {room.status === 'available' ? 'Available' :
-                         room.status === 'booked' ? 'Booked' :
-                         room.status === 'in_use' ? 'In Use' :
-                         'Maintenance'}
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Meeting Rooms</h3>
+                    <div className="relative w-64">
+                      <input
+                        type="text"
+                        placeholder="Search Rooms..."
+                        value={roomSearchQuery}
+                        onChange={(e) => {
+                          setRoomSearchQuery(e.target.value)
+                          setRoomCurrentPage(1)
+                        }}
+                        className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Search className="h-4 w-4" />
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span>{room.capacity} people</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <BarChart2 className="h-4 w-4 text-gray-400" />
-                        <span>Utilization: {room.utilizationRate}%</span>
-                      </div>
-                    </div>
-                    {room.currentBookings && room.currentBookings.length > 0 && (
-                      <div className="mt-2 text-sm text-gray-500">
-                        <span>Current: {room.currentBookings[0].userName} ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
-                      </div>
-                    )}
                   </div>
-                ))}
+                  <div className="h-[calc(100vh-22rem)] overflow-y-auto mb-1">
+                    <div className="space-y-4">
+                      {currentRooms.map((room) => (
+                        <div 
+                          key={room.id}
+                          className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => handleViewRoom(room)}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium">{room.name}</h4>
+                              <p className="text-sm text-gray-500">{room.location}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              room.status === 'available' ? 'bg-green-100 text-green-800' :
+                              room.status === 'booked' ? 'bg-yellow-100 text-yellow-800' :
+                              room.status === 'in_use' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {room.status === 'available' ? 'Available' :
+                               room.status === 'booked' ? 'Booked' :
+                               room.status === 'in_use' ? 'In Use' :
+                               'Maintenance'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-gray-400" />
+                              <span>{room.capacity} people</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <BarChart2 className="h-4 w-4 text-gray-400" />
+                              <span>Utilization: {room.utilizationRate}%</span>
+                            </div>
+                          </div>
+                          {room.currentBookings && room.currentBookings.length > 0 && (
+                            <div className="mt-2 text-sm text-gray-500">
+                              <span>Current: {room.currentBookings[0].userName} ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="sticky bottom-0 bg-white border-t">
+                    <div className="py-1">
+                      <Pagination
+                        currentPage={roomCurrentPage}
+                        totalPages={roomTotalPages}
+                        onPageChange={handleRoomPageChange}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-              {/* Add pagination component */}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            </div>
+            </Card>
+          </div>
 
-            {/* Add Chart */}
-            <RoomCharts rooms={rooms} />
-          </Card>
+          {/* Right - User Statistics Card */}
+          <div className="w-full">
+            <Card title="User Usage">
+              <div className="flex flex-col h-full">
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <StatCard
+                    title="Total Users"
+                    value={userStats.totalUsers}
+                    icon={<Users2 className="w-6 h-6" />}
+                  />
+                  <StatCard
+                    title="Active Users Today"
+                    value={userStats.activeUsers}
+                    icon={<UserRound className="w-6 h-6" />}
+                  />
+                  <StatCard
+                    title="Bookings Today"
+                    value={userStats.bookingsToday}
+                    icon={<Calendar className="w-6 h-6" />}
+                  />
+                </div>
+
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Users</h3>
+                    <div className="relative w-64">
+                      <input
+                        type="text"
+                        placeholder="Search User Name/ID..."
+                        value={userSearchQuery}
+                        onChange={(e) => {
+                          setUserSearchQuery(e.target.value)
+                          setUserCurrentPage(1)
+                        }}
+                        className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Search className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-[calc(100vh-22rem)] overflow-y-auto mb-1">
+                    <div className="space-y-4">
+                      {currentUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => handleViewUser(user)}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="relative">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback className="bg-primary text-primary-foreground">
+                                    {user.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
+                                  user.status === 'online' 
+                                    ? 'bg-green-500' 
+                                    : 'bg-gray-400'
+                                }`} />
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{user.name}</span>
+                                  <span className="text-sm text-gray-500">ID: {user.id}</span>
+                                </div>
+                                <span className="text-xs text-gray-500">Last Login: {user.lastLogin}</span>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              user.status === 'online'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {user.status === 'online' ? 'Online' : 'Offline'}
+                            </span>
+                          </div>
+                          {user.currentBookings && user.currentBookings.length > 0 && (
+                            <div className="mt-2 text-sm text-gray-500">
+                              <span>Current Booking: {user.currentBookings[0].roomName} ({user.currentBookings[0].startTime} - {user.currentBookings[0].endTime})</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="sticky bottom-0 bg-white border-t">
+                    <div className="py-1">
+                      <Pagination
+                        currentPage={userCurrentPage}
+                        totalPages={userTotalPages}
+                        onPageChange={handleUserPageChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
 
-        {/* Right - User statistics card */}
+        {/* Statistics Chart Area */}
         <div className="w-full">
-          <Card title="User Usage">
-            <div className="grid grid-cols-3 gap-4">
-              <StatCard
-                title="Total Users"
-                value={userStats.totalUsers}
-                icon={<Users2 className="w-6 h-6" />}
-              />
-              <StatCard
-                title="Active Users Today"
-                value={userStats.activeUsers}
-                icon={<UserRound className="w-6 h-6" />}
-              />
-              <StatCard
-                title="Bookings Today"
-                value={userStats.bookingsToday}
-                icon={<CalendarCheck className="w-6 h-6" />}
-              />
-            </div>
+          <Card title="Meeting Room Booking Preference Analysis">
+            <RoomCharts rooms={rooms} />
           </Card>
         </div>
       </div>
@@ -422,6 +659,15 @@ const DashboardPage = () => {
           }}
           isOpen={isDetailOpen}
           onClose={() => setIsDetailOpen(false)}
+        />
+      )}
+
+      {/* User Detail Dialog */}
+      {selectedUser && (
+        <UserDetail
+          user={selectedUser}
+          isOpen={isUserDetailOpen}
+          onClose={() => setIsUserDetailOpen(false)}
         />
       )}
     </div>

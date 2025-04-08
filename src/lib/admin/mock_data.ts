@@ -45,9 +45,15 @@ export const rooms = [
       location: "Building B, Floor 3",
       description: "Executive board room with premium facilities",
       amenities: ["Projector", "Whiteboard", "Video Conference", "Catering Available", "Premium Audio"],
-      status: "available",
+      status: "in_use",
       utilizationRate: 50,
-      currentBookings: [],
+      currentBookings: [{
+        id: 5,
+        startTime: "09:00",
+        endTime: "10:00",
+        userName: "Bob",
+        purpose: "Team Meeting"
+      }],
       weeklyStats: {
         totalHours: 25,
         averageUtilization: 55,
