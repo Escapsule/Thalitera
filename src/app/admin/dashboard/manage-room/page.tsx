@@ -349,40 +349,117 @@ const ManageRoomPage = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label>Facilities</Label>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="projector" 
-                      checked={newRoom.facilities?.projector}
-                      onCheckedChange={(checked) => 
-                        setNewRoom({
-                          ...newRoom,
-                          facilities: {
-                            ...newRoom.facilities!,
-                            projector: checked as boolean
-                          }
-                        })
-                      }
-                    />
-                    <Label htmlFor="projector">Projector</Label>
+              <div className="mt-4">
+                <div className="flex flex-col gap-4">
+                  <div className="border-t border-gray-200 my-2"></div>
+                  
+                  {/* Projector and Coffee break options */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="projector" 
+                        checked={newRoom.facilities?.projector}
+                        onCheckedChange={(checked) => 
+                          setNewRoom({
+                            ...newRoom,
+                            facilities: {
+                              ...newRoom.facilities!,
+                              projector: checked as boolean
+                            }
+                          })
+                        }
+                      />
+                      <Label htmlFor="projector">Projector</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="coffee_break" 
+                        checked={newRoom.facilities?.coffee_break}
+                        onCheckedChange={(checked) => 
+                          setNewRoom({
+                            ...newRoom,
+                            facilities: {
+                              ...newRoom.facilities!,
+                              coffee_break: checked as boolean
+                            }
+                          })
+                        }
+                      />
+                      <Label htmlFor="coffee_break">Coffee Break Service</Label>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="coffee_break" 
-                      checked={newRoom.facilities?.coffee_break}
-                      onCheckedChange={(checked) => 
+                  
+                  {/* 分隔线 */}
+                  <div className="border-t border-gray-200 my-2"></div>
+                  
+                  {/* Whiteboard and Power sockets counts */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="whiteboard" className="min-w-[100px]">Whiteboard:</Label>
+                      <Input
+                        id="whiteboard"
+                        type="number"
+                        min="0"
+                        max="20"
+                        className="w-20 h-8"
+                        value={newRoom.facilities?.whiteboard || 0}
+                        onChange={(e) => 
+                          setNewRoom({
+                            ...newRoom,
+                            facilities: {
+                              ...newRoom.facilities!,
+                              whiteboard: parseInt(e.target.value) || 0
+                            }
+                          })
+                        }
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="power_sockets" className="min-w-[100px]">Power Sockets:</Label>
+                      <Input
+                        id="power_sockets"
+                        type="number"
+                        min="0"
+                        max="20"
+                        className="w-20 h-8"
+                        value={newRoom.facilities?.power_sockets || 0}
+                        onChange={(e) => 
+                          setNewRoom({
+                            ...newRoom,
+                            facilities: {
+                              ...newRoom.facilities!,
+                              power_sockets: parseInt(e.target.value) || 0
+                            }
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* 分隔线 */}
+                  <div className="border-t border-gray-200 my-2"></div>
+                  
+                  {/* Special notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="special_notes">Special Notes</Label>
+                    <Input
+                      id="special_notes"
+                      placeholder="e.g.: No food and drinks, Equipment setup 30 minutes in advance"
+                      value={newRoom.facilities?.special_notes?.join(', ') || ''}
+                      onChange={(e) => {
+                        const notes = e.target.value ? e.target.value.split(',').map(note => note.trim()) : [];
                         setNewRoom({
                           ...newRoom,
                           facilities: {
                             ...newRoom.facilities!,
-                            coffee_break: checked as boolean
+                            special_notes: notes
                           }
-                        })
-                      }
+                        });
+                      }}
                     />
-                    <Label htmlFor="coffee_break">Coffee Break Service</Label>
+                    <p className="text-xs text-gray-500">Separate multiple notes with commas</p>
                   </div>
                 </div>
               </div>
