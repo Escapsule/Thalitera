@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
+import RoomForm from './RoomForm'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -142,6 +143,7 @@ const ManageRoomPage = () => {
   const [loading, setLoading] = useState(false) // Set to false because loading is not needed
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false) // 添加编辑对话框状态
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
   
@@ -194,17 +196,26 @@ const ManageRoomPage = () => {
   }
 
   // Add meeting room - modified to use local data
+  const validateRoomData = (room: Partial<MeetingRoom>) => {
+    if (!room.name || !room.building || !room.capacity_min || !room.capacity_max) {
+      alert('Please fill in all required information');
+      return false;
+    }
+    
+    if (room.capacity_min! > room.capacity_max!) {
+      alert('Minimum capacity cannot be greater than maximum capacity');
+      return false;
+    }
+    
+    return true;
+  }
+
+  // 修改handleAddRoom函数使用验证函数
   const handleAddRoom = async () => {
     try {
       // Form validation
-      if (!newRoom.name || !newRoom.building || !newRoom.capacity_min || !newRoom.capacity_max) {
-        alert('Please fill in all required information');
-        return
-      }
-      
-      if (newRoom.capacity_min > newRoom.capacity_max) {
-        alert('Minimum capacity cannot be greater than maximum capacity');
-        return
+      if (!validateRoomData(newRoom)) {
+        return;
       }
 
       // Locally add meeting room
@@ -235,6 +246,30 @@ const ManageRoomPage = () => {
       });
     } catch (error) {
       alert('Failed to add meeting room');
+      console.error(error)
+    }
+  }
+
+  // 添加handleEditRoom函数
+  const handleEditRoom = async () => {
+    if (!selectedRoom) return;
+    
+    try {
+      // Form validation
+      if (!validateRoomData(selectedRoom)) {
+        return;
+      }
+
+      // Update room in local state
+      const updatedRooms = rooms.map(room => 
+        room.room_id === selectedRoom.room_id ? selectedRoom : room
+      );
+      
+      setRooms(updatedRooms);
+      setIsEditDialogOpen(false);
+      alert('Meeting room updated successfully');
+    } catch (error) {
+      alert('Failed to update meeting room');
       console.error(error)
     }
   }
@@ -275,195 +310,7 @@ const ManageRoomPage = () => {
             <DialogHeader>
               <DialogTitle>Add New Meeting Room</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Room Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g.: Building A-301 Meeting Room"
-                    value={newRoom.name || ''}
-                    onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="building">Building</Label>
-                  <Input
-                    id="building"
-                    placeholder="e.g.: Tech Tower"
-                    value={newRoom.building || ''}
-                    onChange={(e) => setNewRoom({ ...newRoom, building: e.target.value })}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="floor">Floor</Label>
-                  <Input
-                    id="floor"
-                    type="number"
-                    value={newRoom.floor || 1}
-                    onChange={(e) => setNewRoom({ ...newRoom, floor: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select 
-                    value={newRoom.status} 
-                    onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') => 
-                      setNewRoom({ ...newRoom, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Available</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="using">In Use</SelectItem>
-                      <SelectItem value="booked">Booked</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="capacity_min">Minimum Capacity</Label>
-                  <Input
-                    id="capacity_min"
-                    type="number"
-                    value={newRoom.capacity_min || 1}
-                    onChange={(e) => setNewRoom({ ...newRoom, capacity_min: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="capacity_max">Maximum Capacity</Label>
-                  <Input
-                    id="capacity_max"
-                    type="number"
-                    value={newRoom.capacity_max || 10}
-                    onChange={(e) => setNewRoom({ ...newRoom, capacity_max: parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <div className="flex flex-col gap-4">
-                  <div className="border-t border-gray-200 my-2"></div>
-                  
-                  {/* Projector and Coffee break options */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="projector" 
-                        checked={newRoom.facilities?.projector}
-                        onCheckedChange={(checked) => 
-                          setNewRoom({
-                            ...newRoom,
-                            facilities: {
-                              ...newRoom.facilities!,
-                              projector: checked as boolean
-                            }
-                          })
-                        }
-                      />
-                      <Label htmlFor="projector">Projector</Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="coffee_break" 
-                        checked={newRoom.facilities?.coffee_break}
-                        onCheckedChange={(checked) => 
-                          setNewRoom({
-                            ...newRoom,
-                            facilities: {
-                              ...newRoom.facilities!,
-                              coffee_break: checked as boolean
-                            }
-                          })
-                        }
-                      />
-                      <Label htmlFor="coffee_break">Coffee Break Service</Label>
-                    </div>
-                  </div>
-                  
-                  {/* 分隔线 */}
-                  <div className="border-t border-gray-200 my-2"></div>
-                  
-                  {/* Whiteboard and Power sockets counts */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="whiteboard" className="min-w-[100px]">Whiteboard:</Label>
-                      <Input
-                        id="whiteboard"
-                        type="number"
-                        min="0"
-                        max="20"
-                        className="w-20 h-8"
-                        value={newRoom.facilities?.whiteboard || 0}
-                        onChange={(e) => 
-                          setNewRoom({
-                            ...newRoom,
-                            facilities: {
-                              ...newRoom.facilities!,
-                              whiteboard: parseInt(e.target.value) || 0
-                            }
-                          })
-                        }
-                      />
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="power_sockets" className="min-w-[100px]">Power Sockets:</Label>
-                      <Input
-                        id="power_sockets"
-                        type="number"
-                        min="0"
-                        max="20"
-                        className="w-20 h-8"
-                        value={newRoom.facilities?.power_sockets || 0}
-                        onChange={(e) => 
-                          setNewRoom({
-                            ...newRoom,
-                            facilities: {
-                              ...newRoom.facilities!,
-                              power_sockets: parseInt(e.target.value) || 0
-                            }
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* 分隔线 */}
-                  <div className="border-t border-gray-200 my-2"></div>
-                  
-                  {/* Special notes */}
-                  <div className="space-y-2">
-                    <Label htmlFor="special_notes">Special Notes</Label>
-                    <Input
-                      id="special_notes"
-                      placeholder="e.g.: No food and drinks, Equipment setup 30 minutes in advance"
-                      value={newRoom.facilities?.special_notes?.join(', ') || ''}
-                      onChange={(e) => {
-                        const notes = e.target.value ? e.target.value.split(',').map(note => note.trim()) : [];
-                        setNewRoom({
-                          ...newRoom,
-                          facilities: {
-                            ...newRoom.facilities!,
-                            special_notes: notes
-                          }
-                        });
-                      }}
-                    />
-                    <p className="text-xs text-gray-500">Separate multiple notes with commas</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <RoomForm room={newRoom} setRoom={setNewRoom} />
             <DialogFooter>
               <Button onClick={handleAddRoom}>Confirm</Button>
             </DialogFooter>
@@ -536,6 +383,10 @@ const ManageRoomPage = () => {
                             variant="outline"
                             size="sm"
                             className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setSelectedRoom(room)
+                              setIsEditDialogOpen(true)
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -586,6 +437,220 @@ const ManageRoomPage = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteRoom}>
               Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit meeting room dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Meeting Room</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Room Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="e.g.: Building A-301 Meeting Room"
+                  value={selectedRoom?.name || ''}
+                  onChange={(e) => setSelectedRoom(selectedRoom ? { ...selectedRoom, name: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-building">Building</Label>
+                <Input
+                  id="edit-building"
+                  placeholder="e.g.: Tech Tower"
+                  value={selectedRoom?.building || ''}
+                  onChange={(e) => setSelectedRoom(selectedRoom ? { ...selectedRoom, building: e.target.value } : null)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-floor">Floor</Label>
+                <Input
+                  id="edit-floor"
+                  type="number"
+                  value={selectedRoom?.floor || 1}
+                  onChange={(e) => setSelectedRoom(selectedRoom ? { ...selectedRoom, floor: parseInt(e.target.value) } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select 
+                  value={selectedRoom?.status} 
+                  onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') => 
+                    setSelectedRoom(selectedRoom ? { ...selectedRoom, status: value } : null)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Available</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="using">In Use</SelectItem>
+                    <SelectItem value="booked">Booked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-capacity_min">Minimum Capacity</Label>
+                <Input
+                  id="edit-capacity_min"
+                  type="number"
+                  value={selectedRoom?.capacity_min || 1}
+                  onChange={(e) => setSelectedRoom(selectedRoom ? { ...selectedRoom, capacity_min: parseInt(e.target.value) } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-capacity_max">Maximum Capacity</Label>
+                <Input
+                  id="edit-capacity_max"
+                  type="number"
+                  value={selectedRoom?.capacity_max || 10}
+                  onChange={(e) => setSelectedRoom(selectedRoom ? { ...selectedRoom, capacity_max: parseInt(e.target.value) } : null)}
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <div className="flex flex-col gap-4">
+                <div className="border-t border-gray-200 my-2"></div>
+                
+                {/* Projector and Coffee break options */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="edit-projector" 
+                      checked={selectedRoom?.facilities?.projector}
+                      onCheckedChange={(checked) => 
+                        setSelectedRoom(selectedRoom ? {
+                          ...selectedRoom,
+                          facilities: {
+                            ...selectedRoom.facilities,
+                            projector: checked as boolean
+                          }
+                        } : null)
+                      }
+                    />
+                    <Label htmlFor="edit-projector">Projector</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="edit-coffee_break" 
+                      checked={selectedRoom?.facilities?.coffee_break}
+                      onCheckedChange={(checked) => 
+                        setSelectedRoom(selectedRoom ? {
+                          ...selectedRoom,
+                          facilities: {
+                            ...selectedRoom.facilities,
+                            coffee_break: checked as boolean
+                          }
+                        } : null)
+                      }
+                    />
+                    <Label htmlFor="edit-coffee_break">Coffee Break Service</Label>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-2"></div>
+                
+                {/* Whiteboard and Power sockets counts */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="edit-whiteboard" className="min-w-[100px]">Whiteboard:</Label>
+                    <Input
+                      id="edit-whiteboard"
+                      type="number"
+                      min="0"
+                      max="20"
+                      className="w-20 h-8"
+                      value={selectedRoom?.facilities?.whiteboard || 0}
+                      onChange={(e) => 
+                        setSelectedRoom(selectedRoom ? {
+                          ...selectedRoom,
+                          facilities: {
+                            ...selectedRoom.facilities,
+                            whiteboard: parseInt(e.target.value) || 0
+                          }
+                        } : null)
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="edit-power_sockets" className="min-w-[100px]">Power Sockets:</Label>
+                    <Input
+                      id="edit-power_sockets"
+                      type="number"
+                      min="0"
+                      max="20"
+                      className="w-20 h-8"
+                      value={selectedRoom?.facilities?.power_sockets || 0}
+                      onChange={(e) => 
+                        setSelectedRoom(selectedRoom ? {
+                          ...selectedRoom,
+                          facilities: {
+                            ...selectedRoom.facilities,
+                            power_sockets: parseInt(e.target.value) || 0
+                          }
+                        } : null)
+                      }
+                    />
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-2"></div>
+                
+                {/* Special notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-special_notes">Special Notes</Label>
+                  <Input
+                    id="edit-special_notes"
+                    placeholder="e.g.: No food and drinks, Equipment setup 30 minutes in advance"
+                    value={selectedRoom?.facilities?.special_notes?.join(', ') || ''}
+                    onChange={(e) => {
+                      const notes = e.target.value ? e.target.value.split(',').map(note => note.trim()) : [];
+                      setSelectedRoom(selectedRoom ? {
+                        ...selectedRoom,
+                        facilities: {
+                          ...selectedRoom.facilities,
+                          special_notes: notes
+                        }
+                      } : null);
+                    }}
+                  />
+                  <p className="text-xs text-gray-500">Separate multiple notes with commas</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => {
+              if (!selectedRoom) return;
+              
+              // Update room information
+              const updatedRooms = rooms.map(room => 
+                room.room_id === selectedRoom.room_id ? selectedRoom : room
+              );
+              
+              setRooms(updatedRooms);
+              setIsEditDialogOpen(false);
+              alert('Meeting room updated successfully');
+            }}>
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
