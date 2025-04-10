@@ -94,7 +94,7 @@ const mockRooms: MeetingRoom[] = [
     capacity_max: 40,
     building: "Headquarters",
     floor: 5,
-    status: "using", // Changed from maintenance to using
+    status: "using",
     facilities: {
       projector: true,
       whiteboard: 3,
@@ -143,9 +143,22 @@ const ManageRoomPage = () => {
   const [loading, setLoading] = useState(false) // Set to false because loading is not needed
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false) // 添加编辑对话框状态
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
+  
+  // Add filtering states
+  const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>(mockRooms)
+  const [filters, setFilters] = useState({
+    name: '',
+    building: '',
+    status: 'all',
+    capacity: '', // Single capacity field instead of min/max
+    hasProjector: false,
+    hasCoffeeBreak: false,
+    minWhiteboard: '',
+    minPowerSockets: '',
+  })
   
   // New meeting room form state
   const [newRoom, setNewRoom] = useState<Partial<MeetingRoom>>({
@@ -196,6 +209,7 @@ const ManageRoomPage = () => {
   }
 
   // Add meeting room - modified to use local data
+  // Validate room data before saving
   const validateRoomData = (room: Partial<MeetingRoom>) => {
     if (!room.name || !room.building || !room.capacity_min || !room.capacity_max) {
       alert('Please fill in all required information');
@@ -210,7 +224,7 @@ const ManageRoomPage = () => {
     return true;
   }
 
-  // 修改handleAddRoom函数使用验证函数
+  // Modified handleAddRoom function to use validation
   const handleAddRoom = async () => {
     try {
       // Form validation
@@ -250,7 +264,7 @@ const ManageRoomPage = () => {
     }
   }
 
-  // 添加handleEditRoom函数
+  // Add handleEditRoom function
   const handleEditRoom = async () => {
     if (!selectedRoom) return;
     
@@ -290,10 +304,95 @@ const ManageRoomPage = () => {
     }
   }
 
+  // Apply filters function
+  const applyFilters = () => {
+    let result = [...rooms];
+    
+    // Filter by name
+    if (filters.name) {
+      result = result.filter(room => 
+        room.name.toLowerCase().includes(filters.name.toLowerCase())
+      );
+    }
+    
+    // Filter by building
+    if (filters.building) {
+      result = result.filter(room => 
+        room.building.toLowerCase().includes(filters.building.toLowerCase())
+      );
+    }
+    
+    // Filter by status
+    if (filters.status && filters.status !== 'all') {
+      result = result.filter(room => room.status === filters.status);
+    }
+    
+    // Filter by capacity - using single capacity field
+    // This finds rooms that can accommodate the specified number of people
+    if (filters.capacity) {
+      const capacity = parseInt(filters.capacity);
+      result = result.filter(room => 
+        room.capacity_min <= capacity && room.capacity_max >= capacity
+      );
+    }
+    
+    // Filter by projector availability
+    if (filters.hasProjector) {
+      result = result.filter(room => room.facilities.projector);
+    }
+    
+    // Filter by coffee break service
+    if (filters.hasCoffeeBreak) {
+      result = result.filter(room => room.facilities.coffee_break);
+    }
+    
+    // Filter by minimum whiteboard count
+    if (filters.minWhiteboard) {
+      const minWhiteboard = parseInt(filters.minWhiteboard);
+      result = result.filter(room => room.facilities.whiteboard >= minWhiteboard);
+    }
+    
+    // Filter by minimum power sockets count
+    if (filters.minPowerSockets) {
+      const minPowerSockets = parseInt(filters.minPowerSockets);
+      result = result.filter(room => room.facilities.power_sockets >= minPowerSockets);
+    }
+    
+    setFilteredRooms(result);
+  }
+  
+  // Reset all filters
+  const resetFilters = () => {
+    setFilters({
+      name: '',
+      building: '',
+      status: 'all',
+      capacity: '',
+      hasProjector: false,
+      hasCoffeeBreak: false,
+      minWhiteboard: '',
+      minPowerSockets: '',
+    });
+    setFilteredRooms(rooms);
+  }
+  
+  // Handle filter change
+  const handleFilterChange = (field: string, value: string | boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }
+
   // Load data when component mounts
   useEffect(() => {
     fetchRooms()
   }, [])
+  
+  // Update filtered results when rooms data changes
+  useEffect(() => {
+    setFilteredRooms(rooms);
+  }, [rooms]);
 
   return (
     <div className="w-full min-h-screen p-6">
@@ -318,6 +417,120 @@ const ManageRoomPage = () => {
         </Dialog>
       </div>
 
+      {/* Filter panel */}
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Filter Meeting Rooms</h2>
+          <Button variant="outline" size="sm" onClick={resetFilters}>
+            Reset Filters
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="filter-name">Room Name</Label>
+            <Input
+              id="filter-name"
+              placeholder="Search by name"
+              value={filters.name}
+              onChange={(e) => handleFilterChange('name', e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="filter-building">Building</Label>
+            <Input
+              id="filter-building"
+              placeholder="Search by building"
+              value={filters.building}
+              onChange={(e) => handleFilterChange('building', e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="filter-status">Status</Label>
+            <Select 
+              value={filters.status} 
+              onValueChange={(value) => handleFilterChange('status', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="active">Available</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="using">In Use</SelectItem>
+                <SelectItem value="booked">Booked</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="filter-capacity">Capacity</Label>
+            <Input
+              id="filter-capacity"
+              type="number"
+              placeholder="Enter required capacity"
+              value={filters.capacity}
+              onChange={(e) => handleFilterChange('capacity', e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center space-x-4 pt-6">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="filter-projector" 
+                checked={filters.hasProjector}
+                onCheckedChange={(checked) => handleFilterChange('hasProjector', !!checked)}
+              />
+              <Label htmlFor="filter-projector">Has Projector</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="filter-coffee-break" 
+                checked={filters.hasCoffeeBreak}
+                onCheckedChange={(checked) => handleFilterChange('hasCoffeeBreak', !!checked)}
+              />
+              <Label htmlFor="filter-coffee-break">Has Coffee Break</Label>
+            </div>
+          </div>
+          
+          <div className="flex items-end gap-4 col-span-3">
+            <div className="space-y-2 w-full md:w-1/3">
+              <Label htmlFor="filter-whiteboard">Min Whiteboards</Label>
+              <Input
+                id="filter-whiteboard"
+                type="number"
+                min="0"
+                max="20"
+                placeholder="Min whiteboards"
+                value={filters.minWhiteboard}
+                onChange={(e) => handleFilterChange('minWhiteboard', e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2 w-full md:w-1/3">
+              <Label htmlFor="filter-power-sockets">Min Power Sockets</Label>
+              <Input
+                id="filter-power-sockets"
+                type="number"
+                min="0"
+                max="20"
+                placeholder="Min power sockets"
+                value={filters.minPowerSockets}
+                onChange={(e) => handleFilterChange('minPowerSockets', e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-end justify-end w-full md:w-1/3">
+              <Button onClick={applyFilters} className="h-10">Apply Filters</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -337,14 +550,14 @@ const ManageRoomPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rooms.length === 0 ? (
+                {filteredRooms.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       No meeting room data available
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rooms.map((room) => (
+                  filteredRooms.map((room) => (
                     <TableRow key={room.room_id}>
                       <TableCell className="font-medium">{room.name}</TableCell>
                       <TableCell>{`${room.building} Floor ${room.floor}`}</TableCell>
