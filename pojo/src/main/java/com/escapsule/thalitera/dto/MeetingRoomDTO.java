@@ -1,5 +1,7 @@
 package com.escapsule.thalitera.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
@@ -10,6 +12,7 @@ public class MeetingRoomDTO {
 
     public String roomId;
 
+    @NotBlank
     public String name;
 
     @Positive
@@ -18,14 +21,18 @@ public class MeetingRoomDTO {
     @Positive
     public int capacityMax;
 
+    @NotBlank
     public String building;
 
-    public int floor;
+    @NotNull
+    public Integer floor;
 
     public String status;
 
+    @NotNull
     public Object facilities;
 
+    @NotBlank
     public String createdBy;
 
     public OffsetDateTime createdAt;

@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.dto;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,12 @@ public class BookingDTO {
 
     private String roomId;
 
+    @NotBlank
     private String userId;
 
     private List<String> attendees;
 
-    private int attendeesCount;
+    private Integer attendeesCount;
 
     private String purpose;
 
@@ -37,5 +39,5 @@ public class BookingDTO {
 
     public String building;
 
-    public int floor;
+    public Integer floor;
 }

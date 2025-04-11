@@ -38,4 +38,6 @@ public interface MeetingRoomMapper {
     MeetingRoom getMeetingRoomByRoomId(String roomId);
 
     void updateMeetingRoom(MeetingRoom newMeetingRoom);
+    
+    void addMeetingRoom(MeetingRoom meetingRoom);
 }

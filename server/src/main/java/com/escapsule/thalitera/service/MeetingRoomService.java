@@ -20,9 +20,11 @@ public interface MeetingRoomService {
 
     boolean bookMeetingRoom(BookingDTO bookingDTO);
 
-    boolean updateMeetingRoom(BookingDTO bookingDTO);
+    boolean updateBooking(BookingDTO bookingDTO);
 
     boolean cancelMeetingRoom(String reservationId);
+
+    boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO);
 
     boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO);
 }

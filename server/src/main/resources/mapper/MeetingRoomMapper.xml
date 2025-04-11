@@ -39,6 +39,14 @@
         ]'::jsonb)
         RETURNING *
     </insert>
+    <insert id="addMeetingRoom">
+        INSERT INTO meeting_rooms (room_id, name, capacity_min, capacity_max, building, floor, status, created_by, created_at, updated_at, image, facilities)
+        VALUES (#{roomId}::uuid, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image}, '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
+            <foreach collection="facilities.specialNotes" item="note" separator=",">
+                "${note}"
+            </foreach>
+        ]}'::jsonb)
+    </insert>
     <update id="updateReservation">
         UPDATE
             reservations

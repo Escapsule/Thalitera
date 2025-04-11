@@ -32,7 +32,9 @@ public enum ErrorCode {
     CONFLICT_RESERVATION(2202, "The meeting room has been reserved during this time."),
     RESERVATION_NOT_FOUND(2203, "Reservation not found."),
     MEETING_ROOM_NOT_FOUND(2204, "Meeting room not found."),
-
+    CAPACITY_ERROR(2205, "Invalid capacity setting."),
+    MISSING_ROOM_ID(2206, "Missing room id."),
+    MISSING_RESERVATION_ID(2207, "Missing reservation id."),
 
 
     // 3000 ~ 3999 database related
