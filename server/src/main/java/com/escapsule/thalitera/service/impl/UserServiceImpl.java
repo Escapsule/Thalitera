@@ -65,9 +65,18 @@ public class UserServiceImpl implements UserService {
 
         userMapper.insert(user);
 
-        String token = sendEmail(user.getEmail());
+        log.info("Send email message initializing: {}", user.getEmail());
 
-        storeVerificationToken(dto.getEmail(), token);
+        RegisterVerifyContent content = new RegisterVerifyContent(user.getEmail(), configProperties.getBaseUrl());
+
+        eventPublisher.publishEvent(
+                new RegisterVerifyEvent(
+                        this,
+                        content
+                )
+        );
+
+        storeVerificationToken(dto.getEmail(), content.getToken());
         log.info("User registering, status pending: {}", user.getEmail());
     }
 
@@ -170,27 +179,6 @@ public class UserServiceImpl implements UserService {
         }
 
         redisMailTemplate.delete(email);
-    }
-
-    /**
-     * Send email to user
-     *
-     * @param to Mail to
-     * @return Token
-     */
-    private String sendEmail(String to) {
-        log.info("Send email message initializing: {}", to);
-
-        RegisterVerifyContent content = new RegisterVerifyContent(to, configProperties.getBaseUrl());
-
-        eventPublisher.publishEvent(
-                new RegisterVerifyEvent(
-                        this,
-                        content
-                )
-        );
-
-        return content.getToken();
     }
 
     /**
