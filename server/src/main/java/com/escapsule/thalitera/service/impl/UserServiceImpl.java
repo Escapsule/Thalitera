@@ -1,19 +1,18 @@
 package com.escapsule.thalitera.service.impl;
 
-import com.escapsule.thalitera.config.StaticConfiguration;
 import com.escapsule.thalitera.constant.UserStatusConstant;
-import com.escapsule.thalitera.dto.MailDTO;
 import com.escapsule.thalitera.dto.UserLoginDTO;
 import com.escapsule.thalitera.dto.UserRegisterDTO;
 import com.escapsule.thalitera.entity.LoginHistory;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
+import com.escapsule.thalitera.event.RegisterVerifyEvent;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import com.escapsule.thalitera.json.RegisterVerifyContent;
 import com.escapsule.thalitera.mapper.LoginHistoryMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
-import com.escapsule.thalitera.service.EmailService;
+import com.escapsule.thalitera.properties.ConfigProperties;
 import com.escapsule.thalitera.service.LoginHistoryService;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.GeometryUtils;
@@ -23,12 +22,11 @@ import com.jthinking.common.util.ip.IPInfoUtils;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import org.locationtech.jts.geom.Point;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -39,26 +37,23 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RedisTemplate<String, String> redisMailTemplate;
-    private final EmailService emailService;
-    private final TemplateEngine mailTemplateEngine;
     private final LoginHistoryMapper loginHistoryMapper;
     private final LoginHistoryService loginHistoryService;
-    private final StaticConfiguration staticConfiguration;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ConfigProperties configProperties;
 
     public UserServiceImpl(UserMapper userMapper,
                            RedisTemplate<String, String> redisTemplate,
-                           TemplateEngine mailTemplateEngine,
-                           EmailService emailService,
                            LoginHistoryMapper loginHistoryMapper,
                            LoginHistoryService loginHistoryService,
-                           StaticConfiguration staticConfiguration) {
+                           ConfigProperties configProperties,
+                           ApplicationEventPublisher eventPublisher) {
         this.userMapper = userMapper;
         this.redisMailTemplate = redisTemplate;
-        this.mailTemplateEngine = mailTemplateEngine;
-        this.emailService = emailService;
         this.loginHistoryMapper = loginHistoryMapper;
         this.loginHistoryService = loginHistoryService;
-        this.staticConfiguration = staticConfiguration;
+        this.configProperties = configProperties;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -81,13 +76,7 @@ public class UserServiceImpl implements UserService {
 
         userMapper.insert(user);
 
-        // TODO: We need Notification System
-        MailDTO mailDTO = MailDTO.builder()
-                .to(dto.getEmail())
-                .subject("[Thalitera] Verify your email address")
-                .templateContent("registration-verification-template")
-                .build();
-        String token = sendEmail(mailDTO);
+        String token = sendEmail(user.getEmail());
 
         storeVerificationToken(dto.getEmail(), token);
         log.info("User registering, status pending: {}", user.getEmail());
@@ -197,29 +186,19 @@ public class UserServiceImpl implements UserService {
     /**
      * Send email to user
      *
-     * @param dto MailDTO
+     * @param to Mail to
      * @return Token
      */
-    private String sendEmail(MailDTO dto) {
-        log.info("Send email message initializing: {}", dto);
-        // String token = TokenUtils.generateShortToken();
-        // TODO: notification module need dynamically generate email template
-        // hard code for now
-        // String url = "http://localhost:8080/user/verify" + "?email=" + dto.getTo() + "&token=" + token;
-        // String url = VERIFICATION_URL + "?email=" + dto.getTo() + "&token=" + token;
+    private String sendEmail(String to) {
+        log.info("Send email message initializing: {}", to);
 
-        RegisterVerifyContent content = new RegisterVerifyContent(dto.getTo(), staticConfiguration.getVerifyUrl());
+        RegisterVerifyContent content = new RegisterVerifyContent(to, configProperties.getBaseUrl());
 
-        Context context = new Context();
-        context.setVariable("verification_url", content.getVerifyUrl());
-        context.setVariable("email", content.getEmail());
-
-        String html = mailTemplateEngine.process(dto.getTemplateContent(), context);
-
-        emailService.sendMail(
-                dto.getTo(),
-                dto.getSubject(),
-                html
+        eventPublisher.publishEvent(
+                new RegisterVerifyEvent(
+                        this,
+                        content
+                )
         );
 
         return content.getToken();

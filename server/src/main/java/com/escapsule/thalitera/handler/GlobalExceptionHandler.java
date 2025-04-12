@@ -2,6 +2,7 @@ package com.escapsule.thalitera.handler;
 
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
+import com.escapsule.thalitera.exception.NotificationException;
 import com.escapsule.thalitera.response.ApiResult;
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    //  Handling notification exceptions
+    @ExceptionHandler(NotificationException.class)
+    public ResponseEntity<ApiResult<?>> handleNotificationException(NotificationException ex,
+                                                                    WebRequest request) {
+        ApiResult<?> response = ApiResult.error(ex.getCode(), ex.getMessage());
+        log.error("The notification service is abnormal: code={}, msg={}", ex.getCode(), ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 
     //  Handling other uncaught exceptions
     @ExceptionHandler(Exception.class)

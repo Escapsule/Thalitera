@@ -14,18 +14,17 @@ public enum ErrorCode {
 
     // User 2000 ~ 2199
     USER_NOT_FOUND(2001, "User does not exist."),
-    EMAIL_ERROR(2002, "Email error."),
-    INVALID_PASSWORD_FORMAT(2003, "Invalid encoded password."),
-    USER_EXIST(2004, "User exist."),
-    USER_EMAIL_OR_TOKEN_INVALID(2005, "User email error or token expired."),
-    USER_TOKEN_MISMATCH(2006, "User email verification token not equal."),
-    USER_REGISTER_FAILED(2007, "User register failed, please try again."),
-    USER_NOT_ACTIVE(2008, "User not active."),
-    USER_PASSWORD_INCORRECT(2009, "User password incorrect."),
-    USER_IP_ADDRESS_INVALID(2010, "User ip address invalid."),
-    USER_AGENT_INVALID(2011, "User agent invalid."),
-    USER_NOT_LOGIN(2012, "User not login"),
-    EMAIL_VERIFICATION_FAILED(2013, "Email verification failed"),
+    INVALID_PASSWORD_FORMAT(2002, "Invalid encoded password."),
+    USER_EXIST(2003, "User exist."),
+    USER_EMAIL_OR_TOKEN_INVALID(2004, "User email error or token expired."),
+    USER_TOKEN_MISMATCH(2005, "User email verification token not equal."),
+    USER_REGISTER_FAILED(2006, "User register failed, please try again."),
+    USER_NOT_ACTIVE(2007, "User not active."),
+    USER_PASSWORD_INCORRECT(2008, "User password incorrect."),
+    USER_IP_ADDRESS_INVALID(2019, "User ip address invalid."),
+    USER_AGENT_INVALID(2010, "User agent invalid."),
+    USER_NOT_LOGIN(2011, "User not login"),
+    EMAIL_VERIFICATION_FAILED(2012, "Email verification failed"),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
@@ -33,6 +32,10 @@ public enum ErrorCode {
     RESERVATION_NOT_FOUND(2203, "Reservation not found."),
     MEETING_ROOM_NOT_FOUND(2204, "Meeting room not found."),
 
+    //2401 ~ 2599 notification system related
+
+    NOTIFICATION_CHANNEL_UNSUPPORTED(2401, "Notification channel unsupported."),
+    EMAIL_ERROR(2402, "Email error."),
 
 
     // 3000 ~ 3999 database related
