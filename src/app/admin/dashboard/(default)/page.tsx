@@ -83,14 +83,16 @@ const Card = ({ children, title }: CardProps) => (
 )
 
 const StatCard = ({ title, value, suffix = '', icon, className }: StatCardProps) => (
-  <div className="bg-white p-4 rounded-lg shadow-md h-full">
-    <div className="flex items-center justify-between mb-2">
-      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%]`}>{title}</h3>
+  <div className="bg-white p-3 rounded-lg shadow-md h-full">
+    <div className="flex items-start justify-between mb-1 h-[32px]">
+      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
       {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
     </div>
-    <p className="text-xl sm:text-2xl font-semibold break-words">
-      {value.toLocaleString()}{suffix}
-    </p>
+    <div className="h-[32px] flex items-center">
+      <p className="text-lg sm:text-xl font-semibold break-all">
+        {value.toLocaleString()}{suffix}
+      </p>
+    </div>
   </div>
 )
 
