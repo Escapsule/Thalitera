@@ -13,6 +13,7 @@ import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.po.MeetingRoomPO;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.utils.TokenUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -28,13 +29,10 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class MeetingRoomServiceImpl implements MeetingRoomService {
 
     private final MeetingRoomMapper meetingRoomMapper;
-
-    public MeetingRoomServiceImpl(MeetingRoomMapper meetingRoomMapper) {
-        this.meetingRoomMapper = meetingRoomMapper;
-    }
 
     @Override
     public List<MeetingRoom> getAllActiveMeetingRooms() {

@@ -19,6 +19,7 @@ import com.escapsule.thalitera.utils.GeometryUtils;
 import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.jthinking.common.util.ip.IPInfoUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import org.locationtech.jts.geom.Point;
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
@@ -41,20 +43,6 @@ public class UserServiceImpl implements UserService {
     private final LoginHistoryService loginHistoryService;
     private final ApplicationEventPublisher eventPublisher;
     private final ConfigProperties configProperties;
-
-    public UserServiceImpl(UserMapper userMapper,
-                           RedisTemplate<String, String> redisTemplate,
-                           LoginHistoryMapper loginHistoryMapper,
-                           LoginHistoryService loginHistoryService,
-                           ConfigProperties configProperties,
-                           ApplicationEventPublisher eventPublisher) {
-        this.userMapper = userMapper;
-        this.redisMailTemplate = redisTemplate;
-        this.loginHistoryMapper = loginHistoryMapper;
-        this.loginHistoryService = loginHistoryService;
-        this.configProperties = configProperties;
-        this.eventPublisher = eventPublisher;
-    }
 
     /**
      * Register user

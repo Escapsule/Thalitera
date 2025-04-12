@@ -6,6 +6,7 @@ import com.escapsule.thalitera.properties.EmailProperties;
 import com.escapsule.thalitera.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -13,16 +14,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
     // Inject the JavaMailSender and EmailProperties objects
     private final JavaMailSender mailSender;
     private final EmailProperties emailProperties;
-
-    public EmailServiceImpl(JavaMailSender mailSender, EmailProperties emailProperties) {
-        this.mailSender = mailSender;
-        this.emailProperties = emailProperties;
-    }
 
     /**
      * Send an email with the specified parameters.
