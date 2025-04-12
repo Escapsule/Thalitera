@@ -395,235 +395,242 @@ const ManageRoomPage = () => {
   }, [rooms]);
 
   return (
-    <div className="w-full min-h-screen p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Meeting Room Management</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Meeting Room
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Meeting Room</DialogTitle>
-            </DialogHeader>
-            <RoomForm room={newRoom} setRoom={setNewRoom} />
-            <DialogFooter>
-              <Button onClick={handleAddRoom}>Confirm</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
+      
+      <div className="flex flex-1 justify-center">
+        <main className="flex-1 p-4 md:p-6 min-w-[80vw]">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold">Meeting Room Management</h1>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Meeting Room
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Meeting Room</DialogTitle>
+                  </DialogHeader>
+                  <RoomForm room={newRoom} setRoom={setNewRoom} />
+                  <DialogFooter>
+                    <Button onClick={handleAddRoom}>Confirm</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-      {/* Filter panel */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Filter Meeting Rooms</h2>
-          <Button variant="outline" size="sm" onClick={resetFilters}>
-            Reset Filters
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="filter-name">Room Name</Label>
-            <Input
-              id="filter-name"
-              placeholder="Search by name"
-              value={filters.name}
-              onChange={(e) => handleFilterChange('name', e.target.value)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="filter-building">Building</Label>
-            <Input
-              id="filter-building"
-              placeholder="Search by building"
-              value={filters.building}
-              onChange={(e) => handleFilterChange('building', e.target.value)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="filter-status">Status</Label>
-            <Select 
-              value={filters.status} 
-              onValueChange={(value) => handleFilterChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="active">Available</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="using">In Use</SelectItem>
-                <SelectItem value="booked">Booked</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="filter-capacity">Capacity</Label>
-            <Input
-              id="filter-capacity"
-              type="number"
-              placeholder="Enter required capacity"
-              value={filters.capacity}
-              onChange={(e) => handleFilterChange('capacity', e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-4 pt-6">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="filter-projector" 
-                checked={filters.hasProjector}
-                onCheckedChange={(checked) => handleFilterChange('hasProjector', !!checked)}
-              />
-              <Label htmlFor="filter-projector">Has Projector</Label>
+            {/* Filter panel */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <h2 className="text-lg font-semibold">Filter Meeting Rooms</h2>
+                <Button variant="outline" size="sm" onClick={resetFilters}>
+                  Reset Filters
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="filter-name">Room Name</Label>
+                  <Input
+                    id="filter-name"
+                    placeholder="Search by name"
+                    value={filters.name}
+                    onChange={(e) => handleFilterChange('name', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="filter-building">Building</Label>
+                  <Input
+                    id="filter-building"
+                    placeholder="Search by building"
+                    value={filters.building}
+                    onChange={(e) => handleFilterChange('building', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="filter-status">Status</Label>
+                  <Select 
+                    value={filters.status} 
+                    onValueChange={(value) => handleFilterChange('status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="active">Available</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="using">In Use</SelectItem>
+                      <SelectItem value="booked">Booked</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="filter-capacity">Capacity</Label>
+                  <Input
+                    id="filter-capacity"
+                    type="number"
+                    placeholder="Enter required capacity"
+                    value={filters.capacity}
+                    onChange={(e) => handleFilterChange('capacity', e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-4 pt-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="filter-projector" 
+                      checked={filters.hasProjector}
+                      onCheckedChange={(checked) => handleFilterChange('hasProjector', !!checked)}
+                    />
+                    <Label htmlFor="filter-projector">Has Projector</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="filter-coffee-break" 
+                      checked={filters.hasCoffeeBreak}
+                      onCheckedChange={(checked) => handleFilterChange('hasCoffeeBreak', !!checked)}
+                    />
+                    <Label htmlFor="filter-coffee-break">Has Coffee Break</Label>
+                  </div>
+                </div>
+                
+                <div className="flex items-end gap-4 col-span-3">
+                  <div className="space-y-2 w-full md:w-1/3">
+                    <Label htmlFor="filter-whiteboard">Min Whiteboards</Label>
+                    <Input
+                      id="filter-whiteboard"
+                      type="number"
+                      min="0"
+                      max="20"
+                      placeholder="Min whiteboards"
+                      value={filters.minWhiteboard}
+                      onChange={(e) => handleFilterChange('minWhiteboard', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 w-full md:w-1/3">
+                    <Label htmlFor="filter-power-sockets">Min Power Sockets</Label>
+                    <Input
+                      id="filter-power-sockets"
+                      type="number"
+                      min="0"
+                      max="20"
+                      placeholder="Min power sockets"
+                      value={filters.minPowerSockets}
+                      onChange={(e) => handleFilterChange('minPowerSockets', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-end justify-end w-full md:w-1/3">
+                    <Button onClick={applyFilters} className="h-10">Apply Filters</Button>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="filter-coffee-break" 
-                checked={filters.hasCoffeeBreak}
-                onCheckedChange={(checked) => handleFilterChange('hasCoffeeBreak', !!checked)}
-              />
-              <Label htmlFor="filter-coffee-break">Has Coffee Break</Label>
-            </div>
-          </div>
-          
-          <div className="flex items-end gap-4 col-span-3">
-            <div className="space-y-2 w-full md:w-1/3">
-              <Label htmlFor="filter-whiteboard">Min Whiteboards</Label>
-              <Input
-                id="filter-whiteboard"
-                type="number"
-                min="0"
-                max="20"
-                placeholder="Min whiteboards"
-                value={filters.minWhiteboard}
-                onChange={(e) => handleFilterChange('minWhiteboard', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2 w-full md:w-1/3">
-              <Label htmlFor="filter-power-sockets">Min Power Sockets</Label>
-              <Input
-                id="filter-power-sockets"
-                type="number"
-                min="0"
-                max="20"
-                placeholder="Min power sockets"
-                value={filters.minPowerSockets}
-                onChange={(e) => handleFilterChange('minPowerSockets', e.target.value)}
-              />
-            </div>
-            
-            <div className="flex items-end justify-end w-full md:w-1/3">
-              <Button onClick={applyFilters} className="h-10">Apply Filters</Button>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden w-full">
-          <div className="overflow-x-auto w-full">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[15%]">Name</TableHead>
-                  <TableHead className="w-[15%]">Location</TableHead>
-                  <TableHead className="w-[10%]">Capacity</TableHead>
-                  <TableHead className="w-[15%]">Status</TableHead>
-                  <TableHead className="w-[25%]">Facilities</TableHead>
-                  <TableHead className="w-[15%]">Feedback</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRooms.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No meeting room data available
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredRooms.map((room) => (
-                    <TableRow key={room.room_id}>
-                      <TableCell className="font-medium">{room.name}</TableCell>
-                      <TableCell>{`${room.building} Floor ${room.floor}`}</TableCell>
-                      <TableCell>{`${room.capacity_min}-${room.capacity_max} people`}</TableCell>
-                      <TableCell>
-                        <Badge className={statusMap[room.status]?.color || ''}>
-                          {statusMap[room.status]?.label || room.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {room.facilities?.projector && (
-                            <Badge variant="outline">Projector</Badge>
-                          )}
-                          {room.facilities?.whiteboard > 0 && (
-                            <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
-                          )}
-                          {room.facilities?.coffee_break && (
-                            <Badge variant="outline">Coffee Break</Badge>
-                          )}
-                          {room.facilities?.power_sockets > 0 && (
-                            <Badge variant="outline">Power Sockets x{room.facilities.power_sockets}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <a href="#" className="text-blue-600 hover:text-blue-800 underline">
-                            View
-                          </a>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              setSelectedRoom(room)
-                              setIsEditDialogOpen(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              setSelectedRoom(room)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[15%]">Name</TableHead>
+                        <TableHead className="w-[15%]">Location</TableHead>
+                        <TableHead className="w-[10%]">Capacity</TableHead>
+                        <TableHead className="w-[15%]">Status</TableHead>
+                        <TableHead className="w-[25%]">Facilities</TableHead>
+                        <TableHead className="w-[15%]">Feedback</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRooms.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                            No meeting room data available
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredRooms.map((room) => (
+                          <TableRow key={room.room_id}>
+                            <TableCell className="font-medium">{room.name}</TableCell>
+                            <TableCell>{`${room.building} Floor ${room.floor}`}</TableCell>
+                            <TableCell>{`${room.capacity_min}-${room.capacity_max} people`}</TableCell>
+                            <TableCell>
+                              <Badge className={statusMap[room.status]?.color || ''}>
+                                {statusMap[room.status]?.label || room.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {room.facilities?.projector && (
+                                  <Badge variant="outline">Projector</Badge>
+                                )}
+                                {room.facilities?.whiteboard > 0 && (
+                                  <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
+                                )}
+                                {room.facilities?.coffee_break && (
+                                  <Badge variant="outline">Coffee Break</Badge>
+                                )}
+                                {room.facilities?.power_sockets > 0 && (
+                                  <Badge variant="outline">Power Sockets x{room.facilities.power_sockets}</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <a href="#" className="text-blue-600 hover:text-blue-800 underline">
+                                  View
+                                </a>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    setSelectedRoom(room)
+                                    setIsEditDialogOpen(true)
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    setSelectedRoom(room)
+                                    setIsDeleteDialogOpen(true)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </main>
+      </div>
 
       {/* Delete confirmation dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
