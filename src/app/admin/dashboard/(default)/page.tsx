@@ -62,6 +62,7 @@ interface StatCardProps {
   value: number
   suffix?: string
   icon?: React.ReactNode
+  className?: string
 }
 
 /**
@@ -81,13 +82,13 @@ const Card = ({ children, title }: CardProps) => (
   </div>
 )
 
-const StatCard = ({ title, value, suffix = '', icon }: StatCardProps) => (
-  <div className="bg-white p-6 rounded-lg shadow-md h-full">
+const StatCard = ({ title, value, suffix = '', icon, className }: StatCardProps) => (
+  <div className="bg-white p-4 rounded-lg shadow-md h-full">
     <div className="flex items-center justify-between mb-2">
-      <h3 className="text-gray-500 text-sm">{title}</h3>
-      {icon && <span className="text-gray-400">{icon}</span>}
+      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%]`}>{title}</h3>
+      {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
     </div>
-    <p className="text-2xl font-semibold">
+    <p className="text-xl sm:text-2xl font-semibold break-words">
       {value.toLocaleString()}{suffix}
     </p>
   </div>
@@ -431,7 +432,7 @@ const DashboardPage = () => {
       </header>
       
       <div className="flex flex-1 justify-center">
-        <main className="flex-1 p-4 md:p-6 min-w-[80vw]">
+        <main className="flex-1 p-4 md:p-6 min-w-[80vw] max-w-[80vw] mx-auto">
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="w-full min-w-0">
@@ -441,18 +442,21 @@ const DashboardPage = () => {
                       <StatCard
                         title="Total Rooms"
                         value={roomStats.totalRooms}
-                        icon={<DoorClosed className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<DoorClosed className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                       <StatCard
                         title="Currently in Use"
                         value={roomStats.activeBookings}
-                        icon={<CalendarCheck className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                       <StatCard
                         title="Utilization Rate"
                         value={roomStats.utilizationRate}
                         suffix="%"
-                        icon={<BarChart2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<BarChart2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                     </div>
 
@@ -541,17 +545,20 @@ const DashboardPage = () => {
                       <StatCard
                         title="Total Users"
                         value={userStats.totalUsers}
-                        icon={<Users2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<Users2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                       <StatCard
                         title="Active Users Today"
                         value={userStats.activeUsers}
-                        icon={<UserRound className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<UserRound className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                       <StatCard
                         title="Bookings Today"
                         value={userStats.bookingsToday}
-                        icon={<Calendar className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        icon={<Calendar className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        className="text-xs"
                       />
                     </div>
 

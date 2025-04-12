@@ -104,7 +104,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
   ];
 
   const renderPieChart = (data: any[], title: string) => (
-    <div className="bg-white p-4 rounded-lg shadow h-full">
+    <div className="bg-white p-4 rounded-lg shadow h-full min-w-[400px]">
       <h3 className="text-lg font-medium mb-4">{title}</h3>
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -140,7 +140,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
   );
 
   const renderBarChart = (data: any[], title: string) => (
-    <div className="bg-white p-4 rounded-lg shadow h-full">
+    <div className="bg-white p-4 rounded-lg shadow h-full min-w-[600px]">
       <h3 className="text-lg font-medium mb-4">{title}</h3>
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -196,12 +196,16 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
 
   return (
     <div className="mt-6 space-y-6 h-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {renderPieChart(buildingData, 'Building Preference Statistics')}
-        {renderPieChart(capacityData, 'Meeting Room Capacity Preference Statistics')}
+      <div className="flex overflow-x-auto gap-6 pb-4">
+        <div className="flex-1 min-w-[400px]">
+          {renderPieChart(buildingData, 'Building Preference Statistics')}
+        </div>
+        <div className="flex-1 min-w-[400px]">
+          {renderPieChart(capacityData, 'Meeting Room Capacity Preference Statistics')}
+        </div>
       </div>
 
-      <div className="w-full">
+      <div className="w-full overflow-x-auto">
         {renderBarChart(amenityData, 'Meeting Room Amenities Preference Statistics')}
       </div>
     </div>
