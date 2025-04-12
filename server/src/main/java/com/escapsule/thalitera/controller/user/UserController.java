@@ -8,6 +8,7 @@ import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.IpUtils;
+import com.escapsule.thalitera.vo.CalendarVO;
 import com.escapsule.thalitera.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,7 +16,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * UserController is a REST controller responsible for handling user-related operations.
@@ -49,10 +58,10 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User logged in successfully"),
             @ApiResponse(responseCode = "2001", description = "User does not exist."),
-            @ApiResponse(responseCode = "2008", description = "User not active."),
-            @ApiResponse(responseCode = "2009", description = "User password incorrect."),
-            @ApiResponse(responseCode = "2010", description = "User ip address invalid."),
-            @ApiResponse(responseCode = "2011", description = "User agent invalid."),
+            @ApiResponse(responseCode = "2007", description = "User not active."),
+            @ApiResponse(responseCode = "2008", description = "User password incorrect."),
+            @ApiResponse(responseCode = "2009", description = "User ip address invalid."),
+            @ApiResponse(responseCode = "2010", description = "User agent invalid."),
     })
     @PostMapping("/login")
     public ApiResult<?> login (@RequestBody UserLoginDTO dto,
@@ -77,8 +86,8 @@ public class UserController {
             description = "The user provides the email address and password for registration.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User registered successfully"),
-            @ApiResponse(responseCode = "2002", description = "Email error."),
-            @ApiResponse(responseCode = "2004", description = "User exist."),
+            @ApiResponse(responseCode = "2003", description = "User exist."),
+            @ApiResponse(responseCode = "2004", description = "Email error."),
     })
     @PostMapping("/register")
     public ApiResult<?> register(@RequestBody UserRegisterDTO dto) {
@@ -100,8 +109,8 @@ public class UserController {
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User verified successfully"),
-            @ApiResponse(responseCode = "2005", description = "User email error or token expired."),
-            @ApiResponse(responseCode = "2007", description = "User register failed, please try again."),
+            @ApiResponse(responseCode = "2004", description = "User email error or token expired."),
+            @ApiResponse(responseCode = "2006", description = "User register failed, please try again."),
     })
     @GetMapping("/verify")
     public ApiResult<?> verifyEmail(@RequestParam String email,
@@ -120,12 +129,12 @@ public class UserController {
             description = "Check user auth.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User verified successfully"),
-            @ApiResponse(responseCode = "2012", description = "User not login"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
     })
     @GetMapping("/check-auth")
     public ApiResult<?> checkAuth(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         return ApiResult.success(true);
     }
 
@@ -139,21 +148,40 @@ public class UserController {
             description = "Get user info.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User info"),
-            @ApiResponse(responseCode = "2012", description = "User not login"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
     })
     @GetMapping("/info")
     public ApiResult<?> getUserInfo(HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         UserVO vo = UserVO.builder()
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .avatar(user.getAvatar())
                 .build();
-        if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         log.info("User check info: {}", vo.getEmail());
         return ApiResult.success(vo);
     }
 
+    /**
+     * Get user's calendar
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @return Returns the result of the user's calendar.
+     */
+    @Operation(summary = "User calendar",
+            description = "Get user calendar.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User calendar"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+    })
+    @GetMapping("/calendar")
+    public ApiResult<List<CalendarVO>> getUserCalendar(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        List<CalendarVO> calendar = userService.getUserCalendar(user.getUserId());
+        return ApiResult.success(calendar);
+    }
 
     // user queries
     // disabling of users
