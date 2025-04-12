@@ -43,6 +43,7 @@ public class UserServiceImpl implements UserService {
     private final LoginHistoryService loginHistoryService;
     private final ApplicationEventPublisher eventPublisher;
     private final ConfigProperties configProperties;
+    private final UserAgentUtils userAgentUtils;
 
     /**
      * Register user
@@ -110,11 +111,11 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_NOT_FOUND);
         }
 
-        UserAgent ua = UserAgentUtils.parse(userAgent);
+        UserAgent ua = userAgentUtils.parse(userAgent);
 
         DeviceFingerprint df = DeviceFingerprint.builder()
-                .browser(UserAgentUtils.parseBrowser(ua))
-                .os(UserAgentUtils.parseOS(ua))
+                .browser(userAgentUtils.parseBrowser(ua))
+                .os(userAgentUtils.parseOS(ua))
                 .build();
 
         Point location = GeometryUtils.createPoint(IPInfoUtils.getIpInfo(ip).getLng(),IPInfoUtils.getIpInfo(ip).getLat());
