@@ -20,7 +20,9 @@ public class WebConfiguration implements WebMvcConfigurer {
                         "/user/forget-password/**",
                         "/public/**",
                         "/error",
-                        "/static/**"
+                        "/static/**",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
                 );
     }
 }
