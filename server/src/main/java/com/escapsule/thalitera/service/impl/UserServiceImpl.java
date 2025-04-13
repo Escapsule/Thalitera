@@ -64,8 +64,8 @@ public class UserServiceImpl implements UserService {
 
         User user = User.builder()
                 .userId(UUID.randomUUID())
-                .email(dto.getEmail())
-                .username(dto.getEmail().substring(0, dto.getEmail().indexOf("@")))
+                .email(dto.getEmail().toLowerCase())
+                .username(dto.getEmail().substring(0, dto.getEmail().toLowerCase().indexOf("@")))
                 .passwordHash(PasswordUtils.encode(dto.getPassword()))
                 .build();
 
