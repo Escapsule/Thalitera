@@ -4,6 +4,7 @@ import com.escapsule.thalitera.constant.UserStatusConstant;
 import com.escapsule.thalitera.dto.UserLoginDTO;
 import com.escapsule.thalitera.dto.UserRegisterDTO;
 import com.escapsule.thalitera.entity.LoginHistory;
+import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.event.RegisterVerifyEvent;
@@ -11,13 +12,16 @@ import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import com.escapsule.thalitera.json.RegisterVerifyContent;
 import com.escapsule.thalitera.mapper.LoginHistoryMapper;
+import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.properties.ConfigProperties;
 import com.escapsule.thalitera.service.LoginHistoryService;
 import com.escapsule.thalitera.service.UserService;
+import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.utils.GeometryUtils;
 import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
+import com.escapsule.thalitera.vo.CalendarVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +33,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +49,7 @@ public class UserServiceImpl implements UserService {
     private final ApplicationEventPublisher eventPublisher;
     private final ConfigProperties configProperties;
     private final UserAgentUtils userAgentUtils;
+    private final MeetingRoomMapper meetingRoomMapper;
 
     /**
      * Register user
@@ -146,6 +152,28 @@ public class UserServiceImpl implements UserService {
         logLoginAttempt(user, ip, df, location, true, null);
 
         return user;
+    }
+
+    /**
+     * Get user's calendar
+     *
+     * @param userId user id
+     * @return List of CalendarVO
+     */
+    @Override
+    public List<CalendarVO> getUserCalendar(UUID userId) {
+        List<Reservation> reservations = userMapper.getUserRelatedReservations(userId);
+        return reservations.stream()
+                .map(reservation -> CalendarVO.builder()
+                        .startTime(reservation.getStartTime())
+                        .endTime(reservation.getEndTime())
+                        .meetingRoom(
+                                MeetingRoomTransfer.INSTANCE.meetingRoom2MeetingRoomVO(
+                                        meetingRoomMapper.getMeetingRoomByRoomId(reservation.getRoomId())
+                                )
+                        )
+                        .build())
+                .toList();
     }
 
 

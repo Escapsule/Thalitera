@@ -3,6 +3,10 @@ package com.escapsule.thalitera.service;
 import com.escapsule.thalitera.dto.UserLoginDTO;
 import com.escapsule.thalitera.dto.UserRegisterDTO;
 import com.escapsule.thalitera.entity.User;
+import com.escapsule.thalitera.vo.CalendarVO;
+
+import java.util.List;
+import java.util.UUID;
 
 public interface UserService {
     /**
@@ -29,4 +33,12 @@ public interface UserService {
      * @return User
      */
     User login(UserLoginDTO dto, String ip, String userAgent);
+
+    /**
+     * Get user's calendar
+     *
+     * @param userId user id
+     * @return List of CalendarVO
+     */
+    List<CalendarVO> getUserCalendar(UUID userId);
 }
