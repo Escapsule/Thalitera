@@ -17,6 +17,7 @@ public class WebConfiguration implements WebMvcConfigurer {
                         "/user/login",
                         "/user/register",
                         "/user/verify",
+                        "/user/forget-password/**",
                         "/public/**",
                         "/error",
                         "/static/**"

@@ -50,4 +50,13 @@ public interface UserMapper {
             "WHERE user_id = #{userId} " +
             "OR attendees @> jsonb_build_array(#{userId}::text)")
     List<Reservation> getUserRelatedReservations(UUID userId);
+
+    /**
+     * Update user password hash
+     *
+     * @param encode encoded password
+     * @param email user email
+     */
+    @Update("UPDATE users SET password_hash = #{encode} WHERE email = #{email}")
+    void updatePasswordHash(String encode, String email);
 }

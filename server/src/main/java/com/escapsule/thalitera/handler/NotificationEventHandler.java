@@ -1,9 +1,11 @@
 package com.escapsule.thalitera.handler;
 
+import com.escapsule.thalitera.event.ForgetPasswordVerifyEvent;
 import com.escapsule.thalitera.event.RegisterVerifyEvent;
 import com.escapsule.thalitera.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -18,6 +20,17 @@ public class NotificationEventHandler {
     @TransactionalEventListener
     public void handleRegisterVerifyEvent(RegisterVerifyEvent event) {
         log.info("Successfully handle the registration verification notification event: {}", event);
+        notificationService.sendNotification(
+                event.getNotifyType(),
+                event.getTargetUserEmails(),
+                event.buildVariables()
+        );
+    }
+
+    @Async("notificationThreadPool")
+    @EventListener
+    public void handleForgetPasswordVerifyEvent(ForgetPasswordVerifyEvent event) {
+        log.info("Successfully handle the forget password verification notification event: {}", event);
         notificationService.sendNotification(
                 event.getNotifyType(),
                 event.getTargetUserEmails(),

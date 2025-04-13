@@ -25,6 +25,7 @@ public enum ErrorCode {
     USER_AGENT_INVALID(2010, "User agent invalid."),
     USER_NOT_LOGIN(2011, "User not login"),
     EMAIL_VERIFICATION_FAILED(2012, "Email verification failed"),
+    USER_NEW_PASSWORD_SAME_TO_OLD(2013, "New password cannot be the same as the old password."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
@@ -36,6 +37,12 @@ public enum ErrorCode {
 
     NOTIFICATION_CHANNEL_UNSUPPORTED(2401, "Notification channel unsupported."),
     EMAIL_ERROR(2402, "Email error."),
+
+
+    // 2601 ~ 2699 security related
+    CAPTCHA_GENERATION_FAILED(2601, "Captcha generation failed."),
+    CAPTCHA_EXPIRED(2602, "Captcha expired."),
+    CAPTCHA_INCORRECT(2603, "Captcha incorrect."),
 
 
     // 3000 ~ 3999 database related

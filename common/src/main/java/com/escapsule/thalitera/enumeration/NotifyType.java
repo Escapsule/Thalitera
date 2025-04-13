@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.enumeration;
 
+import com.escapsule.thalitera.model.ForgetPasswordVerifyVariables;
 import com.escapsule.thalitera.model.RegisterVerifyVariables;
 import com.escapsule.thalitera.model.TemplateVariables;
 import lombok.Getter;
@@ -11,7 +12,14 @@ public enum NotifyType {
             NotifyChannel.EMAIL,
             "registration-verification-template",
             RegisterVerifyVariables.class
-            );
+            ),
+    FORGET_PASSWORD_VERIFY_EMAIL(
+            "[Thalitera] Reset your password",
+            NotifyChannel.EMAIL,
+            "forget-password-verification-template",
+            ForgetPasswordVerifyVariables.class
+            ),
+    ;
 
     private final String displayName;
     private final NotifyChannel channel;
