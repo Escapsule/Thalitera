@@ -7,25 +7,21 @@ import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController("admin")
 @RequestMapping("/admin/meetingroom")
 @Slf4j
+@RequiredArgsConstructor
 public class MeetingRoomController {
 
     private final MeetingRoomService meetingRoomService;
 
-    public MeetingRoomController(MeetingRoomService meetingRoomService) {
-        this.meetingRoomService = meetingRoomService;
-    }
-
-    @RequestMapping("/all")
+    @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
         List<MeetingRoom> meetingRooms = meetingRoomService.getAllActiveMeetingRooms();
         return ApiResult.success(
@@ -36,7 +32,7 @@ public class MeetingRoomController {
         );
     }
 
-    @RequestMapping("/add")
+    @PostMapping("/add")
     public ApiResult<String> addMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         boolean success = meetingRoomService.addMeetingRoom(meetingRoomDTO);
         if (success) {
@@ -46,7 +42,7 @@ public class MeetingRoomController {
         }
     }
 
-    @RequestMapping("/modify")
+    @PostMapping("/modify")
     public ApiResult<String> modifyMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         boolean success = meetingRoomService.modifyMeetingRoom(meetingRoomDTO);
         if (success) {
