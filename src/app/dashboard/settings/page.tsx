@@ -37,8 +37,8 @@ const page = () => {
 
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Left Navigation */}
-                <Card className="w-full md:w-64 p-2">
-                    <nav className="space-y-3">
+                <Card className="w-full md:w-64 p-2 flex flex-col">
+                    <nav className="space-y-3 flex-grow">
                         {navItems.map((item) => (
                             <Button
                                 key={item.value}
@@ -54,6 +54,27 @@ const page = () => {
                             </Button>
                         ))}
                     </nav>
+                    
+                    {/* Logout button*/}
+                    <div className="pt-4 mt-auto border-t">
+                        <Button 
+                            variant="destructive" 
+                            className="w-full justify-start gap-2"
+                            onClick={() => {
+                                // Add logout logic here
+                                console.log("User logged out")
+                                // Redirect to login page
+                                // window.location.href = "/login"
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Log out
+                        </Button>
+                    </div>
                 </Card>
 
                 {/* Right side content */}
