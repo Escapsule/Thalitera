@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@RestController
+@RestController("admin")
 @RequestMapping("/admin/meetingroom")
 @Slf4j
-public class AdminMeetingRoomController {
+public class MeetingRoomController {
 
     private final MeetingRoomService meetingRoomService;
 
-    public AdminMeetingRoomController(MeetingRoomService meetingRoomService) {
+    public MeetingRoomController(MeetingRoomService meetingRoomService) {
         this.meetingRoomService = meetingRoomService;
     }
 
