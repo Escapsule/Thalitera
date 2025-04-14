@@ -257,6 +257,22 @@ public class UserController {
         return ApiResult.success();
     }
 
-    // user queries
-    // disabling of users
+    /**
+     * Handles user logout requests.
+     * <p>
+     * This endpoint invalidates the user's session and logs them out of the system.
+     *
+     * @param session The user's session, used to invalidate the session and log them out.
+     * @return Returns the result of the logout operation.
+     */
+    @Operation(summary = "User logout",
+            description = "User logout.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User logout successfully"),
+    })
+    @GetMapping("/logout")
+    public ApiResult<?> logout(HttpSession session) {
+        session.invalidate();
+        return ApiResult.success();
+    }
 }
