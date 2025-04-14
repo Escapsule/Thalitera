@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
-public class MailDTO {
-    private String to;
-    private String subject;
-    private String templateContent;
+@NoArgsConstructor
+public class ResetPasswordDTO {
+    private String email;
+    private String code;
+    private String newPassword;
 }

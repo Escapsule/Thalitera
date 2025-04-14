@@ -1,65 +1,62 @@
 package com.escapsule.thalitera.service.impl;
 
-import com.escapsule.thalitera.config.StaticConfiguration;
 import com.escapsule.thalitera.constant.UserStatusConstant;
-import com.escapsule.thalitera.dto.MailDTO;
+import com.escapsule.thalitera.dto.ChangePasswordDTO;
+import com.escapsule.thalitera.dto.ResetPasswordDTO;
 import com.escapsule.thalitera.dto.UserLoginDTO;
 import com.escapsule.thalitera.dto.UserRegisterDTO;
 import com.escapsule.thalitera.entity.LoginHistory;
+import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
+import com.escapsule.thalitera.event.ForgetPasswordVerifyEvent;
+import com.escapsule.thalitera.event.RegisterVerifyEvent;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import com.escapsule.thalitera.json.RegisterVerifyContent;
 import com.escapsule.thalitera.mapper.LoginHistoryMapper;
+import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
-import com.escapsule.thalitera.service.EmailService;
+import com.escapsule.thalitera.properties.ConfigProperties;
 import com.escapsule.thalitera.service.LoginHistoryService;
 import com.escapsule.thalitera.service.UserService;
+import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.utils.GeometryUtils;
 import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
+import com.escapsule.thalitera.vo.CalendarVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
+import com.pig4cloud.captcha.GifCaptcha;
+import com.pig4cloud.captcha.base.Captcha;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import org.locationtech.jts.geom.Point;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
+import java.awt.*;
+import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
-    private final RedisTemplate<String, String> redisMailTemplate;
-    private final EmailService emailService;
-    private final TemplateEngine mailTemplateEngine;
+    private final RedisTemplate<String, String> redisTemplate;
     private final LoginHistoryMapper loginHistoryMapper;
     private final LoginHistoryService loginHistoryService;
-    private final StaticConfiguration staticConfiguration;
-
-    public UserServiceImpl(UserMapper userMapper,
-                           RedisTemplate<String, String> redisTemplate,
-                           TemplateEngine mailTemplateEngine,
-                           EmailService emailService,
-                           LoginHistoryMapper loginHistoryMapper,
-                           LoginHistoryService loginHistoryService,
-                           StaticConfiguration staticConfiguration) {
-        this.userMapper = userMapper;
-        this.redisMailTemplate = redisTemplate;
-        this.mailTemplateEngine = mailTemplateEngine;
-        this.emailService = emailService;
-        this.loginHistoryMapper = loginHistoryMapper;
-        this.loginHistoryService = loginHistoryService;
-        this.staticConfiguration = staticConfiguration;
-    }
+    private final ApplicationEventPublisher eventPublisher;
+    private final ConfigProperties configProperties;
+    private final UserAgentUtils userAgentUtils;
+    private final MeetingRoomMapper meetingRoomMapper;
 
     /**
      * Register user
@@ -74,22 +71,25 @@ public class UserServiceImpl implements UserService {
 
         User user = User.builder()
                 .userId(UUID.randomUUID())
-                .email(dto.getEmail())
-                .username(dto.getEmail().substring(0, dto.getEmail().indexOf("@")))
+                .email(dto.getEmail().toLowerCase())
+                .username(dto.getEmail().substring(0, dto.getEmail().toLowerCase().indexOf("@")))
                 .passwordHash(PasswordUtils.encode(dto.getPassword()))
                 .build();
 
         userMapper.insert(user);
 
-        // TODO: We need Notification System
-        MailDTO mailDTO = MailDTO.builder()
-                .to(dto.getEmail())
-                .subject("[Thalitera] Verify your email address")
-                .templateContent("registration-verification-template")
-                .build();
-        String token = sendEmail(mailDTO);
+        log.info("Send email message initializing: {}", user.getEmail());
 
-        storeVerificationToken(dto.getEmail(), token);
+        RegisterVerifyContent content = new RegisterVerifyContent(user.getEmail(), configProperties.getBaseUrl());
+
+        eventPublisher.publishEvent(
+                new RegisterVerifyEvent(
+                        this,
+                        content
+                )
+        );
+
+        storeVerificationToken(dto.getEmail(), content.getToken());
         log.info("User registering, status pending: {}", user.getEmail());
     }
 
@@ -133,14 +133,17 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_NOT_FOUND);
         }
 
-        UserAgent ua = UserAgentUtils.parse(userAgent);
+        UserAgent ua = userAgentUtils.parse(userAgent);
 
         DeviceFingerprint df = DeviceFingerprint.builder()
-                .browser(UserAgentUtils.parseBrowser(ua))
-                .os(UserAgentUtils.parseOS(ua))
+                .browser(userAgentUtils.parseBrowser(ua))
+                .os(userAgentUtils.parseOS(ua))
                 .build();
 
-        Point location = GeometryUtils.createPoint(IPInfoUtils.getIpInfo(ip).getLng(),IPInfoUtils.getIpInfo(ip).getLat());
+        Point location = GeometryUtils.createPoint(
+                IPInfoUtils.getIpInfo(ip).getLng(),
+                IPInfoUtils.getIpInfo(ip).getLat()
+        );
 
         // verify if user status active
         if (!user.getStatus().equals(UserStatusConstant.ACTIVE)) {
@@ -161,6 +164,138 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
+    /**
+     * Get user's calendar
+     *
+     * @param userId user id
+     * @return List of CalendarVO
+     */
+    @Override
+    public List<CalendarVO> getUserCalendar(UUID userId) {
+        List<Reservation> reservations = userMapper.getUserRelatedReservations(userId);
+        return reservations.stream()
+                .map(reservation -> CalendarVO.builder()
+                        .startTime(reservation.getStartTime())
+                        .endTime(reservation.getEndTime())
+                        .meetingRoom(
+                                MeetingRoomTransfer.INSTANCE.meetingRoom2MeetingRoomVO(
+                                        meetingRoomMapper.getMeetingRoomByRoomId(reservation.getRoomId())
+                                )
+                        )
+                        .build())
+                .toList();
+    }
+
+    /**
+     * Change user password
+     *
+     * @param user  User
+     * @param dto   ChangePasswordDTO include old password and new password
+     */
+    @Override
+    @Transactional
+    public void changePassword(User user, ChangePasswordDTO dto) {
+        if (!PasswordUtils.matches(dto.getOldPassword(), user.getPasswordHash())) {
+            throw new BaseException(ErrorCode.USER_PASSWORD_INCORRECT);
+        }
+
+        if (PasswordUtils.matches(dto.getNewPassword(), user.getPasswordHash())) {
+            throw new BaseException(ErrorCode.USER_NEW_PASSWORD_SAME_TO_OLD);
+        }
+
+        userMapper.updatePasswordHash(PasswordUtils.encode(dto.getNewPassword()), user.getEmail());
+
+        log.info("User password changed successfully: {}", user.getEmail());
+    }
+
+    /**
+     * Send password reset code
+     *
+     * @param email user email
+     */
+    @Override
+    public void sendPasswordResetCode(String email) {
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_FOUND);
+        GifCaptcha captcha = (GifCaptcha) getCaptcha();
+
+        log.info("Send password reset captcha code to: {}", email);
+
+        eventPublisher.publishEvent(
+                new ForgetPasswordVerifyEvent(
+                        this,
+                        captcha.toBase64(),
+                        email
+                )
+        );
+
+        storeForgetPasswordCaptcha(email, captcha.text());
+    }
+
+    /**
+     * Verify password reset code
+     *
+     * @param dto ResetPasswordDTO include email, code and new password
+     */
+    @Override
+    @Transactional
+    public void verifyPasswordResetCode(ResetPasswordDTO dto) {
+        verifyForgetPasswordCaptcha(dto.getEmail(), dto.getCode());
+
+        if (PasswordUtils.matches(dto.getNewPassword(), userMapper.getUserByEmail(dto.getEmail()).getPasswordHash())) {
+            throw new BaseException(ErrorCode.USER_NEW_PASSWORD_SAME_TO_OLD);
+        }
+
+        userMapper.updatePasswordHash(PasswordUtils.encode(dto.getNewPassword()), dto.getEmail());
+        log.info("User password reset successfully: {}", dto.getEmail());
+    }
+
+    /**
+     * Store forget password captcha
+     *
+     * @param email   user email
+     * @param captcha captcha code
+     */
+    private void storeForgetPasswordCaptcha(String email, String captcha) {
+        redisTemplate.opsForValue().set(email + ":captcha", captcha, 5, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Verify forget password captcha
+     *
+     * @param email   user email
+     * @param captcha captcha code
+     */
+    private void verifyForgetPasswordCaptcha(String email, String captcha) {
+        String storedCaptcha = redisTemplate.opsForValue().get(email + ":captcha");
+        if (storedCaptcha == null) {
+            throw new BaseException(ErrorCode.CAPTCHA_EXPIRED);
+        }
+
+        if (!captcha.equals(storedCaptcha)) {
+            throw new BaseException(ErrorCode.CAPTCHA_INCORRECT);
+        }
+
+        redisTemplate.delete(email + ":captcha");
+    }
+
+    /**
+     * Get captcha
+     *
+     * @return Captcha
+     */
+    private Captcha getCaptcha() {
+        GifCaptcha captcha = new GifCaptcha(128, 48, 6);
+
+        try {
+            captcha.setCharType(Captcha.TYPE_DEFAULT);
+            captcha.setFont(Captcha.FONT_7);
+        } catch (IOException | FontFormatException e) {
+            throw new BaseException(ErrorCode.CAPTCHA_GENERATION_FAILED);
+        }
+
+        return captcha;
+    }
 
     /**
      * Store mailboxes and tokens to Redis and set expiration time to 5 minutes
@@ -169,7 +304,7 @@ public class UserServiceImpl implements UserService {
      * @param token Validation Token
      */
     private void storeVerificationToken(String email, String token) {
-        redisMailTemplate.opsForValue().set(email, token, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(email + ":token", token, 5, TimeUnit.MINUTES);
     }
 
     /**
@@ -179,7 +314,7 @@ public class UserServiceImpl implements UserService {
      * @param token User-provided Tokens
      */
     private void verifyEmailToken(String email, String token) {
-        String storedToken = redisMailTemplate.opsForValue().get(email);
+        String storedToken = redisTemplate.opsForValue().get(email + ":token");
 
         if (storedToken == null) {
             log.error("The mailbox does not exist or the token has expired: {}", email);
@@ -191,38 +326,7 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_TOKEN_MISMATCH);
         }
 
-        redisMailTemplate.delete(email);
-    }
-
-    /**
-     * Send email to user
-     *
-     * @param dto MailDTO
-     * @return Token
-     */
-    private String sendEmail(MailDTO dto) {
-        log.info("Send email message initializing: {}", dto);
-        // String token = TokenUtils.generateShortToken();
-        // TODO: notification module need dynamically generate email template
-        // hard code for now
-        // String url = "http://localhost:8080/user/verify" + "?email=" + dto.getTo() + "&token=" + token;
-        // String url = VERIFICATION_URL + "?email=" + dto.getTo() + "&token=" + token;
-
-        RegisterVerifyContent content = new RegisterVerifyContent(dto.getTo(), staticConfiguration.getVerifyUrl());
-
-        Context context = new Context();
-        context.setVariable("verification_url", content.getVerifyUrl());
-        context.setVariable("email", content.getEmail());
-
-        String html = mailTemplateEngine.process(dto.getTemplateContent(), context);
-
-        emailService.sendMail(
-                dto.getTo(),
-                dto.getSubject(),
-                html
-        );
-
-        return content.getToken();
+        redisTemplate.delete(email + ":token");
     }
 
     /**

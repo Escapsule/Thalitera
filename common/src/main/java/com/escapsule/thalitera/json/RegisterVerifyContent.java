@@ -8,16 +8,18 @@ import java.io.Serializable;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class RegisterVerifyContent extends NotifyContent implements Serializable {
+public class RegisterVerifyContent extends Jsonb implements Serializable {
     private String email;
-    private String verifyUrl;
+    private String verifyURL;
 
-    public RegisterVerifyContent(String email, String verifyUrl) {
+    public RegisterVerifyContent(String email, String baseUrl) {
         this.email = email;
-        this.verifyUrl = verifyUrl + "?email=" + email + "&token=" + TokenUtils.generateShortToken();
+        this.verifyURL = baseUrl +
+                "/user/verify?email=" + email +
+                "&token=" + TokenUtils.generateShortToken();
     }
 
     public String getToken() {
-        return verifyUrl.split("token=")[1];
+        return verifyURL.split("token=")[1];
     }
 }

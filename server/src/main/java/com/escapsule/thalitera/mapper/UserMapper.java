@@ -1,10 +1,14 @@
 package com.escapsule.thalitera.mapper;
 
+import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
+import java.util.UUID;
 
 @Mapper
 public interface UserMapper {
@@ -35,4 +39,24 @@ public interface UserMapper {
      */
     @Update("UPDATE users SET status = #{status} WHERE email = #{email}")
     void updateStatus(String email, String status);
+
+    /**
+     * Get user's related reservations
+     *
+     * @param userId user id
+     * @return List of reservations
+     */
+    @Select("SELECT * FROM reservations " +
+            "WHERE user_id = #{userId} " +
+            "OR attendees @> jsonb_build_array(#{userId}::text)")
+    List<Reservation> getUserRelatedReservations(UUID userId);
+
+    /**
+     * Update user password hash
+     *
+     * @param encode encoded password
+     * @param email user email
+     */
+    @Update("UPDATE users SET password_hash = #{encode} WHERE email = #{email}")
+    void updatePasswordHash(String encode, String email);
 }

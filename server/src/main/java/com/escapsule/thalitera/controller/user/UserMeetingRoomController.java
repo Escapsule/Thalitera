@@ -9,7 +9,8 @@ import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,7 +31,7 @@ public class UserMeetingRoomController {
      * Get all meeting rooms
      * @return List of meeting rooms
      */
-    @RequestMapping("/all")
+    @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
         List<MeetingRoom> meetingRooms = meetingRoomService.getAllActiveMeetingRooms();
         return ApiResult.success(
@@ -46,7 +47,7 @@ public class UserMeetingRoomController {
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return List of suitable meeting rooms
      */
-    @RequestMapping("/filter")
+    @PostMapping("/filter")
     public ApiResult<List<MeetingRoomVO>> getMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
         List<MeetingRoom> suitableMeetingRooms = meetingRoomService.getMeetingRoom(bookingDTO);
         return ApiResult.success(
@@ -62,7 +63,7 @@ public class UserMeetingRoomController {
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return Book result
      */
-    @RequestMapping("/booking")
+    @PostMapping("/booking")
     public ApiResult<String> bookMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
         boolean success = meetingRoomService.bookMeetingRoom(bookingDTO);
         if (success) {
@@ -77,9 +78,9 @@ public class UserMeetingRoomController {
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return Update result
      */
-    @RequestMapping("/update")
-    public ApiResult<String> updateBooking(@RequestBody @Valid BookingDTO bookingDTO) {
-        boolean success = meetingRoomService.updateBooking(bookingDTO);
+    @PostMapping("/update")
+    public ApiResult<String> updateMeetingRoom(@RequestBody @Valid BookingDTO bookingDTO) {
+        boolean success = meetingRoomService.updateMeetingRoom(bookingDTO);
         if (success) {
             return ApiResult.success("Update successful.");
         } else {
@@ -92,7 +93,7 @@ public class UserMeetingRoomController {
      * @param reservationId The ID of the reservation to be canceled.
      * @return Cancel result
      */
-    @RequestMapping("/cancel")
+    @PostMapping("/cancel")
     public ApiResult<String> cancelMeetingRoom(@RequestBody @NotBlank String reservationId) {
         boolean success = meetingRoomService.cancelMeetingRoom(reservationId);
         if (success) {

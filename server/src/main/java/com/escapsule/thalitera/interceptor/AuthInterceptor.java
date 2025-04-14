@@ -27,7 +27,9 @@ public class AuthInterceptor implements HandlerInterceptor {
      * @throws Exception Exception
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) throws Exception {
         // 1. Check whether it is a public interface (e.g. login, registration)
         if (isPublicEndpoint(request)) {
             // release open interface
