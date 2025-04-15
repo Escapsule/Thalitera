@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.vo;
 
+import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,7 +41,7 @@ public class ReservationVO {
     private String purpose;
 
     /**
-     * See {@link com.escapsule.thalitera.constant.BookingStatusConstant}
+     * See {@link ReservationStatusConstant}
      */
     private String status;
 }

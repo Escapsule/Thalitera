@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,7 +39,7 @@ public class Reservation {
     private String purpose;
 
     /**
-     * See {@link com.escapsule.thalitera.constant.BookingStatusConstant}
+     * See {@link ReservationStatusConstant}
      */
     private String status;
 

@@ -17,7 +17,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingDTO {
+public class ReservationDTO {
 
     @TableField(value = "reservation_id", typeHandler = PgUUIDTypeHandler.class)
     private UUID reservationId;

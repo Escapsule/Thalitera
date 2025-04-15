@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@RestController("admin")
+@RestController
 @RequestMapping("/admin/meetingroom")
 @Slf4j
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class MeetingRoomController {
      */
     @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
-        List<MeetingRoom> meetingRooms = meetingRoomService.getAllActiveMeetingRooms();
+        List<MeetingRoom> meetingRooms = meetingRoomService.getAllMeetingRooms();
         return ApiResult.success(
                 meetingRooms
                         .stream()

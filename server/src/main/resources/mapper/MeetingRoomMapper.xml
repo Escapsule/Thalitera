@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.escapsule.thalitera.mapper.MeetingRoomMapper">
-    <select id="getMeetingRoom" resultType="com.escapsule.thalitera.entity.MeetingRoom">
+    <select id="getActiveMeetingRoomsByFilter" resultType="com.escapsule.thalitera.entity.MeetingRoom">
         SELECT * FROM meeting_rooms
         WHERE
             status = 'active'
@@ -32,11 +32,31 @@
     </select>
     <insert id="addMeetingRoom">
         INSERT INTO meeting_rooms (room_id, name, capacity_min, capacity_max, building, floor, status, created_by, created_at, updated_at, image, facilities)
-        VALUES (#{roomId}, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image}, '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
-            <foreach collection="facilities.specialNotes" item="note" separator=",">
-                "${note}"
-            </foreach>
-        ]}'::jsonb)
+        VALUES (#{roomId}, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image},
+            '{
+                <trim suffixOverrides=",">
+                    <if test="facilities.projector != null">
+                        "projector": ${facilities.projector},
+                    </if>
+                    <if test="facilities.whiteboard != null">
+                        "whiteboard": ${facilities.whiteboard},
+                    </if>
+                    <if test="facilities.powerSockets != null">
+                        "power_sockets": ${facilities.powerSockets},
+                    </if>
+                    <if test="facilities.coffeeBreak != null">
+                        "coffee_break": ${facilities.coffeeBreak},
+                    </if>
+                    <if test="facilities.specialNotes != null">
+                        "special_notes": [
+                            <foreach collection="facilities.specialNotes" item="note" separator=",">
+                                "${note}"
+                            </foreach>
+                        ],
+                    </if>
+                </trim>
+            }'::jsonb
+        )
     </insert>
     <update id="updateMeetingRoom">
         UPDATE
@@ -48,8 +68,6 @@
             building = #{building},
             floor = #{floor},
             status = #{status},
-            created_by = #{createdBy},
-            created_at = #{createdAt},
             updated_at = #{updatedAt},
             image = #{image},
             facilities = '{

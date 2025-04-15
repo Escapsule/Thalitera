@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.json;
 
+import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,12 +25,12 @@ public class BookingHistorySnapshot extends Jsonb {
 
     private OffsetDateTime endTime;
 
-    public List<String> attendees;
+    private List<String> attendees;
 
     private String purpose;
 
     /**
-     * See {@link com.escapsule.thalitera.constant.BookingStatusConstant}
+     * See {@link ReservationStatusConstant}
      */
     private String status;
 }

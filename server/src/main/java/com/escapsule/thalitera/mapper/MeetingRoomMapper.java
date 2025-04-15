@@ -13,11 +13,7 @@ import java.util.UUID;
 @Mapper
 public interface MeetingRoomMapper {
 
-    List<MeetingRoom> getMeetingRoom(MeetingRoomPO meetingRoomPO);
-
-    @Select("SELECT * FROM meeting_rooms WHERE status = 'active'")
-    List<MeetingRoom> getAllActiveMeetingRooms();
-
+    List<MeetingRoom> getActiveMeetingRoomsByFilter(MeetingRoomPO meetingRoomPO);
 
     @Select("SELECT * FROM meeting_rooms WHERE room_id = #{roomId}")
     @Result(property = "facilities",
@@ -28,4 +24,7 @@ public interface MeetingRoomMapper {
     void updateMeetingRoom(MeetingRoom newMeetingRoom);
 
     void addMeetingRoom(MeetingRoom meetingRoom);
+
+    @Select("SELECT * FROM meeting_rooms")
+    List<MeetingRoom> getAllMeetingRooms();
 }
