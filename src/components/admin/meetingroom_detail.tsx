@@ -169,7 +169,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
-                <p className="text-sm text-muted-foreground">{roomData.description}</p>
+                <div className="text-sm text-muted-foreground">{roomData.description}</div>
               </div>
             </div>
             
