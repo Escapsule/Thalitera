@@ -1,20 +1,18 @@
 package com.escapsule.thalitera.service.impl;
 
-import com.escapsule.thalitera.constant.FacilitiesItemsConstant;
 import com.escapsule.thalitera.constant.MeetingRoomStatusConstant;
 import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
-import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.service.MeetingRoomService;
+import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,34 +31,17 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
      */
     @Override
     @Transactional
-    @SuppressWarnings("unchecked")
     public boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         // Check if the capacity is valid
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
         }
         UUID roomId = UUID.randomUUID();
-        MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
-                .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
-                .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
-                .powerSockets((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.POWER_SOCKETS))
-                .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
-                .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
-                .build();
-        MeetingRoom meetingRoom = MeetingRoom.builder()
-                .roomId(roomId)
-                .name(meetingRoomDTO.getName())
-                .capacityMin(meetingRoomDTO.getCapacityMin())
-                .capacityMax(meetingRoomDTO.getCapacityMax())
-                .building(meetingRoomDTO.getBuilding())
-                .floor(meetingRoomDTO.getFloor())
-                .status(MeetingRoomStatusConstant.MAINTENANCE)
-                .facilities(facilities)
-                .createdBy(meetingRoomDTO.getCreatedBy())
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
-                .image(meetingRoomDTO.getImage())
-                .build();
+        MeetingRoom meetingRoom = MeetingRoomTransfer.INSTANCE.meetingRoomDTO2MeetingRoom(
+                meetingRoomDTO,
+                roomId,
+                MeetingRoomStatusConstant.MAINTENANCE
+        );
         // Insert the meeting room
         meetingRoomMapper.addMeetingRoom(meetingRoom);
         return true;
@@ -74,7 +55,6 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
      */
     @Override
     @Transactional
-    @SuppressWarnings("unchecked")
     public boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         // Check if the room ID is provided
         if (meetingRoomDTO.getRoomId() == null) {
@@ -90,27 +70,11 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
         }
-        MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
-                .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
-                .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
-                .powerSockets((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.POWER_SOCKETS))
-                .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
-                .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
-                .build();
-        MeetingRoom newMeetingRoom = MeetingRoom.builder()
-                .roomId(meetingRoomDTO.getRoomId())
-                .name(meetingRoomDTO.getName())
-                .capacityMin(meetingRoomDTO.getCapacityMin())
-                .capacityMax(meetingRoomDTO.getCapacityMax())
-                .building(meetingRoomDTO.getBuilding())
-                .floor(meetingRoomDTO.getFloor())
-                .status(meetingRoomDTO.getStatus())
-                .facilities(facilities)
-                .createdBy(meetingRoom.getCreatedBy())
-                .createdAt(meetingRoom.getCreatedAt())
-                .updatedAt(OffsetDateTime.now())
-                .image(meetingRoomDTO.getImage())
-                .build();
+        MeetingRoom newMeetingRoom = MeetingRoomTransfer.INSTANCE.modifyMeetingRoomDTO2MeetingRoom(
+                meetingRoomDTO,
+                meetingRoom.getCreatedBy(),
+                meetingRoom.getCreatedAt()
+        );
         log.info("Facilities {}", meetingRoomDTO.getFacilities());
         // Update the meeting room
         meetingRoomMapper.updateMeetingRoom(newMeetingRoom);
