@@ -77,14 +77,14 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <DialogHeader>
           <DialogTitle className="text-xl text-[lch(17_23_133)]">{booking.roomName}</DialogTitle>
           <DialogDescription>
-            <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2">
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                 {statusInfo.text}
               </span>
               <span className="text-sm text-muted-foreground">
                 Utilization Rate: {booking.utilizationRate}%
               </span>
-            </div>
+            </span>
           </DialogDescription>
         </DialogHeader>
 
