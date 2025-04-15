@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.transfer;
 
 import com.escapsule.thalitera.entity.MeetingRoom;
+import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
 import org.json.JSONObject;
 import org.mapstruct.Mapper;
@@ -17,7 +18,7 @@ public interface MeetingRoomTransfer {
     @Mapping(target = "facilities", source = "facilities")
     MeetingRoomVO meetingRoom2MeetingRoomVO(MeetingRoom source);
 
-    default Map<String, Object> convertStringToMap(String facilities) {
+    default Map<String, Object> mapFacilitiesToMap(MeetingRoomFacilities facilities) {
         if (facilities == null) {
             return null;
         }

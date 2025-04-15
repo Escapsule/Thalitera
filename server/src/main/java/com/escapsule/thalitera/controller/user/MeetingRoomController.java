@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController("user")
 @RequestMapping("/user/meetingroom")
@@ -98,7 +99,7 @@ public class MeetingRoomController {
      * @return Cancel result
      */
     @PostMapping("/cancel")
-    public ApiResult<String> cancelMeetingRoom(@RequestBody @NotBlank String reservationId) {
+    public ApiResult<String> cancelMeetingRoom(@RequestBody @NotBlank UUID reservationId) {
         boolean success = meetingRoomService.cancelMeetingRoom(reservationId);
         if (success) {
             return ApiResult.success("Cancel successful.");

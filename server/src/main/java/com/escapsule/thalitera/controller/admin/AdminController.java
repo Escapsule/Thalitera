@@ -6,6 +6,8 @@ import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.AdminService;
+import com.escapsule.thalitera.service.ReservationService;
+import com.escapsule.thalitera.vo.ReservationVO;
 import com.escapsule.thalitera.vo.UserVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ReservationService reservationService;
 
     /**
      * Get all users
@@ -67,5 +70,15 @@ public class AdminController {
         return status.equals(UserStatusConstant.ACTIVE) ||
                status.equals(UserStatusConstant.DISABLED) ||
                status.equals(UserStatusConstant.LOCKED);
+    }
+
+    /**
+     * Get all reservations
+     *
+     * @return List of reservationVO
+     */
+    @GetMapping("/reservations")
+    private ApiResult<List<ReservationVO>> getAllReservations() {
+        return ApiResult.success(reservationService.getAllReservations());
     }
 }

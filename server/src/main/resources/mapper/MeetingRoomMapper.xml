@@ -30,40 +30,14 @@
                 </if>
             </if>
     </select>
-    <insert id="bookMeetingRoom" parameterType="com.escapsule.thalitera.entity.Reservation">
-        INSERT INTO reservations (reservation_id, user_id, room_id, start_time, end_time, purpose, attendees)
-        VALUES (#{reservationId}::uuid, #{userId}::uuid, #{roomId}::uuid, #{startTime}, #{endTime}, #{purpose}, '[
-            <foreach collection="attendees" item="attendee" separator=",">
-                "${attendee}"
-            </foreach>
-        ]'::jsonb)
-        RETURNING *
-    </insert>
     <insert id="addMeetingRoom">
         INSERT INTO meeting_rooms (room_id, name, capacity_min, capacity_max, building, floor, status, created_by, created_at, updated_at, image, facilities)
-        VALUES (#{roomId}::uuid, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image}, '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
+        VALUES (#{roomId}, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image}, '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
             <foreach collection="facilities.specialNotes" item="note" separator=",">
                 "${note}"
             </foreach>
         ]}'::jsonb)
     </insert>
-    <update id="updateReservation">
-        UPDATE
-            reservations
-        SET
-            room_id = #{roomId}::uuid,
-            start_time = #{startTime},
-            end_time = #{endTime},
-            purpose = #{purpose},
-            attendees = '[
-                <foreach collection="attendees" item="attendee" separator=",">
-                    "${attendee}"
-                </foreach>
-            ]'::jsonb,
-            version = #{version}
-        WHERE
-            reservation_id = #{reservationId}::uuid
-    </update>
     <update id="updateMeetingRoom">
         UPDATE
             meeting_rooms
@@ -78,12 +52,30 @@
             created_at = #{createdAt},
             updated_at = #{updatedAt},
             image = #{image},
-            facilities = '{"projector": ${facilities.projector}, "whiteboard": ${facilities.whiteboard}, "power_sockets": ${facilities.powerSockets}, "coffee_break": ${facilities.coffeeBreak}, "special_notes": [
-                <foreach collection="facilities.specialNotes" item="note" separator=",">
-                    "${note}"
-                </foreach>
-            ]}'::jsonb
+            facilities = '{
+                <trim suffixOverrides=",">
+                    <if test="facilities.projector != null">
+                        "projector": ${facilities.projector},
+                    </if>
+                    <if test="facilities.whiteboard != null">
+                        "whiteboard": ${facilities.whiteboard},
+                    </if>
+                    <if test="facilities.powerSockets != null">
+                        "power_sockets": ${facilities.powerSockets},
+                    </if>
+                    <if test="facilities.coffeeBreak != null">
+                        "coffee_break": ${facilities.coffeeBreak},
+                    </if>
+                    <if test="facilities.specialNotes != null">
+                        "special_notes": [
+                            <foreach collection="facilities.specialNotes" item="note" separator=",">
+                                "${note}"
+                            </foreach>
+                        ],
+                    </if>
+                </trim>
+            }'::jsonb
         WHERE
-            room_id = #{roomId}::uuid
+            room_id = #{roomId}
     </update>
 </mapper>

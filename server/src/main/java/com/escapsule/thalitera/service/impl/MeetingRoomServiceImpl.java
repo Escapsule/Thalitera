@@ -11,13 +11,13 @@ import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
+import com.escapsule.thalitera.mapper.ReservationMapper;
 import com.escapsule.thalitera.po.MeetingRoomPO;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +34,9 @@ import java.util.UUID;
 public class MeetingRoomServiceImpl implements MeetingRoomService {
 
     private final MeetingRoomMapper meetingRoomMapper;
+    private final ReservationMapper reservationMapper;
+
+    private final OffsetDateTime undefinedTime = OffsetDateTime.parse("1970-01-01T00:00:00Z");
 
     @Override
     public List<MeetingRoom> getAllActiveMeetingRooms() {
@@ -61,8 +64,8 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         if (bookingDTO.getFloor() != null) {
             meetingRoomPO.setFloor(bookingDTO.getFloor());
         }
-        if (bookingDTO.facilities != null) {
-            LinkedHashMap<String, Object> facilitiesMap = (LinkedHashMap<String, Object>) bookingDTO.facilities;
+        if (bookingDTO.getFacilities() != null) {
+            LinkedHashMap<String, Object> facilitiesMap = bookingDTO.getFacilities();
             MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
                     .projector((Boolean) facilitiesMap.get(FacilitiesItemsConstant.PROJECTOR))
                     .whiteboard((Integer) facilitiesMap.get(FacilitiesItemsConstant.WHITEBOARD))
@@ -74,10 +77,10 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         }
         // Get the list of meeting rooms
         List<MeetingRoom> suitableMeetingRooms = meetingRoomMapper.getMeetingRoom(meetingRoomPO);
-        Set<String> conflictRoomIds = new HashSet<>();
+        Set<UUID> conflictRoomIds = new HashSet<>();
         // Check conflicts
         for (MeetingRoom meetingRoom : suitableMeetingRooms) {
-            List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(meetingRoom.getRoomId());
+            List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(meetingRoom.getRoomId());
             for (Reservation r : reservations) {
                 if (
                         checkConflict(
@@ -98,7 +101,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Transactional
     public boolean bookMeetingRoom(BookingDTO bookingDTO) {
         // Generate a reservation ID
-        String reservationId = UUID.randomUUID().toString();
+        UUID reservationId = UUID.randomUUID();
         // Construct the reservation object
         Reservation reservation = Reservation.builder()
                 .reservationId(reservationId)
@@ -110,9 +113,9 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .endTime(bookingDTO.getEndTime())
                 .qrToken(TokenUtils.generateShortToken())
                 .build();
-        meetingRoomMapper.bookMeetingRoom(reservation);
+        reservationMapper.bookMeetingRoom(reservation);
         // Get the list of confirmed reservations
-        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
+        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
         // Check conflicts
         for (Reservation r : reservations) {
             if (
@@ -122,12 +125,12 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                     )
                     && r.getStatus().equals(BookingStatusConstant.CONFIRMED)
             ) {
-                meetingRoomMapper.deleteReservation(reservationId);
+                reservationMapper.deleteReservation(reservationId);
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
             }
         }
         // Update the reservation status
-        meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CONFIRMED);
+        reservationMapper.updateReservationStatus(reservationId, BookingStatusConstant.CONFIRMED);
         return true;
     }
 
@@ -135,7 +138,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     @Transactional
     public boolean updateBooking(BookingDTO bookingDTO) {
         // Get the old reservation
-        Reservation oldReservation = meetingRoomMapper.getReservationsByReservationId(bookingDTO.getReservationId());
+        Reservation oldReservation = reservationMapper.getReservationsByReservationId(bookingDTO.getReservationId());
         if (oldReservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
@@ -151,9 +154,9 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .version(oldReservation.getVersion() + 1)
                 .qrToken(oldReservation.getQrToken())
                 .build();
-        meetingRoomMapper.updateReservation(newReservation);
+        reservationMapper.updateReservation(newReservation);
         // Get the list of confirmed reservations
-        List<Reservation> reservations = meetingRoomMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
+        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(bookingDTO.getRoomId());
         for (Reservation r : reservations) {
             // Skip the current reservation
             if (r.getReservationId().equals(bookingDTO.getReservationId())) {
@@ -167,41 +170,49 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                     )
                     && r.getStatus().equals(BookingStatusConstant.CONFIRMED)
             ) {
-                meetingRoomMapper.deleteReservation(newReservation.getReservationId());
+                reservationMapper.deleteReservation(newReservation.getReservationId());
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
             }
         }
         // Update the reservation status
-        meetingRoomMapper.updateReservationStatus(newReservation.getReservationId(), BookingStatusConstant.CONFIRMED);
+        reservationMapper.updateReservationStatus(newReservation.getReservationId(), BookingStatusConstant.CONFIRMED);
         return true;
     }
 
     @Override
     @Transactional
-    public boolean cancelMeetingRoom(String reservationId) {
+    public boolean cancelMeetingRoom(UUID reservationId) {
         // Check if the reservation ID is provided
-        if (StringUtils.isBlank(reservationId)) {
+        if (reservationId == null) {
             throw new BaseException(ErrorCode.MISSING_RESERVATION_ID);
         }
         // Get the reservation
-        Reservation reservation = meetingRoomMapper.getReservationsByReservationId(reservationId);
+        Reservation reservation = reservationMapper.getReservationsByReservationId(reservationId);
         // Check if the reservation exists
         if (reservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
         // Update the reservation status
-        meetingRoomMapper.updateReservationStatus(reservationId, BookingStatusConstant.CANCELED);
+        reservationMapper.updateReservationStatus(reservationId, BookingStatusConstant.CANCELED);
         return true;
     }
 
     @Override
     @Transactional
+    @SuppressWarnings("unchecked")
     public boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         // Check if the capacity is valid
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
         }
-        String roomId = UUID.randomUUID().toString();
+        MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
+                .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
+                .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
+                .powerSockets((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.POWER_SOCKETS))
+                .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
+                .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
+                .build();
+        UUID roomId = UUID.randomUUID();
         MeetingRoom meetingRoom = MeetingRoom.builder()
                 .roomId(roomId)
                 .name(meetingRoomDTO.getName())
@@ -210,7 +221,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .building(meetingRoomDTO.getBuilding())
                 .floor(meetingRoomDTO.getFloor())
                 .status(MeetingRoomStatusConstant.MAINTENANCE)
-                .facilities(JSONObject.valueToString(meetingRoomDTO.getFacilities()))
+                .facilities(facilities)
                 .createdBy(meetingRoomDTO.getCreatedBy())
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
@@ -223,9 +234,10 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
 
     @Override
     @Transactional
+    @SuppressWarnings("unchecked")
     public boolean modifyMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
         // Check if the room ID is provided
-        if (StringUtils.isBlank(meetingRoomDTO.getRoomId())) {
+        if (meetingRoomDTO.getRoomId() == null) {
             throw new BaseException(ErrorCode.MISSING_ROOM_ID);
         }
         // Get the meeting room
@@ -234,6 +246,13 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         if (meetingRoom == null) {
             throw new BaseException(ErrorCode.MEETING_ROOM_NOT_FOUND);
         }
+        MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
+                .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
+                .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
+                .powerSockets((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.POWER_SOCKETS))
+                .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
+                .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
+                .build();
         // Check if the capacity is valid
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
@@ -246,12 +265,13 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .building(meetingRoomDTO.getBuilding())
                 .floor(meetingRoomDTO.getFloor())
                 .status(meetingRoomDTO.getStatus())
-                .facilities(JSONObject.valueToString(meetingRoomDTO.getFacilities()))
+                .facilities(facilities)
                 .createdBy(meetingRoom.getCreatedBy())
                 .createdAt(meetingRoom.getCreatedAt())
                 .updatedAt(OffsetDateTime.now())
                 .image(meetingRoomDTO.getImage())
                 .build();
+        log.info("Facilities {}", meetingRoomDTO.getFacilities());
         // Update the meeting room
         meetingRoomMapper.updateMeetingRoom(newMeetingRoom);
         return true;

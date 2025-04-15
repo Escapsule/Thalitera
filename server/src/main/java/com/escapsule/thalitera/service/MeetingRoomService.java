@@ -5,6 +5,7 @@ import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface MeetingRoomService {
 
@@ -45,7 +46,7 @@ public interface MeetingRoomService {
      * @param reservationId The ID of the reservation to cancel.
      * @return True if the cancellation is successful, throw an exception otherwise.
      */
-    boolean cancelMeetingRoom(String reservationId);
+    boolean cancelMeetingRoom(UUID reservationId);
 
     /**
      * Add a new meeting room.

@@ -1,5 +1,7 @@
 package com.escapsule.thalitera.dto;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class UserEditDTO {
     @NotNull
+    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
     private UUID userId;
     @NotBlank
     private String status;

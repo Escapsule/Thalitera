@@ -1,5 +1,8 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
+import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,7 +20,8 @@ public class MeetingRoom implements Serializable {
 
     private String image;
 
-    private String roomId;
+    @TableField(value = "room_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID roomId;
 
     /**
      * Readable name of the meeting room
@@ -39,12 +44,12 @@ public class MeetingRoom implements Serializable {
     /**
      * See {@link com.escapsule.thalitera.json.MeetingRoomFacilities}
      */
-    private String facilities;
+    private MeetingRoomFacilities facilities;
 
     /**
      * Created by user ID
      */
-    private String createdBy;
+    private UUID createdBy;
 
     private OffsetDateTime createdAt;
 

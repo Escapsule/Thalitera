@@ -1,5 +1,7 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import com.escapsule.thalitera.json.BookingHistorySnapshot;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,7 +19,8 @@ public class ReservationVersion {
 
     private long versionId;
 
-    private String reservationId;
+    @TableField(value = "reservation_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID reservationId;
 
     /**
      * Save the snapshot of the reservation at the time of operation

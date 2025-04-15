@@ -1,5 +1,6 @@
 package com.escapsule.thalitera.json;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,26 +19,31 @@ public class MeetingRoomFacilities extends Jsonb {
     /**
      * Projector availability
      */
-    public boolean projector;
+    @JsonProperty("projector")
+    private Boolean projector;
 
     /**
      * Number of whiteboards
      */
-    public int whiteboard;
+    @JsonProperty("whiteboard")
+    private Integer whiteboard;
 
     /**
      * Number of power sockets
      */
-    public int powerSockets;
+    @JsonProperty("power_sockets")
+    private Integer powerSockets;
 
     /**
      * Coffee break availability
      */
-    public boolean coffeeBreak;
+    @JsonProperty("coffee_break")
+    private Boolean coffeeBreak;
 
     /**
      * Special notes
      */
-    public List<String> specialNotes;
+    @JsonProperty("special_notes")
+    private List<String> specialNotes;
 
 }

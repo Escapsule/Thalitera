@@ -11,7 +11,6 @@ import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,7 +67,7 @@ public class MeetingRoomController {
      */
     @PostMapping("/modify")
     public ApiResult<String> modifyMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
-        if (StringUtils.isBlank(meetingRoomDTO.getRoomId())) {
+        if (meetingRoomDTO.getRoomId() == null) {
             throw new BaseException(ErrorCode.MISSING_ROOM_ID);
         }
         boolean success = meetingRoomService.modifyMeetingRoom(meetingRoomDTO);

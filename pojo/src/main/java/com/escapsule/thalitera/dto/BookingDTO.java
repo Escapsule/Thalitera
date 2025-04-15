@@ -1,14 +1,17 @@
 package com.escapsule.thalitera.dto;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,12 +19,14 @@ import java.util.List;
 @AllArgsConstructor
 public class BookingDTO {
 
-    private String reservationId;
+    @TableField(value = "reservation_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID reservationId;
 
-    private String roomId;
+    @TableField(value = "room_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID roomId;
 
-    @NotBlank
-    private String userId;
+    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID userId;
 
     private List<String> attendees;
 
@@ -30,14 +35,14 @@ public class BookingDTO {
     private String purpose;
 
     @Future
-    public OffsetDateTime startTime;
+    private OffsetDateTime startTime;
 
     @Future
-    public OffsetDateTime endTime;
+    private OffsetDateTime endTime;
 
-    public Object facilities;
+    private LinkedHashMap<String, Object> facilities;
 
-    public String building;
+    private String building;
 
-    public Integer floor;
+    private Integer floor;
 }
