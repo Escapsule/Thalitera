@@ -13,12 +13,12 @@ public interface ReservationMapper {
     @Select("SELECT * FROM reservations WHERE room_id = #{roomId} AND status = 'confirmed'")
     List<Reservation> getConfirmedReservationsByRoomId(UUID roomId);
 
-    void bookMeetingRoom(Reservation reservation);
+    void makeReservation(Reservation reservation);
 
     @Delete("DELETE FROM reservations WHERE reservation_id = #{reservationId}")
     void deleteReservation(UUID reservationId);
 
-    @Update("UPDATE reservations SET status = #{status} WHERE reservation_id = #{reservationId}")
+    @Update("UPDATE reservations SET status = #{status}, updated_at = now() WHERE reservation_id = #{reservationId}")
     void updateReservationStatus(UUID reservationId, String status);
 
     @Select("SELECT * FROM reservations WHERE reservation_id = #{reservationId}")

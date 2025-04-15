@@ -39,6 +39,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
         }
+        UUID roomId = UUID.randomUUID();
         MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
                 .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
                 .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
@@ -46,7 +47,6 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
                 .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
                 .build();
-        UUID roomId = UUID.randomUUID();
         MeetingRoom meetingRoom = MeetingRoom.builder()
                 .roomId(roomId)
                 .name(meetingRoomDTO.getName())
@@ -86,6 +86,10 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         if (meetingRoom == null) {
             throw new BaseException(ErrorCode.MEETING_ROOM_NOT_FOUND);
         }
+        // Check if the capacity is valid
+        if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
+            throw new BaseException(ErrorCode.CAPACITY_ERROR);
+        }
         MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
                 .projector((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.PROJECTOR))
                 .whiteboard((Integer) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.WHITEBOARD))
@@ -93,10 +97,6 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
                 .coffeeBreak((Boolean) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.COFFEE_BREAK))
                 .specialNotes((List<String>) meetingRoomDTO.getFacilities().get(FacilitiesItemsConstant.SPECIAL_NOTES))
                 .build();
-        // Check if the capacity is valid
-        if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
-            throw new BaseException(ErrorCode.CAPACITY_ERROR);
-        }
         MeetingRoom newMeetingRoom = MeetingRoom.builder()
                 .roomId(meetingRoomDTO.getRoomId())
                 .name(meetingRoomDTO.getName())

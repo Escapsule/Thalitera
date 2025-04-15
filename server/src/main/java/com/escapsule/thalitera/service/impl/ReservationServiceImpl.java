@@ -1,18 +1,17 @@
 package com.escapsule.thalitera.service.impl;
 
-import com.escapsule.thalitera.constant.FacilitiesItemsConstant;
 import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import com.escapsule.thalitera.dto.ReservationDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
-import com.escapsule.thalitera.json.MeetingRoomFacilities;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.ReservationMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.po.MeetingRoomPO;
 import com.escapsule.thalitera.service.ReservationService;
+import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.transfer.ReservationTransfer;
 import com.escapsule.thalitera.utils.TokenUtils;
 import com.escapsule.thalitera.vo.ReservationVO;
@@ -23,8 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.*;
 import java.util.function.Function;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +53,6 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<MeetingRoom> getMeetingRoom(ReservationDTO reservationDTO) {
         // Check if the start time is after the end time
         if (reservationDTO.getStartTime() != null && reservationDTO.getEndTime() != null) {
@@ -72,15 +73,11 @@ public class ReservationServiceImpl implements ReservationService {
             meetingRoomPO.setFloor(reservationDTO.getFloor());
         }
         if (reservationDTO.getFacilities() != null) {
-            LinkedHashMap<String, Object> facilitiesMap = reservationDTO.getFacilities();
-            MeetingRoomFacilities facilities = MeetingRoomFacilities.builder()
-                    .projector((Boolean) facilitiesMap.get(FacilitiesItemsConstant.PROJECTOR))
-                    .whiteboard((Integer) facilitiesMap.get(FacilitiesItemsConstant.WHITEBOARD))
-                    .powerSockets((Integer) facilitiesMap.get(FacilitiesItemsConstant.POWER_SOCKETS))
-                    .coffeeBreak((Boolean) facilitiesMap.get(FacilitiesItemsConstant.COFFEE_BREAK))
-                    .specialNotes((List<String>) facilitiesMap.get(FacilitiesItemsConstant.SPECIAL_NOTES))
-                    .build();
-            meetingRoomPO.setFacilities(facilities);
+            meetingRoomPO.setFacilities(
+                    MeetingRoomTransfer.INSTANCE.mapMapToFacilities(
+                            reservationDTO.getFacilities()
+                    )
+            );
         }
         // Get the list of meeting rooms
         List<MeetingRoom> suitableMeetingRooms = meetingRoomMapper.getActiveMeetingRoomsByFilter(meetingRoomPO);
@@ -116,17 +113,10 @@ public class ReservationServiceImpl implements ReservationService {
         // Generate a reservation ID
         UUID reservationId = UUID.randomUUID();
         // Construct the reservation object
-        Reservation reservation = Reservation.builder()
-                .reservationId(reservationId)
-                .roomId(reservationDTO.getRoomId())
-                .userId(reservationDTO.getUserId())
-                .attendees(reservationDTO.getAttendees())
-                .purpose(reservationDTO.getPurpose())
-                .startTime(reservationDTO.getStartTime())
-                .endTime(reservationDTO.getEndTime())
-                .qrToken(TokenUtils.generateShortToken())
-                .build();
-        reservationMapper.bookMeetingRoom(reservation);
+        Reservation reservation = ReservationTransfer.INSTANCE.newReservationDTO2Reservation(
+                reservationDTO, reservationId, TokenUtils.generateShortToken()
+        );
+        reservationMapper.makeReservation(reservation);
         // Get the list of confirmed reservations
         List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
         // Check conflicts
@@ -161,19 +151,6 @@ public class ReservationServiceImpl implements ReservationService {
         if (oldReservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
-        // Construct the new reservation object
-        Reservation newReservation = Reservation.builder()
-                .reservationId(reservationDTO.getReservationId())
-                .roomId(reservationDTO.getRoomId())
-                .userId(reservationDTO.getUserId())
-                .attendees(reservationDTO.getAttendees())
-                .purpose(reservationDTO.getPurpose())
-                .startTime(reservationDTO.getStartTime())
-                .endTime(reservationDTO.getEndTime())
-                .version(oldReservation.getVersion() + 1)
-                .qrToken(oldReservation.getQrToken())
-                .build();
-        reservationMapper.updateReservation(newReservation);
         // Get the list of confirmed reservations
         List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
         for (Reservation r : reservations) {
@@ -189,12 +166,14 @@ public class ReservationServiceImpl implements ReservationService {
                     )
                             && r.getStatus().equals(ReservationStatusConstant.CONFIRMED)
             ) {
-                reservationMapper.deleteReservation(newReservation.getReservationId());
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
             }
         }
-        // Update the reservation status
-        reservationMapper.updateReservationStatus(newReservation.getReservationId(), ReservationStatusConstant.CONFIRMED);
+        // Update the reservation
+        Reservation newReservation = ReservationTransfer.INSTANCE.updateReservationDTO2Reservation(
+                reservationDTO, oldReservation.getVersion(), oldReservation.getQrToken()
+        );
+        reservationMapper.updateReservation(newReservation);
         return true;
     }
 

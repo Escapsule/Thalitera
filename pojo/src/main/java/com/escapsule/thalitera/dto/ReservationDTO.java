@@ -9,8 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -40,7 +40,7 @@ public class ReservationDTO {
     @Future
     private OffsetDateTime endTime;
 
-    private LinkedHashMap<String, Object> facilities;
+    private Map<String, Object> facilities;
 
     private String building;
 
