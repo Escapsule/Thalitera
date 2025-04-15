@@ -49,8 +49,14 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     name: booking.roomName,
     capacity: 8,
     location: "Building A, Floor 2",
-    description: "Conference room with standard amenities.",
-    amenities: ["Whiteboard", "Projector"]
+    description: "Conference room with standard facilities.",
+    facilities: {
+      projecter: false,
+      whiteboard: 1,
+      power_sockets: 4,
+      coffee_break: false,
+      special_notes: []
+    }
   }
 
   // Get status badge color and text
@@ -70,6 +76,36 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
   }
 
   const statusInfo = getStatusInfo(booking.status)
+
+  // Generate facility list
+  const generateFacilitiesList = () => {
+    const facilitiesList = [];
+    
+    // Add facilities of boolean type
+    if (roomData.facilities.projecter) {
+      facilitiesList.push("Projector");
+    }
+    if (roomData.facilities.coffee_break) {
+      facilitiesList.push("Coffee Break");
+    }
+    
+    // Add facilities of numerical type
+    if (roomData.facilities.whiteboard > 0) {
+      facilitiesList.push(`${roomData.facilities.whiteboard} Whiteboard${roomData.facilities.whiteboard > 1 ? 's' : ''}`);
+    }
+    if (roomData.facilities.power_sockets > 0) {
+      facilitiesList.push(`${roomData.facilities.power_sockets} Power Socket${roomData.facilities.power_sockets > 1 ? 's' : ''}`);
+    }
+    
+    // Add special notes
+    if (roomData.facilities.special_notes && roomData.facilities.special_notes.length > 0) {
+      facilitiesList.push(...roomData.facilities.special_notes);
+    }
+    
+    return facilitiesList;
+  }
+
+  const facilitiesList = generateFacilitiesList();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -163,7 +199,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
           </div>
           
-          {/* Room Description and Amenities */}
+          {/* Room Description and Facilities */}
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
@@ -173,14 +209,14 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               </div>
             </div>
             
-            {roomData.amenities && roomData.amenities.length > 0 && (
+            {facilitiesList.length > 0 && (
               <div className="rounded-md border p-3">
-                <h4 className="text-sm font-medium mb-2">Amenities</h4>
+                <h4 className="text-sm font-medium mb-2">Facilities</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {roomData.amenities.map((amenity, index) => (
+                  {facilitiesList.map((facility, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
                       <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
-                      <span>{amenity}</span>
+                      <span>{facility}</span>
                     </div>
                   ))}
                 </div>

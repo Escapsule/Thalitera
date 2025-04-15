@@ -6,7 +6,13 @@ export const rooms = [
       capacity: 12,
       location: "Building A, Floor 2",
       description: "Large conference room with projector",
-      amenities: ["Projector", "Whiteboard"],
+      facilities: {
+        projecter: true,
+        whiteboard: 2,
+        power_sockets: 8,
+        coffee_break: true,
+        special_notes: []
+      },
       status: "available",
       utilizationRate: 60,
       currentBookings: [],
@@ -22,7 +28,13 @@ export const rooms = [
       capacity: 6,
       location: "Building A, Floor 1",
       description: "Medium-sized meeting room",
-      amenities: ["TV Screen", "Whiteboard"],
+      facilities: {
+        projecter: false,
+        whiteboard: 1,
+        power_sockets: 4,
+        coffee_break: false,
+        special_notes: []
+      },
       status: "in_use",
       utilizationRate: 80,
       currentBookings: [{
@@ -44,7 +56,13 @@ export const rooms = [
       capacity: 20,
       location: "Building B, Floor 3",
       description: "Executive board room with premium facilities",
-      amenities: ["Projector", "Whiteboard", "Video Conference", "Catering Available", "Premium Audio"],
+      facilities: {
+        projecter: true,
+        whiteboard: 2,
+        power_sockets: 12,
+        coffee_break: true,
+        special_notes: []
+      },
       status: "in_use",
       utilizationRate: 50,
       currentBookings: [{
@@ -66,7 +84,13 @@ export const rooms = [
       capacity: 8,
       location: "Building B, Floor 1",
       description: "Comfortable meeting space with modern amenities",
-      amenities: ["TV Screen", "Whiteboard", "Natural Lighting"],
+      facilities: {
+        projecter: false,
+        whiteboard: 1,
+        power_sockets: 6,
+        coffee_break: true,
+        special_notes: []
+      },
       status: "available",
       utilizationRate: 40,
       currentBookings: [],
@@ -82,7 +106,13 @@ export const rooms = [
       capacity: 4,
       location: "Building A, Floor 2",
       description: "Small informal meeting space",
-      amenities: ["Whiteboard", "Comfortable Seating"],
+      facilities: {
+        projecter: false,
+        whiteboard: 1,
+        power_sockets: 2,
+        coffee_break: false,
+        special_notes: []
+      },
       status: "available",
       utilizationRate: 30,
       currentBookings: [],
@@ -98,7 +128,13 @@ export const rooms = [
       capacity: 15,
       location: "Building C, Floor 1",
       description: "Creative space with modular furniture",
-      amenities: ["Smart Displays", "Modular Furniture", "Video Conference", "Digital Whiteboards"],
+      facilities: {
+        projecter: true,
+        whiteboard: 2,
+        power_sockets: 10,
+        coffee_break: true,
+        special_notes: []
+      },
       status: "available",
       utilizationRate: 20,
       currentBookings: [],
@@ -114,7 +150,13 @@ export const rooms = [
       capacity: 2,
       location: "Building C, Floor 2",
       description: "Small private room for focused work",
-      amenities: ["Phone", "Desk", "Sound Insulation"],
+      facilities: {
+        projecter: false,
+        whiteboard: 3,
+        power_sockets: 2,
+        coffee_break: false,
+        special_notes: []
+      },
       status: "in_use",
       utilizationRate: 80,
       currentBookings: [{
@@ -132,24 +174,15 @@ export const rooms = [
     }
   ]
   
-  // All available meeting room amenities
-  export const allAmenities = [
-    "Projector",
-    "Whiteboard", 
-    "Video Conference", 
-    "Air Conditioning",
-    "TV Screen",
-    "Catering Available",
-    "Premium Audio", 
-    "Natural Lighting",
-    "Comfortable Seating",
-    "Smart Displays",
-    "Modular Furniture",
-    "Digital Whiteboards",
-    "Phone",
-    "Desk",
-    "Sound Insulation"
-  ]
+  // All available facilities
+  export const allFacilities = {
+    projecter: "Projector",
+    whiteboard: "Whiteboard",
+    power_sockets: "Power Sockets",
+    coffee_break: "Coffee Break",
+    special_notes: [
+    ]
+  }
   
   // All available locations
   export const allLocations = [

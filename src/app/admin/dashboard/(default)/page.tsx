@@ -13,7 +13,13 @@ type Room = {
   capacity: number
   location: string
   description: string
-  amenities: string[]
+  facilities: {
+    projecter: boolean | null
+    whiteboard: number | null
+    power_sockets: number | null
+    coffee_break: boolean | null
+    special_notes: string[] | null
+  }
   status: 'available' | 'booked' | 'in_use' | 'maintenance'
   utilizationRate: number
   currentBookings: {
@@ -192,7 +198,7 @@ const DashboardPage = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Conference room pagination status
+  // Meeting room pagination status
   const [roomCurrentPage, setRoomCurrentPage] = useState(1)
 
   // User status
@@ -207,7 +213,7 @@ const DashboardPage = () => {
   const roomItemsPerPage = 4;
   const userItemsPerPage = 5; 
 
-  // Conference room pagination calculation
+  // Meeting room pagination calculation
   const filteredRooms = rooms.filter(room => 
     room.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
   )
@@ -228,7 +234,7 @@ const DashboardPage = () => {
     userCurrentPage * userItemsPerPage
   );
 
-  // Conference room pagination handling function
+  // Meeting room pagination handling function
   const handleRoomPageChange = (page: number) => {
     setRoomCurrentPage(page)
   }
@@ -253,7 +259,7 @@ const DashboardPage = () => {
         capacity: room.capacity,
         location: room.location,
         description: room.description,
-        amenities: room.amenities,
+        facilities: room.facilities,
         status: room.status as 'available' | 'booked' | 'in_use' | 'maintenance',
         utilizationRate: room.utilizationRate,
         currentBookings: room.currentBookings || [],
@@ -281,7 +287,13 @@ const DashboardPage = () => {
           capacity: 12,
           location: "Building A, Floor 2",
           description: "Large conference room with projector",
-          amenities: ["Projector", "Whiteboard"],
+          facilities: {
+            projecter: true,
+            whiteboard: 2,
+            power_sockets: 8,
+            coffee_break: true,
+            special_notes: []
+          },
           status: "available",
           utilizationRate: 60,
           currentBookings: [],
@@ -297,7 +309,13 @@ const DashboardPage = () => {
           capacity: 6,
           location: "Building A, Floor 1",
           description: "Medium-sized meeting room",
-          amenities: ["TV Screen", "Whiteboard"],
+          facilities: {
+            projecter: false,
+            whiteboard: 1,
+            power_sockets: 4,
+            coffee_break: false,
+            special_notes: []
+          },
           status: "in_use",
           utilizationRate: 80,
           currentBookings: [{
