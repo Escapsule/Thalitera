@@ -26,6 +26,8 @@ public enum ErrorCode {
     USER_NOT_LOGIN(2011, "User not login"),
     EMAIL_VERIFICATION_FAILED(2012, "Email verification failed"),
     USER_NEW_PASSWORD_SAME_TO_OLD(2013, "New password cannot be the same as the old password."),
+    INVALID_STATUS(2014, "Invalid user status."),
+    USER_STATUS_SAME_TO_OLD(2015, "New status cannot be the same as the old status."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),

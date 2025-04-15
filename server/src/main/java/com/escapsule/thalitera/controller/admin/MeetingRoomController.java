@@ -2,6 +2,8 @@ package com.escapsule.thalitera.controller.admin;
 
 import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
+import com.escapsule.thalitera.enumeration.ErrorCode;
+import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
@@ -9,6 +11,7 @@ import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,6 +47,9 @@ public class MeetingRoomController {
 
     @PostMapping("/modify")
     public ApiResult<String> modifyMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
+        if (StringUtils.isBlank(meetingRoomDTO.getRoomId())) {
+            throw new BaseException(ErrorCode.MISSING_ROOM_ID);
+        }
         boolean success = meetingRoomService.modifyMeetingRoom(meetingRoomDTO);
         if (success) {
             return ApiResult.success("Modify successful.");

@@ -2,6 +2,7 @@ package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
+import jakarta.validation.constraints.NotNull;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -59,4 +60,34 @@ public interface UserMapper {
      */
     @Update("UPDATE users SET password_hash = #{encode} WHERE email = #{email}")
     void updatePasswordHash(String encode, String email);
+
+    /**
+     * Get all users
+     *
+     * @return List of users
+     */
+    @Select("SELECT * FROM users")
+    List<User> getAllUsers();
+
+    /**
+     * Get user by id
+     *
+     * @param userId user id
+     * @return User entity
+     */
+    @Select("SELECT * FROM users WHERE user_id = #{userId}")
+    User getUserById(@NotNull UUID userId);
+
+    /**
+     * Update user status by id
+     *
+     * @param userId user id
+     * @param status user status
+     */
+    @Select("UPDATE users SET status = #{status}, updated_at = now() " +
+            "WHERE user_id = #{userId}")
+    void updateUserStatusById(
+            @NotNull(message = "User ID cannot be null") UUID userId,
+            @NotNull(message = "Status cannot be null") String status
+    );
 }
