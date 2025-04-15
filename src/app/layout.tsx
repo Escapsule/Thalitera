@@ -27,12 +27,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Global authentication helper script */}
-        <Script 
-          src="/auth-helper.js" 
-          strategy="beforeInteractive" 
-          id="auth-helper"
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

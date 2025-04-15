@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { AppSidebar } from "@/components/user/app-sidebar"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
@@ -68,18 +67,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <SidebarTrigger className="ml-2 fixed"/>
         {children}
       </main>
-      
-      {/* Load both auth helper scripts */}
-      <Script 
-        src="/dashboard-bypass.js" 
-        strategy="beforeInteractive"
-        onLoad={() => console.log('Dashboard bypass script loaded')}
-      />
-      <Script 
-        src="/auth-helper.js" 
-        strategy="afterInteractive"
-        onLoad={() => console.log('Auth helper script loaded')}
-      />
     </SidebarProvider>
   )
 }

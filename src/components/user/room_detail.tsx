@@ -9,13 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { rooms } from "@/lib/fake_data"
 
 // Define the type for the booking data
 type Booking = {
   id: number
   roomName: string
-  roomId: number
+  roomId: string | number
   date: Date
   startTime: string
   endTime: string
@@ -31,12 +30,19 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
   if (!booking) return null
 
   // Find the corresponding room data
-  const roomData = rooms.find(room => room.id === booking.roomId) || {
+  const roomData = {
     name: booking.roomName,
-    capacity: 8,
-    location: "Building A, Floor 2",
-    description: "Conference room with standard amenities.",
-    amenities: ["Whiteboard", "Projector"]
+    capacity_min: 8,
+    capacity_max: 12,
+    building: "Building A",
+    floor: "2",
+    facilities: {
+      whiteboard: 1,
+      projecter: true,
+      power_sockets: 4,
+      coffee_break: true,
+      special_notes: ["Standard amenities"]
+    }
   }
 
   return (
@@ -71,7 +77,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Location: </span>
-                {roomData.location}
+                {roomData.building}, Floor {roomData.floor}
               </div>
             </div>
             
@@ -79,7 +85,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <Users className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Capacity: </span>
-                {roomData.capacity} people
+                {roomData.capacity_min} - {roomData.capacity_max} people
               </div>
             </div>
           </div>
@@ -89,20 +95,22 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
-                <p className="text-sm text-muted-foreground">{roomData.description}</p>
+                <p className="text-sm text-muted-foreground">Conference room with standard amenities.</p>
               </div>
             </div>
             
-            {roomData.amenities && roomData.amenities.length > 0 && (
+            {roomData.facilities && Object.entries(roomData.facilities).length > 0 && (
               <div className="rounded-md border p-3">
                 <h4 className="text-sm font-medium mb-2">Amenities</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {roomData.amenities.map((amenity, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
-                      <span>{amenity}</span>
-                    </div>
-                  ))}
+                  {Object.entries(roomData.facilities)
+                    .filter(([, value]) => value !== null && value !== undefined)
+                    .map(([key], index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
+                        <span>{key}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
