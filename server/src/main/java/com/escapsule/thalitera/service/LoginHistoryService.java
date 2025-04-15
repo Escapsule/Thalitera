@@ -4,7 +4,6 @@ import com.escapsule.thalitera.entity.LoginHistory;
 
 public interface LoginHistoryService {
 
-
     /**
      * Add failed login attempt
      *

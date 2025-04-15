@@ -11,6 +11,7 @@ import org.thymeleaf.context.Context;
 
 @Service
 public class TemplateServiceImpl implements TemplateService {
+
     private final TemplateEngine emailTemplateEngine;
     // TODO private final webTemplateEngine;
 

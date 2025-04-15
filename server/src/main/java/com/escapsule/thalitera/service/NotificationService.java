@@ -6,6 +6,7 @@ import com.escapsule.thalitera.model.TemplateVariables;
 import java.util.List;
 
 public interface NotificationService {
+
     /**
      * Send notification
      *

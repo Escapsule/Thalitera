@@ -8,6 +8,7 @@ import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,16 +21,14 @@ import java.util.List;
 @RestController("user")
 @RequestMapping("/user/meetingroom")
 @Slf4j
+@RequiredArgsConstructor
 public class MeetingRoomController {
 
     private final MeetingRoomService meetingRoomService;
 
-    public MeetingRoomController(MeetingRoomService meetingRoomService) {
-        this.meetingRoomService = meetingRoomService;
-    }
-
     /**
      * Get all meeting rooms
+     *
      * @return List of meeting rooms
      */
     @GetMapping("/all")
@@ -45,6 +44,7 @@ public class MeetingRoomController {
 
     /**
      * Get meeting rooms based on required conditions
+     *
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return List of suitable meeting rooms
      */
@@ -61,6 +61,7 @@ public class MeetingRoomController {
 
     /**
      * Book a meeting room
+     *
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return Book result
      */
@@ -76,6 +77,7 @@ public class MeetingRoomController {
 
     /**
      * Update a meeting room booking
+     *
      * @param bookingDTO The DTO object containing the parameters for the meeting room.
      * @return Update result
      */
@@ -91,6 +93,7 @@ public class MeetingRoomController {
 
     /**
      * Cancel a meeting room booking
+     *
      * @param reservationId The ID of the reservation to be canceled.
      * @return Cancel result
      */

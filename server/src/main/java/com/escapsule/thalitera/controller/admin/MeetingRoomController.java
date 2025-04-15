@@ -12,7 +12,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -24,6 +28,11 @@ public class MeetingRoomController {
 
     private final MeetingRoomService meetingRoomService;
 
+    /**
+     * Get all meeting rooms
+     *
+     * @return List of meeting rooms
+     */
     @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
         List<MeetingRoom> meetingRooms = meetingRoomService.getAllActiveMeetingRooms();
@@ -35,6 +44,12 @@ public class MeetingRoomController {
         );
     }
 
+    /**
+     * add new meeting room (one by one)
+     *
+     * @param meetingRoomDTO MeetingRoomDTO object containing meeting room information
+     * @return ApiResult with success message
+     */
     @PostMapping("/add")
     public ApiResult<String> addMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         boolean success = meetingRoomService.addMeetingRoom(meetingRoomDTO);
@@ -45,6 +60,12 @@ public class MeetingRoomController {
         }
     }
 
+    /**
+     * modify the requested meeting room
+     *
+     * @param meetingRoomDTO MeetingRoomDTO object containing target meeting room information
+     * @return ApiResult with success message
+     */
     @PostMapping("/modify")
     public ApiResult<String> modifyMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         if (StringUtils.isBlank(meetingRoomDTO.getRoomId())) {

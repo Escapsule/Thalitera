@@ -23,6 +23,7 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class AdminController {
+
     private final AdminService adminService;
 
     /**
@@ -48,6 +49,7 @@ public class AdminController {
             throw new BaseException(ErrorCode.INVALID_STATUS);
         }
         boolean success = adminService.editUser(userEditDTO);
+        log.info("Edit user {}, status: {}", userEditDTO.getUserId(), status);
         if (success) {
             return ApiResult.success("Edit successful.");
         } else {
@@ -55,9 +57,14 @@ public class AdminController {
         }
     }
 
+    /**
+     * Check if the target user status passed for editing is valid
+     *
+     * @param status The status to check
+     * @return true if the status is "active", "disabled", or "locked"; false otherwise
+     */
     private boolean isValidStatus(String status) {
-        return status.equals(UserStatusConstant.ADMIN) ||
-               status.equals(UserStatusConstant.ACTIVE) ||
+        return status.equals(UserStatusConstant.ACTIVE) ||
                status.equals(UserStatusConstant.DISABLED) ||
                status.equals(UserStatusConstant.LOCKED);
     }

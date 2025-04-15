@@ -8,18 +8,17 @@ import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.service.AdminService;
 import com.escapsule.thalitera.transfer.UserTransfer;
 import com.escapsule.thalitera.vo.UserVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
-    private final UserMapper userMapper;
 
-    public AdminServiceImpl(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
+    private final UserMapper userMapper;
 
     /**
      * Get all users

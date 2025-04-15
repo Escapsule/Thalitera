@@ -5,6 +5,7 @@ import com.escapsule.thalitera.enumeration.NotifyType;
 import com.escapsule.thalitera.model.TemplateVariables;
 
 public interface Notifier {
+
     /**
      * Check if the notifier supports the specified channel.
      *
