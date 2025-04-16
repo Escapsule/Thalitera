@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin/meetingroom")
@@ -81,5 +82,16 @@ public class MeetingRoomController {
             log.info("Modify meeting room failed: {}", meetingRoomDTO);
             return ApiResult.success("Modify failed.");
         }
+    }
+
+    @PostMapping("/delete")
+    public ApiResult<String> deleteMeetingRoom(@RequestBody List<UUID> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            throw new BaseException(ErrorCode.MISSING_ROOM_ID);
+        }
+        log.info("Delete meeting room: {}", roomIds);
+        int rows = meetingRoomService.deleteMeetingRoom(roomIds);
+        log.info("{} meeting rooms deleted", rows);
+        return ApiResult.success(rows + " meeting rooms deleted.");
     }
 }

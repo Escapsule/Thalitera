@@ -90,4 +90,9 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
     public List<MeetingRoom> getAllMeetingRooms() {
         return meetingRoomMapper.getAllMeetingRooms();
     }
+
+    @Override
+    public int deleteMeetingRoom(List<UUID> roomIds) {
+        return meetingRoomMapper.batchDeleteMeetingRoom(roomIds);
+    }
 }

@@ -4,6 +4,7 @@ import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface MeetingRoomService {
 
@@ -29,4 +30,6 @@ public interface MeetingRoomService {
      * @return The list of all meeting rooms.
      */
     List<MeetingRoom> getAllMeetingRooms();
+
+    int deleteMeetingRoom(List<UUID> roomIds);
 }

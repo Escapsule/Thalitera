@@ -96,4 +96,20 @@
         WHERE
             room_id = #{roomId}
     </update>
+    <update id="batchDeleteMeetingRoom">
+        <selectKey keyProperty="affectedRows" resultType="int">
+            SELECT COUNT(*) FROM meeting_rooms WHERE room_id IN
+            <foreach collection="roomIds" item="roomId" open="(" separator="," close=")">
+                #{roomId}
+            </foreach>
+        </selectKey>
+        UPDATE meeting_rooms
+        SET status = 'deleted',
+        updated_at = now()
+        WHERE room_id IN
+        <foreach collection="roomIds" item="roomId" open="(" separator="," close=")">
+            #{roomId}
+        </foreach>
+    </update>
+
 </mapper>

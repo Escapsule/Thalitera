@@ -27,4 +27,6 @@ public interface MeetingRoomMapper {
 
     @Select("SELECT * FROM meeting_rooms")
     List<MeetingRoom> getAllMeetingRooms();
+
+    int batchDeleteMeetingRoom(List<UUID> roomIds);
 }
