@@ -26,6 +26,7 @@ public interface ReservationTransfer {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "attendees", expression = "java(new java.util.ArrayList<>())")
     Reservation newReservationDTO2Reservation(ReservationDTO source,
                                               UUID reservationId,
                                               String qrToken);
@@ -35,6 +36,7 @@ public interface ReservationTransfer {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "attendees", expression = "java(new java.util.ArrayList<>())")
     Reservation updateReservationDTO2Reservation(ReservationDTO source,
                                                  int version,
                                                  String qrToken);

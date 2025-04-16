@@ -4,6 +4,7 @@ import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import com.escapsule.thalitera.dto.ReservationDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.Reservation;
+import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
@@ -116,6 +117,18 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = ReservationTransfer.INSTANCE.newReservationDTO2Reservation(
                 reservationDTO, reservationId, TokenUtils.generateShortToken()
         );
+        reservationDTO.getAttendees().forEach(
+                userEmail -> {
+                    // Get the user ID by email
+                    // TODO optimize to one query per request (instead of one query per attendee)
+                    User user = userMapper.getUserByEmail(userEmail);
+                    if (user == null) {
+                        throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(),
+                                userEmail + " not found");
+                    }
+                    reservation.getAttendees().add(user.getUserId());
+                }
+        );
         reservationMapper.makeReservation(reservation);
         // Get the list of confirmed reservations
         List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
@@ -124,9 +137,9 @@ public class ReservationServiceImpl implements ReservationService {
             if (
                     checkConflict(
                             reservationDTO.getStartTime(), reservationDTO.getEndTime(),
-                            r.getStartTime(),          r.getEndTime()
+                            r.getStartTime(),              r.getEndTime()
                     )
-                            && r.getStatus().equals(ReservationStatusConstant.CONFIRMED)
+                    && r.getStatus().equals(ReservationStatusConstant.CONFIRMED)
             ) {
                 reservationMapper.deleteReservation(reservationId);
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
@@ -162,9 +175,9 @@ public class ReservationServiceImpl implements ReservationService {
             if (
                     checkConflict(
                             reservationDTO.getStartTime(), reservationDTO.getEndTime(),
-                            r.getStartTime(),          r.getEndTime()
+                            r.getStartTime(),              r.getEndTime()
                     )
-                            && r.getStatus().equals(ReservationStatusConstant.CONFIRMED)
+                    && r.getStatus().equals(ReservationStatusConstant.CONFIRMED)
             ) {
                 throw new BaseException(ErrorCode.CONFLICT_RESERVATION);
             }
@@ -172,6 +185,18 @@ public class ReservationServiceImpl implements ReservationService {
         // Update the reservation
         Reservation newReservation = ReservationTransfer.INSTANCE.updateReservationDTO2Reservation(
                 reservationDTO, oldReservation.getVersion(), oldReservation.getQrToken()
+        );
+        reservationDTO.getAttendees().forEach(
+                userEmail -> {
+                    // Get the user ID by email
+                    // TODO optimize to one query per request (instead of one query per attendee)
+                    User user = userMapper.getUserByEmail(userEmail);
+                    if (user == null) {
+                        throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(),
+                                userEmail + " not found");
+                    }
+                    newReservation.getAttendees().add(user.getUserId());
+                }
         );
         reservationMapper.updateReservation(newReservation);
         return true;
@@ -246,24 +271,36 @@ public class ReservationServiceImpl implements ReservationService {
                 //case 1
                 (
                         // st <= rs
-                        (startTime.isBefore(reservationStartTime) || startTime.isEqual(reservationStartTime)) &&
-                                // rs < et
-                                endTime.isAfter(reservationStartTime)
+                        (
+                                startTime.isBefore(reservationStartTime) ||
+                                startTime.isEqual(reservationStartTime)
+                        ) &&
+                        // rs < et
+                        endTime.isAfter(reservationStartTime)
                 ) ||
-                        //case 2
+                //case 2
+                (
+                        // st < re
+                        startTime.isBefore(reservationEndTime) &&
+                        // re <= et
                         (
-                                // st < re
-                                startTime.isBefore(reservationEndTime) &&
-                                        // re <= et
-                                        (endTime.isEqual(reservationEndTime) || endTime.isAfter(reservationEndTime))
-                        ) ||
-                        //case 3
-                        (
-                                // rs <= st
-                                (reservationStartTime.isBefore(startTime) || reservationStartTime.isEqual(startTime)) &&
-                                        // st < et
-                                        (reservationEndTime.isEqual(endTime) || reservationEndTime.isAfter(endTime))
+                                endTime.isEqual(reservationEndTime) ||
+                                endTime.isAfter(reservationEndTime)
                         )
-                ;
+                ) ||
+                //case 3
+                (
+                        // rs <= st
+                        (
+                                reservationStartTime.isBefore(startTime) ||
+                                reservationStartTime.isEqual(startTime)
+                        ) &&
+                        // st < et
+                        (
+                                reservationEndTime.isEqual(endTime) ||
+                                reservationEndTime.isAfter(endTime)
+                        )
+                )
+        ;
     }
 }

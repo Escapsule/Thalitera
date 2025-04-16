@@ -34,7 +34,7 @@ public class Reservation {
     /**
      * userId
      */
-    private List<String> attendees;
+    private List<UUID> attendees;
 
     private String purpose;
 
