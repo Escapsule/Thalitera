@@ -28,25 +28,28 @@ public interface ReservationService {
      * Book a meeting room.
      *
      * @param reservationDTO The DTO object containing the parameters for the reservation.
+     * @param userId The ID of the user making the reservation.
      * @return True if the booking is successful, throw an exception otherwise.
      */
-    boolean makeReservation(ReservationDTO reservationDTO);
+    boolean makeReservation(ReservationDTO reservationDTO, UUID userId);
 
     /**
      * Update a reservation.
      *
      * @param reservationDTO The DTO object containing the parameters for the reservation.
+     * @param userId Operator
      * @return True if the update is successful, throw an exception otherwise.
      */
-    boolean updateReservation(ReservationDTO reservationDTO);
+    boolean updateReservation(ReservationDTO reservationDTO, UUID userId);
 
     /**
      * Cancel a meeting room reservation.
      *
      * @param reservationId The ID of the reservation to cancel.
+     * @param userId Operator
      * @return True if the cancellation is successful, throw an exception otherwise.
      */
-    boolean cancelReservation(UUID reservationId);
+    boolean cancelReservation(UUID reservationId, UUID userId);
 
 
     /**
@@ -55,4 +58,12 @@ public interface ReservationService {
      * @return List of all reservations
      */
     List<ReservationVO> getAllReservations();
+
+    /**
+     * Fetch all reservations related to a specific user
+     *
+     * @param userId target user ID
+     * @return List of all reservations
+     */
+    List<ReservationVO> getMyReservations(UUID userId);
 }

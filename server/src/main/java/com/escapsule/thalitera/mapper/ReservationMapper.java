@@ -47,4 +47,8 @@ public interface ReservationMapper {
     @Select("SELECT * FROM reservations")
     @Result(property = "attendees", column = "attendees", typeHandler = PGListTypeHandler.class)
     List<Reservation> getAllReservations();
+
+    @Select("SELECT * FROM reservations WHERE user_id = #{userId} OR attendees @> #{userId}")
+    @Result(property = "attendees", column = "attendees", typeHandler = PGListTypeHandler.class)
+    List<Reservation> getUserRelatedReservationByUserId(UUID userId);
 }

@@ -2,10 +2,13 @@ package com.escapsule.thalitera.controller.user;
 
 import com.escapsule.thalitera.dto.ReservationDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
+import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.service.ReservationService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
+import com.escapsule.thalitera.vo.ReservationVO;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -64,11 +67,14 @@ public class ReservationController {
      * Book a meeting room
      *
      * @param reservationDTO The DTO object containing the parameters for the meeting room.
+     * @param session The HTTP session object.
      * @return Book result
      */
     @PostMapping("/booking")
-    public ApiResult<String> makeReservation(@RequestBody @Valid ReservationDTO reservationDTO) {
-        boolean success = reservationService.makeReservation(reservationDTO);
+    public ApiResult<String> makeReservation(@RequestBody @Valid ReservationDTO reservationDTO,
+                                             HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        boolean success = reservationService.makeReservation(reservationDTO, user.getUserId());
         if (success) {
             return ApiResult.success("Booking successful.");
         } else {
@@ -83,8 +89,10 @@ public class ReservationController {
      * @return Update result
      */
     @PostMapping("/update")
-    public ApiResult<String> updateReservation(@RequestBody @Valid ReservationDTO reservationDTO) {
-        boolean success = reservationService.updateReservation(reservationDTO);
+    public ApiResult<String> updateReservation(@RequestBody @Valid ReservationDTO reservationDTO,
+                                               HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        boolean success = reservationService.updateReservation(reservationDTO, user.getUserId());
         if (success) {
             return ApiResult.success("Update successful.");
         } else {
@@ -99,12 +107,27 @@ public class ReservationController {
      * @return Cancel result
      */
     @PostMapping("/cancel")
-    public ApiResult<String> cancelReservation(@RequestBody @NotBlank UUID reservationId) {
-        boolean success = reservationService.cancelReservation(reservationId);
+    public ApiResult<String> cancelReservation(@RequestBody @NotBlank UUID reservationId,
+                                               HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        boolean success = reservationService.cancelReservation(reservationId, user.getUserId());
         if (success) {
             return ApiResult.success("Cancel successful.");
         } else {
             return ApiResult.success("Cancel failed.");
         }
+    }
+
+    /**
+     * View user related reservations
+     *
+     * @param session The HTTP session object.
+     * @return List of reservations
+     */
+    @GetMapping("/reservations")
+    public ApiResult<List<ReservationVO>> getMyReservations(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        List<ReservationVO> myReservations = reservationService.getMyReservations(user.getUserId());
+        return ApiResult.success(myReservations);
     }
 }
