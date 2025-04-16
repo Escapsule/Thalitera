@@ -122,6 +122,7 @@ public class UserServiceImpl implements UserService {
      * @param dto       UserLoginDTO include email and password
      * @param ip        User IP
      * @param userAgent User Agent
+     * @param fingerprint User fingerprint
      * @return User
      */
     @Override

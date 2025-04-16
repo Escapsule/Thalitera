@@ -2,21 +2,25 @@ package com.escapsule.thalitera.controller.admin;
 
 import com.escapsule.thalitera.constant.UserStatusConstant;
 import com.escapsule.thalitera.dto.UserEditDTO;
+import com.escapsule.thalitera.dto.UserLoginDTO;
+import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.AdminService;
 import com.escapsule.thalitera.service.ReservationService;
+import com.escapsule.thalitera.utils.IpUtils;
 import com.escapsule.thalitera.vo.ReservationVO;
 import com.escapsule.thalitera.vo.UserVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,6 +32,40 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ReservationService reservationService;
+
+    /**
+     * Admin login
+     *
+     * @param dto          UserLoginDTO object containing user login information
+     * @param userAgent    User-Agent header
+     * @param fingerprint  THALITERA_FINGERPRINT header
+     * @param httpRequest  HttpServletRequest object
+     * @param session      HttpSession object
+     * @return ApiResult with success message
+     */
+    @PostMapping("/login")
+    @Operation(summary = "Admin login",
+            description = "Admin login with email and password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Login success"),
+            @ApiResponse(responseCode = "2001", description = "User does not exist."),
+            @ApiResponse(responseCode = "2017", description = "User is not admin."),
+            @ApiResponse(responseCode = "2002", description = "Invalid encoded password."),
+
+    })
+    public ApiResult<?> login(@RequestBody UserLoginDTO dto,
+                              @RequestHeader("User-Agent") String userAgent,
+                              @RequestHeader("THALITERA_FINGERPRINT") String fingerprint,
+                              HttpServletRequest httpRequest,
+                              HttpSession session) {
+        log.info("Admin login: {}", dto.getEmail());
+        String ip = IpUtils.getClientIp(httpRequest);
+        User user = adminService.login(dto, ip, userAgent, fingerprint);
+        session.setAttribute("user", user);
+        log.info("Admin login success: {}", dto.getEmail());
+        return ApiResult.success();
+    }
+
 
     /**
      * Get all users
