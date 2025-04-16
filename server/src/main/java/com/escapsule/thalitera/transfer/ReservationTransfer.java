@@ -5,6 +5,7 @@ import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.vo.ReservationVO;
+import com.escapsule.thalitera.vo.UserVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -19,9 +20,11 @@ public interface ReservationTransfer {
 
     @Mapping(target = "roomName", expression = "java(getRoomNameById(getRoomNameByRoomId, source.getRoomId()))")
     @Mapping(target = "userName", expression = "java(getUserNameById(getUserNameByUserId, source.getUserId()))")
+    @Mapping(target = "attendees", expression = "java(mapUUIDList2UserVOList(source.getAttendees(), userMapper))")
     ReservationVO reservation2ReservationVO(Reservation source,
                                             Function<UUID, String> getRoomNameByRoomId,
-                                            Function<UUID, String> getUserNameByUserId);
+                                            Function<UUID, String> getUserNameByUserId,
+                                            UserMapper userMapper);
 
     @Mapping(target = "reservationId", expression = "java(reservationId)")
     @Mapping(target = "qrToken", expression = "java(qrToken)")
@@ -70,12 +73,21 @@ public interface ReservationTransfer {
         return reservations
                 .stream()
                 .map(reservation ->
-                        ReservationTransfer.INSTANCE.reservation2ReservationVO(
+                        reservation2ReservationVO(
                                 reservation,
                                 getRoomNameByRoomId,
-                                getUserNameByUserId
+                                getUserNameByUserId,
+                                userMapper
                         )
                 )
+                .toList();
+    }
+
+    default List<UserVO> mapUUIDList2UserVOList(List<UUID> userIds,
+                                                UserMapper userMapper) {
+        return userIds.stream()
+                .map(userMapper::getUserById)
+                .map(UserTransfer.INSTANCE::user2UserVO)
                 .toList();
     }
 }
