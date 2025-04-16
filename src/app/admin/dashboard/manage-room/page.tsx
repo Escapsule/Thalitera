@@ -184,7 +184,7 @@ const ManageRoomPage = () => {
     setLoading(true)
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
     try {
-      const response = await fetch(`http://${backendUrl}/meetingroom/all`, {
+      const response = await fetch(`https://${backendUrl}/meetingroom/all`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

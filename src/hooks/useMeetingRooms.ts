@@ -9,7 +9,7 @@ export const useMeetingRooms = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch('/api/meetingroom/all');
+        const response = await fetch('/api/user/meetingroom/all');
         const data: MeetingRoomResponse = await response.json();
 
         if (data.code === 200) {

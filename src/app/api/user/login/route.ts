@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const body = await request.json();
 
     console.log(body);
 
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/user/login`, {
+    const response = await fetch(`${backendUrl}/user/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

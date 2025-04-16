@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
 
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/meetingroom/all`, {
+    const response = await fetch(`https://${backendUrl}/meetingroom/all`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

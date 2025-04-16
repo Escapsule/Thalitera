@@ -46,7 +46,17 @@ export default function Dashboard() {
   // Check actual auth state in the browser
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=')
+      // Check for any of the session cookie names used in useAuth hook
+      const sessionCookieNames = [
+        'THALITERA_SESSION_ID',
+        'thalitera_session',
+        'thalitera_auth',
+        'thalitera-session-id'
+      ]
+      
+      const hasCookie = sessionCookieNames.some(name => 
+        document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
+      )
       const hasLocalStorage = localStorage.getItem('thalitera_auth') === 'true'
       
       // Get cookie value with regex to avoid showing full value
