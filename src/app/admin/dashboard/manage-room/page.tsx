@@ -41,7 +41,7 @@ interface MeetingRoom {
     coffee_break: boolean
     special_notes: string[]
   }
-  created_by?: string
+  created_by?: ''
 }
 
 const getBackendUrl = () => {
@@ -191,6 +191,7 @@ const ManageRoomPage = () => {
         method: 'GET',
         credentials: 'include',
       });
+      
       const data = await response.json()
       console.log(data)
       if (data.code === 200) {
@@ -208,10 +209,11 @@ const ManageRoomPage = () => {
 
   const addRoom = async (roomData: Partial<MeetingRoom>) => {
     setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
     try {
       const response = await fetch(`http://${backendUrl}/admin/meetingroom/add`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -257,7 +259,7 @@ const ManageRoomPage = () => {
 
       const roomToAdd = {
         ...newRoom,
-        created_by: "admin"
+        // created_by: "admin"
       };
 
       const success = await addRoom(roomToAdd);
