@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.transfer;
 
 import com.escapsule.thalitera.dto.ReservationDTO;
+import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
@@ -9,7 +10,9 @@ import com.escapsule.thalitera.vo.UserVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -18,11 +21,13 @@ public interface ReservationTransfer {
 
     ReservationTransfer INSTANCE = org.mapstruct.factory.Mappers.getMapper(ReservationTransfer.class);
 
-    @Mapping(target = "roomName", expression = "java(getRoomNameById(getRoomNameByRoomId, source.getRoomId()))")
+    @Mapping(target = "roomName", expression = "java((String) getRoomByRoomId.apply(source.getRoomId()).get(\"roomName\"))")
+    @Mapping(target = "building", expression = "java((String) getRoomByRoomId.apply(source.getRoomId()).get(\"building\"))")
+    @Mapping(target = "floor", expression = "java((Integer) getRoomByRoomId.apply(source.getRoomId()).get(\"floor\"))")
     @Mapping(target = "userName", expression = "java(getUserNameById(getUserNameByUserId, source.getUserId()))")
     @Mapping(target = "attendees", expression = "java(mapUUIDList2UserVOList(source.getAttendees(), userMapper))")
     ReservationVO reservation2ReservationVO(Reservation source,
-                                            Function<UUID, String> getRoomNameByRoomId,
+                                            Function<UUID, Map<String, Object>> getRoomByRoomId,
                                             Function<UUID, String> getUserNameByUserId,
                                             UserMapper userMapper);
 
@@ -51,10 +56,6 @@ public interface ReservationTransfer {
                                                  String qrToken,
                                                  UUID userId);
 
-    default String getRoomNameById(Function<UUID, String> getRoomNameByRoomId, UUID roomId) {
-        return getRoomNameByRoomId.apply(roomId);
-    }
-
     default String getUserNameById(Function<UUID, String> getUserNameByUserId, UUID userId) {
         return getUserNameByUserId.apply(userId);
     }
@@ -62,9 +63,15 @@ public interface ReservationTransfer {
     default List<ReservationVO> mapReservation2ReservationVO(List<Reservation> reservations,
                                                              MeetingRoomMapper meetingRoomMapper,
                                                              UserMapper userMapper) {
-        Function<UUID, String> getRoomNameByRoomId = roomId -> {
-            // Fetch the room name using the room ID
-            return meetingRoomMapper.getMeetingRoomByRoomId(roomId).getName();
+        Function<UUID, Map<String, Object>> getRoomByRoomId = roomId -> {
+            // Fetch the room using the room ID
+            MeetingRoom meetingRoom = meetingRoomMapper.getMeetingRoomByRoomId(roomId);
+            Map<String, Object> roomDetails = new HashMap<>();
+            roomDetails.put("roomId", meetingRoom.getRoomId());
+            roomDetails.put("roomName", meetingRoom.getName());
+            roomDetails.put("building", meetingRoom.getBuilding());
+            roomDetails.put("floor", meetingRoom.getFloor());
+            return roomDetails;
         };
         Function<UUID, String> getUserNameByUserId = userId -> {
             // Fetch the username using the user ID
@@ -75,7 +82,7 @@ public interface ReservationTransfer {
                 .map(reservation ->
                         reservation2ReservationVO(
                                 reservation,
-                                getRoomNameByRoomId,
+                                getRoomByRoomId,
                                 getUserNameByUserId,
                                 userMapper
                         )

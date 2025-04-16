@@ -21,6 +21,10 @@ public class ReservationVO {
 
     private String roomName;
 
+    private String building;
+
+    private int floor;
+
     private String userId;
 
     private String userName;
