@@ -80,7 +80,11 @@ public class UserServiceImpl implements UserService {
 
         log.info("Send email message initializing: {}", user.getEmail());
 
-        RegisterVerifyContent content = new RegisterVerifyContent(user.getEmail(), configProperties.getBaseUrl());
+        RegisterVerifyContent content = new RegisterVerifyContent(
+                user.getEmail(),
+                configProperties.getBaseUrl(),
+                user.getUserId()
+        );
 
         eventPublisher.publishEvent(
                 new RegisterVerifyEvent(
@@ -225,7 +229,7 @@ public class UserServiceImpl implements UserService {
                 new ForgetPasswordVerifyEvent(
                         this,
                         captcha.toBase64(),
-                        email
+                        user.getUserId()
                 )
         );
 

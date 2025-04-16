@@ -8,6 +8,7 @@ import lombok.ToString;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @ToString
 public class RegisterVerifyEvent extends BaseNotifyEvent {
@@ -25,8 +26,8 @@ public class RegisterVerifyEvent extends BaseNotifyEvent {
     }
 
     @Override
-    public List<String> getTargetUserEmails() {
-        return List.of(content.getEmail());
+    public List<UUID> getTargetUser() {
+        return List.of(content.getUuid());
     }
 
     @Override

@@ -22,7 +22,7 @@ public class NotificationEventHandler {
         log.info("Successfully handle the registration verification notification event: {}", event);
         notificationService.sendNotification(
                 event.getNotifyType(),
-                event.getTargetUserEmails(),
+                event.getTargetUser(),
                 event.buildVariables()
         );
     }
@@ -33,7 +33,7 @@ public class NotificationEventHandler {
         log.info("Successfully handle the forget password verification notification event: {}", event);
         notificationService.sendNotification(
                 event.getNotifyType(),
-                event.getTargetUserEmails(),
+                event.getTargetUser(),
                 event.buildVariables()
         );
     }

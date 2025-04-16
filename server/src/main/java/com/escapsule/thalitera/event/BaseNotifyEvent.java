@@ -17,6 +17,6 @@ public abstract class BaseNotifyEvent extends ApplicationEvent {
     }
 
     public abstract NotifyType getNotifyType();
-    public abstract List<String> getTargetUserEmails();
+    public abstract List<UUID> getTargetUser();
     public abstract TemplateVariables buildVariables();
 }

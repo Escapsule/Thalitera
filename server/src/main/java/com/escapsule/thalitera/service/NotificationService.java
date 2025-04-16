@@ -4,6 +4,7 @@ import com.escapsule.thalitera.enumeration.NotifyType;
 import com.escapsule.thalitera.model.TemplateVariables;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface NotificationService {
 
@@ -11,10 +12,10 @@ public interface NotificationService {
      * Send notification
      *
      * @param notifyType Notify type
-     * @param userEmails User emails
+     * @param users      Users
      * @param variables  Variables
      */
     void sendNotification(NotifyType notifyType,
-                                 List<String> userEmails,
+                                 List<UUID> users,
                                  TemplateVariables variables);
 }
