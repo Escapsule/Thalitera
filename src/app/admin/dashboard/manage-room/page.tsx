@@ -250,6 +250,20 @@ const ManageRoomPage = () => {
       return false;
     }
 
+
+    if (room.name.length > 16) {
+      alert('Room name cannot exceed 16 characters');
+      return false;
+    }
+    const isDuplicate = rooms.some(existingRoom => 
+      existingRoom.name === room.name && existingRoom.room_id !== room.room_id
+    );
+    
+    if (isDuplicate) {
+      alert('Room name already exists. Please choose a different name');
+      return false;
+    }
+
     return true;
   }
 
@@ -738,6 +752,16 @@ const ManageRoomPage = () => {
             <DialogTitle>Edit Meeting Room</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-room_id">Room ID</Label>
+              <Input
+                id="edit-room_id"
+                value={selectedRoom?.room_id || ''}
+                disabled
+                className="bg-gray-100"
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Room Name</Label>
