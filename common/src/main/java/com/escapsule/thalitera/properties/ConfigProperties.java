@@ -9,4 +9,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ConfigProperties {
     private String baseUrl;
+
+    private String projectName;
 }

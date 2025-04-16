@@ -1,9 +1,6 @@
 package com.escapsule.thalitera.service;
 
-import com.escapsule.thalitera.dto.ChangePasswordDTO;
-import com.escapsule.thalitera.dto.ResetPasswordDTO;
-import com.escapsule.thalitera.dto.UserLoginDTO;
-import com.escapsule.thalitera.dto.UserRegisterDTO;
+import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.CalendarVO;
 
@@ -67,4 +64,20 @@ public interface UserService {
      * @param dto ResetPasswordDTO include email, code and new password
      */
     void verifyPasswordResetCode(ResetPasswordDTO dto);
+
+    /**
+     * Get user info
+     *
+     * @param email user email
+     * @return qr code (base64 / png)
+     */
+    String mfaSetup(String email);
+
+    /**
+     * Enable user mfa
+     *
+     * @param email user email
+     * @param totpCode user totp code
+     */
+    void enableMfa(String email, String totpCode);
 }

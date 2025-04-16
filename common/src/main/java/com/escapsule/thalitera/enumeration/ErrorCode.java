@@ -30,6 +30,7 @@ public enum ErrorCode {
     USER_STATUS_SAME_TO_OLD(2015, "New status cannot be the same as the old status."),
     PERMISSION_DENIED(2016, "Permission denied."),
     USER_NOT_ADMIN(2017, "User is not admin."),
+    USER_NOT_MFA(2018, "User is not MFA, please enable MFA."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
@@ -50,6 +51,8 @@ public enum ErrorCode {
     CAPTCHA_GENERATION_FAILED(2601, "Captcha generation failed."),
     CAPTCHA_EXPIRED(2602, "Captcha expired."),
     CAPTCHA_INCORRECT(2603, "Captcha incorrect."),
+    TOTP_QR_CODE_GENERATION_FAILED(2604, "TOTP QR code generation failed."),
+    TOTP_CODE_INCORRECT(2605, "MFA code incorrect."),
 
 
     // 3000 ~ 3999 database related

@@ -90,4 +90,13 @@ public interface UserMapper {
             @NotNull(message = "User ID cannot be null") UUID userId,
             @NotNull(message = "Status cannot be null") String status
     );
+
+    /**
+     * Update user MFA secret
+     *
+     * @param userId user id
+     * @param secret MFA secret
+     */
+    @Update("UPDATE users SET mfa_secret = #{secret} WHERE user_id = #{userId}")
+    void updateMfaSecret(UUID userId, String secret);
 }

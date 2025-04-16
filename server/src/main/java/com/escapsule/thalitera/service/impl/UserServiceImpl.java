@@ -1,10 +1,7 @@
 package com.escapsule.thalitera.service.impl;
 
 import com.escapsule.thalitera.constant.UserStatusConstant;
-import com.escapsule.thalitera.dto.ChangePasswordDTO;
-import com.escapsule.thalitera.dto.ResetPasswordDTO;
-import com.escapsule.thalitera.dto.UserLoginDTO;
-import com.escapsule.thalitera.dto.UserRegisterDTO;
+import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.LoginHistory;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
@@ -23,11 +20,13 @@ import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.utils.GeometryUtils;
 import com.escapsule.thalitera.utils.PasswordUtils;
+import com.escapsule.thalitera.utils.TotpUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import com.pig4cloud.captcha.GifCaptcha;
 import com.pig4cloud.captcha.base.Captcha;
+import dev.samstevens.totp.exceptions.QrGenerationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
@@ -166,6 +165,16 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_PASSWORD_INCORRECT);
         }
 
+        // verify if user has MFA enabled
+        if (user.getMfaSecret() == null) {
+            log.error("User does not have MFA enabled: {}", dto.getEmail());
+            logLoginAttempt(user, ip, df, location, false, ErrorCode.USER_NOT_MFA);
+            throw new BaseException(ErrorCode.USER_NOT_MFA);
+        }
+
+        // TODO: verify if user login on new device
+        // TODO: recovery codes to protect account without providing a TO=
+
         logLoginAttempt(user, ip, df, location, true, null);
 
         return user;
@@ -256,6 +265,64 @@ public class UserServiceImpl implements UserService {
         userMapper.updatePasswordHash(PasswordUtils.encode(dto.getNewPassword()), dto.getEmail());
         log.info("User password reset successfully: {}", dto.getEmail());
     }
+
+    /**
+     * MFA setup
+     *
+     * @param email user email
+     * @return QR code (Base64 / png)
+     */
+    @Override
+    @Transactional
+    public String mfaSetup(String email) {
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // get random TOTP secret
+        String secret = TotpUtils.generateSecret();
+        String qrcode;
+        try {
+            qrcode = TotpUtils.getQrCode(
+                    configProperties.getProjectName(),
+                    user.getEmail(),
+                    secret
+            );
+        } catch (QrGenerationException e) {
+            throw new BaseException(ErrorCode.TOTP_QR_CODE_GENERATION_FAILED);
+        }
+
+        // update user mfa secret
+        user.setMfaSecret(secret);
+        userMapper.updateMfaSecret(user.getUserId(), secret);
+
+        return qrcode;
+    }
+
+    /**
+     * Enable MFA
+     *
+     * @param email   user email
+     * @param totpCode TOTP code
+     */
+    @Override
+    @Transactional
+    public void enableMfa(String email, String totpCode) {
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        if (!TotpUtils.verifyCode(user.getMfaSecret(), totpCode)) {
+                log.error("TOTP code is incorrect: {}", totpCode);
+                userMapper.updateMfaSecret(user.getUserId(), null);
+                throw new BaseException(ErrorCode.TOTP_CODE_INCORRECT);
+        }
+
+        log.info("User MFA enabled successfully: {}", email);
+    }
+
 
     /**
      * Store forget password captcha

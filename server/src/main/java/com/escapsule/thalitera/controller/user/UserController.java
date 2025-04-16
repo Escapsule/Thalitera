@@ -1,9 +1,6 @@
 package com.escapsule.thalitera.controller.user;
 
-import com.escapsule.thalitera.dto.ChangePasswordDTO;
-import com.escapsule.thalitera.dto.ResetPasswordDTO;
-import com.escapsule.thalitera.dto.UserLoginDTO;
-import com.escapsule.thalitera.dto.UserRegisterDTO;
+import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
@@ -77,6 +74,19 @@ public class UserController {
         return ApiResult.success();
     }
 
+    @Operation(summary = "User mfa setup",
+            description = "The user provides the email address and password for registration.")
+    @GetMapping("/mfa/setup")
+    public ApiResult<String> mfaSetup(String email) {
+        String qrcode = userService.mfaSetup(email);
+        return ApiResult.success(qrcode);
+    }
+
+    @PostMapping("/mfa/enable")
+    public ApiResult<String> enableMfa(@RequestBody MfaEnableDTO dto) {
+        userService.enableMfa(dto.getEmail(), dto.getTotpCode());
+        return ApiResult.success();
+    }
     /**
      * Handles user registration requests.
      *
