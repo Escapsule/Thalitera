@@ -3,18 +3,35 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    console.log('Backend URL:', backendUrl);
     
     // Forward all cookies from the client request
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
     
-    // Get all cookies from the request and forward them
-    const cookie = request.headers.get('cookie');
+    // Get all cookies from the request
+    const cookie = request.headers.get('cookie') || '';
+    
+    // Extract the THALITERA_SESSION_ID cookie specifically
+    const sessionId = cookie.split(';')
+      .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
+      ?.split('=')[1] || '';
+    
+    console.log('Session ID from request:', sessionId ? 'Found' : 'Not found');
+    
     if (cookie) {
+      // Send the cookie header as-is
       headers['cookie'] = cookie;
+      
+      // Also send the specific session ID cookie for redundancy
+      if (sessionId) {
+        headers['Cookie'] = `THALITERA_SESSION_ID=${sessionId}`;
+      }
     }
 
+    console.log('Sending request to backend with cookies');
+    
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/user/check-auth`, {
       method: 'GET',
@@ -22,6 +39,8 @@ export async function GET(request: NextRequest) {
       credentials: 'include',
     });
 
+    console.log('Response status:', response.status);
+    
     // Get the response data
     const data = await response.json();
 
@@ -31,6 +50,7 @@ export async function GET(request: NextRequest) {
     // Forward any cookies from the backend response
     response.headers.forEach((value, key) => {
       if (key.toLowerCase() === 'set-cookie') {
+        console.log('Forwarding cookie from backend response');
         nextResponse.headers.set(key, value);
       }
     });

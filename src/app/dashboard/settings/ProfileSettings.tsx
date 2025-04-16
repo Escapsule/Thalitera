@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface UserProfile {
@@ -233,6 +232,7 @@ const ProfileSettings = () => {
             <div className="grid gap-2">
               <label htmlFor="name">Name</label>
               <input 
+                title="Name"
                 type="text" 
                 id="user_name"
                 value={profile.user_name}

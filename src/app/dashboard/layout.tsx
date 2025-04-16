@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/user/app-sidebar"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
@@ -12,16 +13,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const forceBreak = searchParams.get('forceBreak') === 'true';
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
+  // Use the session monitor to automatically check auth status every 5 minutes
+  const { sessionStatus } = useSessionMonitor();
+  
   useEffect(() => {
     // Check authentication instead of automatically setting it
     if (typeof window !== 'undefined') {
-      // Verify existing authentication
+      // Verify existing authentication - only check THALITERA_SESSION_ID cookie
       const hasLocalStorageAuth = localStorage.getItem('thalitera_auth') === 'true';
       const hasCookie = document.cookie.split(';').some(cookie => 
-        cookie.trim().startsWith('THALITERA_SESSION_ID=') || 
-        cookie.trim().startsWith('thalitera_session=') ||
-        cookie.trim().startsWith('thalitera_auth=') ||
-        cookie.trim().startsWith('thalitera-session-id=')
+        cookie.trim().startsWith('THALITERA_SESSION_ID=')
       );
       
       // Log authentication state for debugging
@@ -29,7 +30,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         localStorage: localStorage.getItem('thalitera_auth'),
         hasCookie,
         forceBreak,
-        allCookies: document.cookie
+        sessionValid: sessionStatus.isValid,
+        lastChecked: sessionStatus.lastChecked
       });
       
       // If we detect missing authentication and not forcing a break for a loop
@@ -42,18 +44,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       // If we have localStorage auth but no cookie, set cookie for middleware
       if (hasLocalStorageAuth && !hasCookie) {
         console.log('Has localStorage auth but no cookie, setting cookie for middleware');
-        const tempSessionId = localStorage.getItem('thalitera_session_id') || 
-                             `dashboard_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        const tempSessionId = `dashboard_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
         
         document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
-        
-        // Store session ID in localStorage for future reference
-        localStorage.setItem('thalitera_session_id', tempSessionId);
       }
       
       setIsCheckingAuth(false);
     }
-  }, [router, forceBreak]);
+  }, [router, forceBreak, sessionStatus]);
 
   // Show loading while checking auth
   if (isCheckingAuth) {

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
-import { Clock, ShieldCheck } from "lucide-react"
+import { Clock } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,75 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { bookings } from "@/lib/fake_data"
 import { RoomDetail } from "@/components/user/room_detail"
 import Link from "next/link"
-import { useAuth } from "@/hooks/useAuth"
-
-// Custom Alert component as fallback
-const Alert = ({ children, variant = "default" }: { children: React.ReactNode, variant?: "default" | "destructive" }) => {
-  return (
-    <div className={`rounded-lg border p-4 ${variant === "destructive" ? "border-red-500 bg-red-50" : "border-blue-200 bg-blue-50"}`}>
-      {children}
-    </div>
-  );
-};
-
-const AlertTitle = ({ children }: { children: React.ReactNode }) => {
-  return <h5 className="mb-1 font-medium">{children}</h5>;
-};
-
-const AlertDescription = ({ children }: { children: React.ReactNode }) => {
-  return <div className="text-sm">{children}</div>;
-};
 
 export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showAllBookings, setShowAllBookings] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<typeof bookings[0] | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [authInfo, setAuthInfo] = useState({
-    hasCookie: false,
-    hasLocalStorage: false,
-    cookieValue: ""
-  })
-  
-  // Get auth status from the useAuth hook
-  const { isAuthenticated } = useAuth()
-
-  // Check actual auth state in the browser
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Check for any of the session cookie names used in useAuth hook
-      const sessionCookieNames = [
-        'THALITERA_SESSION_ID',
-        'thalitera_session',
-        'thalitera_auth',
-        'thalitera-session-id'
-      ]
-      
-      const hasCookie = sessionCookieNames.some(name => 
-        document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
-      )
-      const hasLocalStorage = localStorage.getItem('thalitera_auth') === 'true'
-      
-      // Get cookie value with regex to avoid showing full value
-      let cookieValue = ""
-      const match = document.cookie.match(/THALITERA_SESSION_ID=([^;]+)/)
-      if (match) {
-        cookieValue = `${match[1].substring(0, 10)}...`
-      }
-      
-      setAuthInfo({
-        hasCookie,
-        hasLocalStorage,
-        cookieValue
-      })
-      
-      console.log('Dashboard auth check:', {
-        hasCookie,
-        hasLocalStorage,
-        cookies: document.cookie
-      })
-    }
-  }, [])
 
   // Calculate statistics - include today's bookings in the count
   const today = new Date()
@@ -114,34 +51,6 @@ export default function Dashboard() {
           </Avatar>
         </div>
       </header>
-      
-      {/* Auth Status Display */}
-      <div className="mx-4 my-4">
-        <Alert variant={isAuthenticated ? "default" : "destructive"}>
-          <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Authentication Status</AlertTitle>
-          <AlertDescription>
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2">
-                <Badge variant={isAuthenticated ? "default" : "destructive"}>
-                  useAuth: {isAuthenticated ? "Authenticated" : "Not Authenticated"}
-                </Badge>
-                <Badge variant={authInfo.hasCookie ? "default" : "destructive"}>
-                  Cookie: {authInfo.hasCookie ? "Present" : "Not Found"}
-                </Badge>
-                <Badge variant={authInfo.hasLocalStorage ? "default" : "destructive"}>
-                  LocalStorage: {authInfo.hasLocalStorage ? "Present" : "Not Found"}
-                </Badge>
-              </div>
-              {authInfo.cookieValue && (
-                <div className="text-xs">
-                  Session ID: {authInfo.cookieValue}
-                </div>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
       
       <div className="flex flex-1 justify-center">
         <main className="flex-1 p-4 md:p-6 min-w-[80vw]">

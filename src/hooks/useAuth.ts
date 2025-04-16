@@ -36,16 +36,13 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  // Create cookies from localStorage auth data
-  const createCookiesFromLocalStorage = useCallback(() => {
+  // Create cookie from localStorage auth data
+  const createCookieFromLocalStorage = useCallback(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('thalitera_auth') === 'true') {
-      const tempSessionId = localStorage.getItem('thalitera_session_id') || 
-                           `useAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      const tempSessionId = `useAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       
-      // Create multiple cookies with different formats for maximum compatibility
+      // Create only the main cookie
       document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
-      document.cookie = `thalitera_session=${tempSessionId}; Path=/; Max-Age=86400`;
-      document.cookie = `thalitera_auth=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
       
       return true;
     }
@@ -57,18 +54,11 @@ export function useAuth(): UseAuthReturn {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Check for authentication in localStorage and cookies
-        const sessionCookieNames = [
-          'THALITERA_SESSION_ID',
-          'thalitera_session',
-          'thalitera_auth',
-          'thalitera-session-id'
-        ];
-        
-        // Check if any of the session cookies exist
-        const hasCookie = typeof window !== 'undefined' && sessionCookieNames.some(name => 
-          document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
-        );
+        // Check for cookie first
+        const hasCookie = typeof window !== 'undefined' && 
+          document.cookie.split(';')
+            .map(c => c.trim())
+            .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
         
         // Check localStorage
         const hasLocalStorage = checkLocalStorage();
@@ -78,8 +68,8 @@ export function useAuth(): UseAuthReturn {
           console.log('Cookie found but localStorage not set, synchronizing');
           setLocalStorageAuth(true);
         } else if (hasLocalStorage && !hasCookie) {
-          console.log('localStorage auth found but no cookie, creating cookies');
-          createCookiesFromLocalStorage();
+          console.log('localStorage auth found but no cookie, creating cookie');
+          createCookieFromLocalStorage();
         }
         
         // User is authenticated if either localStorage or cookie is present
@@ -91,7 +81,7 @@ export function useAuth(): UseAuthReturn {
         const localAuth = checkLocalStorage();
         setIsAuthenticated(localAuth);
         if (localAuth) {
-          createCookiesFromLocalStorage();
+          createCookieFromLocalStorage();
         }
       } finally {
         setIsLoading(false);
@@ -99,7 +89,7 @@ export function useAuth(): UseAuthReturn {
     };
 
     verifyAuth();
-  }, [checkLocalStorage, setLocalStorageAuth, createCookiesFromLocalStorage]);
+  }, [checkLocalStorage, setLocalStorageAuth, createCookieFromLocalStorage]);
 
   // Login function
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -121,9 +111,9 @@ export function useAuth(): UseAuthReturn {
         setLocalStorageAuth(true);
         setIsAuthenticated(true);
         
-        // Create cookies if needed
+        // Create cookie if needed
         if (!hasCookie) {
-          createCookiesFromLocalStorage();
+          createCookieFromLocalStorage();
         }
         
         // Track that we're coming from login in sessionStorage to help detect loops
@@ -142,7 +132,7 @@ export function useAuth(): UseAuthReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [setLocalStorageAuth, createCookiesFromLocalStorage]);
+  }, [setLocalStorageAuth, createCookieFromLocalStorage]);
 
   // Register function
   const register = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -178,25 +168,15 @@ export function useAuth(): UseAuthReturn {
       setIsAuthenticated(false);
       setLocalStorageAuth(false);
       
-      // Clear all auth data from localStorage directly
+      // Clear auth data from localStorage
       localStorage.removeItem('thalitera_auth');
-      localStorage.removeItem('thalitera_session_id');
       
-      // Clear all auth cookies with different strategies for maximum compatibility
-      // 1. Clear with domain
+      // Clear session cookie - try both domain and no domain for maximum compatibility
       const domain = window.location.hostname;
       document.cookie = `THALITERA_SESSION_ID=; Path=/; domain=${domain}; Max-Age=0`;
-      document.cookie = `thalitera_session=; Path=/; domain=${domain}; Max-Age=0`;
-      document.cookie = `thalitera_auth=; Path=/; domain=${domain}; Max-Age=0`;
-      document.cookie = `thalitera-session-id=; Path=/; domain=${domain}; Max-Age=0`;
-      
-      // 2. Clear without domain for localhost
       document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera-session-id=; Path=/; Max-Age=0';
       
-      console.log('All auth data cleared in useAuth');
+      console.log('Auth data cleared in useAuth');
       
       // Force a hard redirect to login
       window.location.href = '/login';
@@ -210,13 +190,9 @@ export function useAuth(): UseAuthReturn {
       
       // Clear local storage
       localStorage.removeItem('thalitera_auth');
-      localStorage.removeItem('thalitera_session_id');
       
-      // Clear all cookies
+      // Clear session cookie
       document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera-session-id=; Path=/; Max-Age=0';
       
       window.location.href = '/login';
     } finally {
