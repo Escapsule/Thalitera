@@ -6,28 +6,33 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Calendar, Clock, Mail, MapPin, UserRound, IdCard } from 'lucide-react'
+import { Calendar, Clock, Mail, UserRound } from 'lucide-react'
 
 type UserDetailProps = {
   user: {
-    id: number
-    name: string
+    user_id: string
+    avatar?: string
+    username: string
     email: string
-    status: 'online' | 'offline'
-    lastLogin: string
-    totalBookings: number
-    currentBookings: {
-      id: number
-      roomName: string
-      startTime: string
-      endTime: string
-      purpose: string
-    }[]
+    status: string // active, locked, disabled, admin, pending
+    created_at?: string
+    update_at?: string
   }
   isOpen: boolean
   onClose: () => void
 }
 
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid date format";
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    return "Invalid date format";
+  }
+};
 
 const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
   return (
@@ -35,26 +40,30 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-4">
-            <div className="relative">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
-                user.status === 'online' 
-                  ? 'bg-green-500' 
-                  : 'bg-gray-400'
-              }`} />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-medium">{user.name}</span>
-              <span className={`text-xs ${
-                user.status === 'online' 
-                  ? 'text-green-600' 
-                  : 'text-gray-500'
+            <Avatar className="h-12 w-12">
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+              ) : (
+                <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <h2 className="text-xl font-bold">{user.username}</h2>
+              <p className="text-sm text-gray-500">{user.email}</p>
+              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                user.status === 'active' 
+                ? 'bg-green-100 text-green-800' 
+                : user.status === 'locked'
+                ? 'bg-red-100 text-red-800'
+                : user.status === 'disabled'
+                ? 'bg-gray-100 text-gray-800'
+                : user.status === 'admin'
+                ? 'bg-blue-100 text-blue-800'
+                : user.status === 'pending'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-gray-100 text-gray-800'
               }`}>
-                {user.status === 'online' ? 'Online' : 'Offline'}
+                {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
               </span>
             </div>
           </DialogTitle>
@@ -65,15 +74,9 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
           <div className="grid gap-4">
             <div className="grid gap-4">
               <div className="flex items-center gap-2">
-                <IdCard className="h-5 w-5 text-[lch(17_23_133)]" />
-                <div className="text-sm">
-                  <span>ID: {user.id}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
                 <UserRound className="h-5 w-5 text-[lch(17_23_133)]" />
                 <div className="text-sm">
-                  <span>Name: {user.name}</span>
+                  <span>Username: {user.username}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -85,50 +88,30 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
             </div>
           </div>
 
-          {/* Booking Statistics */}
+          {/* Account Information */}
           <div className="grid gap-4">
-            <h3 className="text-lg font-medium">Booking Statistics</h3>
+            <h3 className="text-lg font-medium">Account Information</h3>
             <div className="border rounded-lg p-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[lch(17_23_133)]" />
-                  <div className="text-sm">
-                    <span>Total Bookings: {user.totalBookings}</span>
+                {user.created_at && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span>Created: {formatDate(user.created_at)}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
-                  <div className="text-sm">
-                    <span>Last Login: {user.lastLogin}</span>
+                )}
+                {user.update_at && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span>Last Updated: {formatDate(user.update_at)}</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
-
-          {/* Current Bookings */}
-          {user.currentBookings && user.currentBookings.length > 0 && (
-            <div className="grid gap-4">
-              <h3 className="text-lg font-medium">Current Booking</h3>
-              <div className="space-y-4">
-                {user.currentBookings.map((booking) => (
-                  <div key={booking.id} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
-                      <div className="text-sm">
-                        <span className="font-medium">{booking.roomName}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm text-[lch(17_23_133)]">
-                      <div>Start Time: {booking.startTime}</div>
-                      <div>End Time: {booking.endTime}</div>
-                      <div>Purpose: {booking.purpose}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

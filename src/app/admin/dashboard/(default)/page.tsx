@@ -8,49 +8,32 @@ import UserDetail from "@/components/admin/user_detail"
 
 // Define types for room data
 type Room = {
-  id: number
+  room_id: string
+  image: string
   name: string
-  capacity: number
-  location: string
-  description: string
+  status: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted'
+  capacity_min: number
+  capacity_max: number
+  building: string
+  floor: string
   facilities: {
-    projecter: boolean | null
+    projector: boolean | null
     whiteboard: number | null
     power_sockets: number | null
     coffee_break: boolean | null
     special_notes: string[] | null
   }
-  status: 'available' | 'booked' | 'in_use' | 'maintenance'
-  utilizationRate: number
-  currentBookings: {
-    id: number
-    startTime: string
-    endTime: string
-    userName: string
-    purpose: string
-  }[]
-  weeklyStats: {
-    totalHours: number
-    averageUtilization: number
-    peakHours: string[]
-  }
 }
 
 // Define types for user data
 type User = {
-  id: number
-  name: string
+  user_id: string
+  avatar?: string
+  username: string
   email: string
-  status: 'online' | 'offline'
-  lastLogin: string
-  totalBookings: number
-  currentBookings: {
-    id: number
-    roomName: string
-    startTime: string
-    endTime: string
-    purpose: string
-  }[]
+  status: string // active, locked, disabled, admin, pending
+  created_at?: string
+  update_at?: string
 }
 
 // Pagination props
@@ -170,12 +153,50 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
   )
 }
 
-// 首先定义用户统计数据的类型
+// Define the types of user statistical data
 type UserStats = {
   totalUsers: number
   activeUsers: number
   bookingsToday: number
 }
+
+// Get the color and text of the meeting room status
+const getRoomStatusInfo = (status: string) => {
+  switch (status) {
+    case 'active':
+      return { color: 'bg-green-100 text-green-800', text: 'Available' }
+    case 'maintenance':
+      return { color: 'bg-yellow-100 text-yellow-800', text: 'Maintenance' }
+    case 'using':
+      return { color: 'bg-blue-100 text-blue-800', text: 'In Use' }
+    case 'booked':
+      return { color: 'bg-purple-100 text-purple-800', text: 'Booked' }
+    case 'deleted':
+      return { color: 'bg-red-100 text-red-800', text: 'Deleted' }
+    default:
+      return { color: 'bg-gray-100 text-gray-800', text: 'Unknown' }
+  }
+}
+
+// Helper function to format dates
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Unknown";
+    }
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return "Unknown";
+  }
+};
 
 /**
  * Admin dashboard page component
@@ -225,8 +246,7 @@ const DashboardPage = () => {
 
   // User pagination calculation
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || 
-    user.id.toString().includes(userSearchQuery)
+    user.username.toLowerCase().includes(userSearchQuery.toLowerCase())
   )
   const userTotalPages = Math.ceil(filteredUsers.length / userItemsPerPage);
   const currentUsers = filteredUsers.slice(
@@ -249,171 +269,144 @@ const DashboardPage = () => {
    */
   const fetchRoomStats = async () => {
     try {
-      // Import mock data
-      const { rooms: mockRooms } = await import('@/lib/admin/mock_data')
+      // Call API to retrieve conference room data
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+      const response = await fetch(`http://${backendUrl}/admin/meetingroom/all`, {
+        method: 'GET',
+        credentials: 'include',
+      });
       
-      // Format room data
-      const formattedRooms = mockRooms.map((room) => ({
-        id: room.id,
-        name: room.name,
-        capacity: room.capacity,
-        location: room.location,
-        description: room.description,
-        facilities: room.facilities,
-        status: room.status as 'available' | 'booked' | 'in_use' | 'maintenance',
-        utilizationRate: room.utilizationRate,
-        currentBookings: room.currentBookings || [],
-        weeklyStats: room.weeklyStats
-      }))
+      const data = await response.json();
       
-      console.log('Formatted rooms:', formattedRooms)
-      setRooms(formattedRooms)
-      setRoomStats({
-        totalRooms: formattedRooms.length,
-        activeBookings: formattedRooms.filter((room: Room) => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length,
-        utilizationRate: (formattedRooms.filter((room: Room) => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length / formattedRooms.length) * 100
-      })
+      if (data.code === 200) {
+        // Use the data returned by the API directly
+        const rooms = data.data;
+        setRooms(rooms);
+        setRoomStats({
+          totalRooms: rooms.length,
+          activeBookings: 0, // Not provided in API, temporarily using 0
+          utilizationRate: 0 // Not provided in API, temporarily using 0
+        });
+      } else {
+        console.error(data.message || 'Failed to retrieve conference room list');
+        // If the API call fails, use the fallback data
+        useFallbackData();
+      }
     } catch (error) {
-      console.error('Failed to get meeting room statistics:', error)
-      // If import fails, use hardcoded mock data
-      const fallbackRooms: Room[] = [
-        {
-          id: 1,
-          name: "Conference Room A",
-          capacity: 12,
-          location: "Building A, Floor 2",
-          description: "Large conference room with projector",
-          facilities: {
-            projecter: true,
-            whiteboard: 2,
-            power_sockets: 8,
-            coffee_break: true,
-            special_notes: []
-          },
-          status: "available",
-          utilizationRate: 60,
-          currentBookings: [],
-          weeklyStats: {
-            totalHours: 40,
-            averageUtilization: 65,
-            peakHours: ["09:00-10:00", "14:00-15:00"]
-          }
-        },
-        {
-          id: 2,
-          name: "Meeting Room B",
-          capacity: 6,
-          location: "Building A, Floor 1",
-          description: "Medium-sized meeting room",
-          facilities: {
-            projecter: false,
-            whiteboard: 1,
-            power_sockets: 4,
-            coffee_break: false,
-            special_notes: []
-          },
-          status: "in_use",
-          utilizationRate: 80,
-          currentBookings: [{
-            id: 1,
-            startTime: "09:00",
-            endTime: "10:00",
-            userName: "John",
-            purpose: "Team Meeting"
-          }],
-          weeklyStats: {
-            totalHours: 35,
-            averageUtilization: 70,
-            peakHours: ["10:00-11:00", "15:00-16:00"]
-          }
-        }
-      ]
-      setRooms(fallbackRooms)
-      setRoomStats({
-        totalRooms: fallbackRooms.length,
-        activeBookings: fallbackRooms.filter(room => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length,
-        utilizationRate: (fallbackRooms.filter(room => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length / fallbackRooms.length) * 100
-      })
+      console.error('Failed to retrieve conference room statistics:', error);
+      // If the API call fails, use the fallback data
+      useFallbackData();
     }
+  }
+
+  // Function to use fallback data
+  const useFallbackData = () => {
+    const fallbackRooms: Room[] = [
+      {
+        room_id: "room-1",
+        name: "Conference Room A",
+        image: "",
+        status: "active",
+        capacity_min: 4,
+        capacity_max: 12,
+        building: "Building A",
+        floor: "2",
+        facilities: {
+          projector: true,
+          whiteboard: 2,
+          power_sockets: 8,
+          coffee_break: true,
+          special_notes: ["Large conference room with projector"]
+        }
+      },
+      {
+        room_id: "room-2",
+        name: "Meeting Room B",
+        image: "",
+        status: "maintenance",
+        capacity_min: 2,
+        capacity_max: 6,
+        building: "Building A",
+        floor: "1",
+        facilities: {
+          projector: false,
+          whiteboard: 1,
+          power_sockets: 4,
+          coffee_break: false,
+          special_notes: ["Medium-sized meeting room"]
+        }
+      }
+    ];
+    setRooms(fallbackRooms);
+    setRoomStats({
+      totalRooms: fallbackRooms.length,
+      activeBookings: 0,
+      utilizationRate: 0
+    });
   }
 
   const fetchUserStats = async () => {
     try {
-      // Import mock data
-      const { users: mockUsers } = await import('@/lib/admin/userMock_data')
+      // Call API to retrieve user data
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+      const response = await fetch(`http://${backendUrl}/admin/users`, {
+        method: 'GET',
+        credentials: 'include',
+      });
       
-      // Format user data
-      const formattedUsers = mockUsers.map((user) => ({
-        id: user.id,
-        name: user.name.trim(),
-        email: user.email,
-        status: user.status as 'online' | 'offline',
-        lastLogin: user.lastLogin,
-        totalBookings: user.totalBookings,
-        currentBookings: user.currentBookings || []
-      }))
+      const data = await response.json();
       
-      // Get today's date
-      const today = new Date()
-      const todayStr = today.toISOString().split('T')[0]
-      
-      setUsers(formattedUsers)
-      setUserStats({
-        totalUsers: formattedUsers.length,
-        activeUsers: formattedUsers.filter(user => {
-          // Check if user has bookings today
-          const hasBookingsToday = user.currentBookings?.some(booking => {
-            // Process time format
-            const [hours, minutes] = booking.startTime.split(':')
-            const bookingDate = new Date()
-            bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-            return bookingDate.toDateString() === today.toDateString()
-          }) || false
-
-          // Check user last login time
-          try {
-            const lastLoginDate = new Date(user.lastLogin)
-            const isLoginToday = lastLoginDate.toDateString() === today.toDateString()
-            return hasBookingsToday || isLoginToday
-          } catch {
-            return false
-          }
-        }).length,
-        bookingsToday: formattedUsers.reduce((sum, user) => 
-          sum + (user.currentBookings?.length || 0), 0
-        )
-      })
-
-      console.log('Formatted users:', formattedUsers) // Add log
+      if (data.code === 200) {
+        // Use the data returned by the API directly
+        const formattedUsers = data.data.map((user: any) => ({
+          user_id: user.user_id,
+          avatar: user.avatar || "",
+          username: user.username,
+          email: user.email,
+          status: user.status,
+          created_at: user.created_at,
+          update_at: user.update_at
+        }));
+        
+        setUsers(formattedUsers);
+        setUserStats({
+          totalUsers: formattedUsers.length,
+          activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
+          bookingsToday: 0 // Not provided in API, temporarily using default value
+        });
+        
+        console.log('Formatted users:', formattedUsers);
+      } else {
+        console.error(data.message || 'Failed to retrieve user list');
+        // If the API call fails, use the fallback data
+        useFallbackUserData();
+      }
     } catch (error) {
-      console.error('Failed to get user statistics:', error)
-      // If import fails, use hardcoded mock data
-      const fallbackUsers = [
-        {
-          id: 1,
-          name: "John",
-          email: "john@example.com",
-          status: "online",
-          lastLogin: "2024-03-07 09:30",
-          totalBookings: 0,
-          currentBookings: []
-        }
-      ]
-      setUsers(fallbackUsers as User[])
-      setUserStats({
-        totalUsers: fallbackUsers.length,
-        activeUsers: 0,
-        bookingsToday: 0
-      })
+      console.error('Failed to retrieve user statistics:', error);
+      // If the API call fails, use the fallback data
+      useFallbackUserData();
     }
+  }
+
+  // Function to use fallback user data
+  const useFallbackUserData = () => {
+    const fallbackUsers = [
+      {
+        user_id: "1",
+        username: "John",
+        email: "john@example.com",
+        status: "active",
+        avatar: "",
+        created_at: new Date().toISOString(),
+        update_at: new Date().toISOString()
+      }
+    ];
+    setUsers(fallbackUsers as User[]);
+    setUserStats({
+      totalUsers: fallbackUsers.length,
+      activeUsers: 0,
+      bookingsToday: 0
+    });
   }
 
   // When the component is loaded, get the data
@@ -486,7 +479,7 @@ const DashboardPage = () => {
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
-                            placeholder="Search Rooms..."
+                            placeholder="Search Room..."
                             value={roomSearchQuery}
                             onChange={(e) => {
                               setRoomSearchQuery(e.target.value)
@@ -503,42 +496,27 @@ const DashboardPage = () => {
                         <div className="space-y-4">
                           {currentRooms.map((room) => (
                             <div 
-                              key={room.id}
+                              key={room.room_id}
                               className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                               onClick={() => handleViewRoom(room)}
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div>
                                   <h4 className="font-medium">{room.name}</h4>
-                                  <p className="text-sm text-gray-500">{room.location}</p>
+                                  <p className="text-sm text-gray-500">{room.building}, Floor {room.floor}</p>
                                 </div>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  room.status === 'available' ? 'bg-green-100 text-green-800' :
-                                  room.status === 'booked' ? 'bg-yellow-100 text-yellow-800' :
-                                  room.status === 'in_use' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
+                                  getRoomStatusInfo(room.status).color
                                 }`}>
-                                  {room.status === 'available' ? 'Available' :
-                                   room.status === 'booked' ? 'Booked' :
-                                   room.status === 'in_use' ? 'In Use' :
-                                   'Maintenance'}
+                                  {getRoomStatusInfo(room.status).text}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div className="flex items-center gap-2">
                                   <Users className="h-4 w-4 text-gray-400" />
-                                  <span>{room.capacity} people</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <BarChart2 className="h-4 w-4 text-gray-400" />
-                                  <span>Utilization: {room.utilizationRate}%</span>
+                                  <span>Capacity: {room.capacity_min} - {room.capacity_max} people</span>
                                 </div>
                               </div>
-                              {room.currentBookings && room.currentBookings.length > 0 && (
-                                <div className="mt-2 text-sm text-gray-500">
-                                  <span>Current: {room.currentBookings[0].userName} ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
@@ -569,7 +547,7 @@ const DashboardPage = () => {
                         className="text-xs"
                       />
                       <StatCard
-                        title="Active Users Today"
+                        title="Active Users"
                         value={userStats.activeUsers}
                         icon={<UserRound className="w-4 h-4 sm:w-5 sm:h-5" />}
                         className="text-xs"
@@ -588,7 +566,7 @@ const DashboardPage = () => {
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
-                            placeholder="Search User Name/ID..."
+                            placeholder="Search User Name..."
                             value={userSearchQuery}
                             onChange={(e) => {
                               setUserSearchQuery(e.target.value)
@@ -605,7 +583,7 @@ const DashboardPage = () => {
                         <div className="space-y-4">
                           {currentUsers.map((user) => (
                             <div
-                              key={user.id}
+                              key={user.user_id}
                               className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                               onClick={() => handleViewUser(user)}
                             >
@@ -614,36 +592,46 @@ const DashboardPage = () => {
                                   <div className="relative">
                                     <Avatar className="h-8 w-8">
                                       <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {user.name.charAt(0).toUpperCase()}
+                                        {user.username.charAt(0).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
                                     <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
-                                      user.status === 'online' 
+                                      user.status === 'active' 
                                         ? 'bg-green-500' 
-                                        : 'bg-gray-400'
+                                        : user.status === 'locked'
+                                        ? 'bg-red-500'
+                                        : user.status === 'disabled'
+                                        ? 'bg-gray-500'
+                                        : user.status === 'admin'
+                                        ? 'bg-blue-500'
+                                        : user.status === 'pending'
+                                        ? 'bg-yellow-500'
+                                        : 'bg-gray-500'
                                     }`} />
                                   </div>
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium">{user.name}</span>
-                                      <span className="text-sm text-gray-500">ID: {user.id}</span>
+                                      <span className="font-medium">{user.username}</span>
                                     </div>
-                                    <span className="text-xs text-gray-500">Last Login: {user.lastLogin}</span>
+                                    <span className="text-xs text-gray-500">Last Active: {user.update_at ? formatDate(user.update_at) : "Unknown"}</span>
                                   </div>
                                 </div>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  user.status === 'online'
+                                  user.status === 'active'
                                     ? 'bg-green-100 text-green-800'
+                                    : user.status === 'locked'
+                                    ? 'bg-red-100 text-red-800'
+                                    : user.status === 'disabled'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : user.status === 'admin'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : user.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
                                     : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {user.status === 'online' ? 'Online' : 'Offline'}
+                                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                 </span>
                               </div>
-                              {user.currentBookings && user.currentBookings.length > 0 && (
-                                <div className="mt-2 text-sm text-gray-500">
-                                  <span>Current Booking: {user.currentBookings[0].roomName} ({user.currentBookings[0].startTime} - {user.currentBookings[0].endTime})</span>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
@@ -678,18 +666,7 @@ const DashboardPage = () => {
       {/* Room Detail Dialog */}
       {selectedRoom && (
         <RoomDetail
-          booking={{
-            id: selectedRoom.id,
-            roomName: selectedRoom.name,
-            roomId: selectedRoom.id,
-            date: new Date(),
-            startTime: selectedRoom.currentBookings?.[0]?.startTime || "00:00",
-            endTime: selectedRoom.currentBookings?.[0]?.endTime || "00:00",
-            status: selectedRoom.status,
-            utilizationRate: selectedRoom.utilizationRate,
-            currentBookings: selectedRoom.currentBookings,
-            weeklyStats: selectedRoom.weeklyStats
-          }}
+          room={selectedRoom}
           isOpen={isDetailOpen}
           onClose={() => setIsDetailOpen(false)}
         />
