@@ -148,7 +148,9 @@ const ManageRoomPage = () => {
   const [loading, setLoading] = useState(false) // Set to false because loading is not needed
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // 将 isEditDialogOpen 改为 isModifyDialogOpen
+  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false)
+  
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
 
@@ -224,13 +226,13 @@ const ManageRoomPage = () => {
         fetchRooms();
         return true;
       } else {
-        console.error(data.message || '添加会议室失败');
-        alert(data.message || '添加会议室失败');
+        console.error(data.message || 'Failed to add meeting room');
+        alert(data.message || 'Failed to add meeting room');
         return false;
       }
     } catch (error) {
-      console.error('添加会议室失败', error);
-      alert('添加会议室失败，请检查网络连接');
+      console.error('Failed to add meeting room', error);
+      alert('Failed to add meeting room, please check your network connection');
       return false;
     } finally {
       setLoading(false);
@@ -265,7 +267,7 @@ const ManageRoomPage = () => {
       const success = await addRoom(roomToAdd);
 
       if (success) {
-        alert('会议室添加成功');
+        alert('Meeting room modified successfully');
         setIsAddDialogOpen(false);
 
         setNewRoom({
@@ -285,17 +287,18 @@ const ManageRoomPage = () => {
         });
       }
     } catch (error) {
-      alert('添加会议室失败');
+      alert('Failed to modify meeting room');
       console.error(error);
     }
   }
 
   const modifyRoom = async (roomData: MeetingRoom) => {
     setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
     try {
       const response = await fetch(`http://${backendUrl}/admin/meetingroom/modify`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -321,20 +324,20 @@ const ManageRoomPage = () => {
         fetchRooms();
         return true;
       } else {
-        console.error(data.message || '修改会议室失败');
-        alert(data.message || '修改会议室失败');
+        console.error(data.message || 'Failed to modify meeting room');
+        alert(data.message || 'Failed to modify meeting room');
         return false;
       }
     } catch (error) {
-      console.error('修改会议室失败', error);
-      alert('修改会议室失败，请检查网络连接');
+      console.error('Failed to modify meeting room', error);
+      alert('Failed to modify meeting room, please check your network connection');
       return false;
     } finally {
       setLoading(false);
     }
   }
 
-  const handleEditRoom = async () => {
+  const handleModifyRoom = async () => {
     if (!selectedRoom) return;
 
     try {
@@ -345,11 +348,13 @@ const ManageRoomPage = () => {
       const success = await modifyRoom(selectedRoom);
 
       if (success) {
-        setIsEditDialogOpen(false);
-        alert('会议室修改成功');
+        setIsModifyDialogOpen(false);
+        setTimeout(() => {
+          alert('Meeting room modified successfully');
+        }, 100);
       }
     } catch (error) {
-      alert('修改会议室失败');
+      alert('Failed to modify meeting room');
       console.error(error)
     }
   }
@@ -666,7 +671,7 @@ const ManageRoomPage = () => {
                                   className="h-8 w-8 p-0"
                                   onClick={() => {
                                     setSelectedRoom(room)
-                                    setIsEditDialogOpen(true)
+                                    setIsModifyDialogOpen(true)
                                   }}
                                 >
                                   <Edit className="h-4 w-4" />
@@ -727,7 +732,7 @@ const ManageRoomPage = () => {
       </Dialog>
 
       {/* Edit meeting room dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Meeting Room</DialogTitle>
@@ -929,16 +934,9 @@ const ManageRoomPage = () => {
               const updatedRooms = rooms.map(room =>
                 room.room_id === selectedRoom.room_id ? selectedRoom : room
               );
-
-              setRooms(updatedRooms);
-              setIsEditDialogOpen(false);
-              alert('Meeting room updated successfully');
+              handleModifyRoom();
             }}>
-              <DialogFooter>
-                <Button onClick={handleEditRoom}>
-                  Confirm
-                </Button>
-              </DialogFooter>
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
