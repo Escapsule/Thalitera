@@ -30,6 +30,11 @@ public class MeetingRoomVO {
 
     private String floor;
 
+    /**
+     * See {@link com.escapsule.thalitera.constant.MeetingRoomStatusConstant}
+     */
+    private String status;
+
     private Map<String, Object> facilities;
 
 }

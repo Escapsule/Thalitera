@@ -21,7 +21,6 @@ public interface MeetingRoomTransfer {
     MeetingRoomTransfer INSTANCE = Mappers.getMapper(MeetingRoomTransfer.class);
 
     @Mapping(target = "facilities", source = "facilities")
-    @Mapping(target = "status", source = "status")
     MeetingRoomVO meetingRoom2MeetingRoomVO(MeetingRoom source);
 
     @Mapping(target = "facilities", expression = "java(mapMapToFacilities(source.getFacilities()))")
