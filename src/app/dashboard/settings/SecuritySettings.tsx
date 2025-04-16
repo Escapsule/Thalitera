@@ -156,118 +156,121 @@ const SecuritySettings = () => {
   };
 
   return (
-    <div className="max-w-2xl">
-      
-      <div className="space-y-6">
-        {/* Current Password */}
-        <div className="grid gap-2">
-          <label htmlFor="currentPassword">Current Password</label>
-          <div className="relative">
-            <input 
-              type={showPasswords.currentPassword ? "text" : "password"}
-              id="currentPassword"
-              value={currentPassword}
-              className="w-full p-2 border rounded-md pr-10"
-              disabled={true}
-            />
-            <button
-              type="button"
-              onClick={() => togglePasswordVisibility('currentPassword')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+    <div className="p-6 bg-white rounded-lg hover:bg-[lch(97_0_0)] transition-colors">
+      <div className="max-w-2xl">
+        <div className="space-y-6">
+          {/* Current Password */}
+          <div className="grid gap-2">
+            <label htmlFor="currentPassword" className="font-medium text-[lch(17_23_133)]">Current Password</label>
+            <div className="relative">
+              <input 
+                type={showPasswords.currentPassword ? "text" : "password"}
+                id="currentPassword"
+                value={currentPassword}
+                className="w-full p-2 border rounded-md pr-10 bg-[lch(97_0_0)]"
+                disabled={true}
+              />
+              <button
+                type="button"
+                onClick={() => togglePasswordVisibility('currentPassword')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[lch(17_23_133)] hover:text-[lch(25_25_133)]"
+              >
+                {showPasswords.currentPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Change Password Button */}
+          {!showChangePassword && (
+            <Button 
+              onClick={() => setShowChangePassword(true)}
+              className="mt-4 bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)]"
             >
-              {showPasswords.currentPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-            </button>
-          </div>
+              Change Password
+            </Button>
+          )}
+
+          {/* Change Password Form */}
+          {showChangePassword && (
+            <>
+              {/* New Password */}
+              <div className="grid gap-2">
+                <label htmlFor="newPassword" className="font-medium text-[lch(17_23_133)]">New Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPasswords.newPassword ? "text" : "password"}
+                    id="newPassword"
+                    value={newPasswords.newPassword}
+                    onChange={handlePasswordChange}
+                    className="w-full p-2 border rounded-md pr-10 border-[lch(17_23_133)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('newPassword')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[lch(17_23_133)] hover:text-[lch(25_25_133)]"
+                  >
+                    {showPasswords.newPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm New Password */}
+              <div className="grid gap-2">
+                <label htmlFor="confirmPassword" className="font-medium text-[lch(17_23_133)]">Confirm New Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPasswords.confirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    value={newPasswords.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className="w-full p-2 border rounded-md pr-10 border-[lch(17_23_133)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[lch(17_23_133)] hover:text-[lch(25_25_133)]"
+                  >
+                    {showPasswords.confirmPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Operation Buttons */}
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleUpdatePassword} 
+                  disabled={status.loading}
+                  className="bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)]"
+                >
+                  {status.loading ? 'Updating...' : 'Confirm Changes'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowChangePassword(false);
+                    setNewPasswords({ newPassword: '', confirmPassword: '' });
+                    setStatus(prev => ({ ...prev, error: null }));
+                  }}
+                  variant="outline"
+                  className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Error and Success Prompt */}
+          {status.error && (
+            <div className="text-red-500 text-sm">
+              {status.error}
+            </div>
+          )}
+          {status.success && (
+            <div className="text-green-500 text-sm">
+              {status.success}
+            </div>
+          )}
         </div>
-
-        {/* Change Password Button */}
-        {!showChangePassword && (
-          <Button 
-            onClick={() => setShowChangePassword(true)}
-            className="mt-4"
-          >
-            Change Password
-          </Button>
-        )}
-
-        {/* Change Password Form */}
-        {showChangePassword && (
-          <>
-            {/* New Password */}
-            <div className="grid gap-2">
-              <label htmlFor="newPassword">New Password</label>
-              <div className="relative">
-                <input 
-                  type={showPasswords.newPassword ? "text" : "password"}
-                  id="newPassword"
-                  value={newPasswords.newPassword}
-                  onChange={handlePasswordChange}
-                  className="w-full p-2 border rounded-md pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('newPassword')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPasswords.newPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm New Password */}
-            <div className="grid gap-2">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
-              <div className="relative">
-                <input 
-                  type={showPasswords.confirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  value={newPasswords.confirmPassword}
-                  onChange={handlePasswordChange}
-                  className="w-full p-2 border rounded-md pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('confirmPassword')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPasswords.confirmPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Operation Buttons */}
-            <div className="flex gap-4">
-              <Button 
-                onClick={handleUpdatePassword} 
-                disabled={status.loading}
-              >
-                {status.loading ? 'Updating...' : 'Confirm Changes'}
-              </Button>
-              <Button 
-                onClick={() => {
-                  setShowChangePassword(false);
-                  setNewPasswords({ newPassword: '', confirmPassword: '' });
-                  setStatus(prev => ({ ...prev, error: null }));
-                }}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* Error and Success Prompt */}
-        {status.error && (
-          <div className="text-red-500 text-sm">
-            {status.error}
-          </div>
-        )}
-        {status.success && (
-          <div className="text-green-500 text-sm">
-            {status.success}
-          </div>
-        )}
       </div>
     </div>
   );
