@@ -29,6 +29,7 @@ public enum ErrorCode {
     INVALID_STATUS(2014, "Invalid user status."),
     USER_STATUS_SAME_TO_OLD(2015, "New status cannot be the same as the old status."),
     PERMISSION_DENIED(2016, "Permission denied."),
+    USER_NOT_ADMIN(2017, "User is not admin."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
