@@ -6,7 +6,7 @@ import { login as loginApi, register as registerApi, logout as logoutApi } from 
 interface UseAuthReturn {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, fingerprint?: string) => Promise<boolean>;
   register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   error: string | null;
@@ -92,12 +92,12 @@ export function useAuth(): UseAuthReturn {
   }, [checkLocalStorage, setLocalStorageAuth, createCookieFromLocalStorage]);
 
   // Login function
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, fingerprint?: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await loginApi(email, password);
+      const response = await loginApi(email, password, fingerprint);
       
       if (response.code === 200) {
         console.log('Login API returned success');

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeviceInfo } from '@/hooks/use-device-info';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const { login, register, error, isAuthenticated } = useAuth();
+  const deviceInfo = useDeviceInfo();
 
   // Check if already authenticated via THALITERA_SESSION_ID cookie
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function LoginPage() {
     
     try {
       if (isLogin) {
-        const success = await login(email, password);
+        const success = await login(email, password, deviceInfo?.fingerprint);
         if (success) {
           window.location.href = '/dashboard';
         }
