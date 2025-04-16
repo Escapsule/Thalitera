@@ -10,41 +10,31 @@ export async function POST(request: Request) {
       .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
       ?.split('=')[1] || '';
 
-    // Get booking data from request body
-    const bookingData = await request.json();
+    // Get reservation ID from request body
+    const { reservationId } = await request.json();
     
-    console.log('Booking data received:', bookingData);
+    console.log('Cancel reservation request received for ID:', reservationId);
     
-    // Verify the timestamps are in correct format (ISO 8601 with timezone offset)
-    // The format should be like: 2025-04-16T09:13:18.123-07:00
-    const startTime = bookingData.start_time;
-    const endTime = bookingData.end_time;
-    
-    // Make sure the timestamp strings are properly formatted
-    if (typeof startTime !== 'string' || typeof endTime !== 'string') {
+    if (!reservationId) {
       return NextResponse.json(
         {
           code: 400,
-          message: 'Start time and end time must be provided as ISO strings with timezone offset',
+          message: 'Reservation ID must be provided',
           timestamp: new Date().toISOString(),
         },
         { status: 400 }
       );
     }
     
-    // Send the booking request to the backend
-    const response = await fetch(`${backendUrl}/user/meetingroom/booking`, {
+    // Send the cancellation request to the backend
+    const response = await fetch(`${backendUrl}/user/meetingroom/cancel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
       },
       body: JSON.stringify({
-        room_id: bookingData.room_id,
-        attendees: bookingData.attendees || [],
-        purpose: bookingData.purpose || '',
-        start_time: startTime,
-        end_time: endTime,
+        reservationId: reservationId,
       }),
       credentials: 'include',
     });
@@ -53,12 +43,12 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Booking error:', errorText);
+      console.error('Cancellation error:', errorText);
       
       return NextResponse.json(
         {
           code: response.status,
-          message: `Booking failed: ${response.statusText}`,
+          message: `Cancellation failed: ${response.statusText}`,
           timestamp: new Date().toISOString(),
         },
         { status: response.status }
@@ -78,4 +68,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+} 

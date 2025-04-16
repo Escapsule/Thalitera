@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { RoomDetail } from "@/components/user/room_detail"
+import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
 
 // Reservation type definition based on API response
@@ -52,9 +52,18 @@ export default function Dashboard() {
           throw new Error('Failed to fetch calendar')
         }
         const data = await response.json()
-        setReservations(data.data || [])
+        
+        // Check if data is in the expected format
+        if (data && data.data && Array.isArray(data.data)) {
+          console.log('获取到的预订数据:', data.data.length, '条');
+          console.log('预订数据示例:', data.data[0]);
+          setReservations(data.data)
+        } else {
+          setReservations([])
+        }
       } catch (error) {
         console.error('Error fetching calendar:', error)
+        setReservations([])
       } finally {
         setLoading(false)
       }
@@ -68,20 +77,35 @@ export default function Dashboard() {
   today.setHours(0, 0, 0, 0)
   
   const futureReservations = reservations.filter((reservation) => {
-    const startTime = new Date(reservation.start_time)
-    return startTime >= today && reservation.status !== 'canceled'
+    try {
+      const startTime = new Date(reservation.start_time)
+      return startTime >= today && reservation.status !== 'canceled'
+    } catch (error) {
+      console.error(`Invalid date format for future filtering: ${reservation.start_time}`, error);
+      return false
+    }
   }).length
 
   // Get bookings for selected date or all future bookings (including today)
   const reservationsToDisplay = showAllBookings 
     ? reservations.filter((reservation) => {
-        const startTime = new Date(reservation.start_time)
-        return startTime >= today && reservation.status !== 'canceled'
+        try {
+          const startTime = new Date(reservation.start_time)
+          return startTime >= today && reservation.status !== 'canceled'
+        } catch (error) {
+          console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
+          return false
+        }
       })
     : reservations.filter((reservation) => {
         if (!date) return false
-        const startTime = new Date(reservation.start_time)
-        return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+        try {
+          const startTime = new Date(reservation.start_time)
+          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+        } catch (error) {
+          console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
+          return false
+        }
       })
 
   // Handle opening the detail modal
@@ -92,8 +116,13 @@ export default function Dashboard() {
 
   // Format time string from API timestamp
   const formatTimeString = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return format(date, "h:mm a")
+    try {
+      const date = new Date(timestamp)
+      return format(date, "h:mm a")
+    } catch (error) {
+      console.error(`Invalid time format: ${timestamp}`, error);
+      return "Invalid time"
+    }
   }
 
   return (
@@ -134,7 +163,7 @@ export default function Dashboard() {
                   ) : reservationsToDisplay.length > 0 ? (
                     reservationsToDisplay.map((reservation) => (
                       <div 
-                        key={reservation.reservation_id} 
+                        key={reservation.reservation_id + reservation.start_time} 
                         className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
                         onClick={() => handleOpenDetail(reservation)}
                       >
@@ -207,8 +236,13 @@ export default function Dashboard() {
                       DayContent: (props) => {
                         const date = props.date
                         const hasBooking = reservations.some((reservation) => {
-                          const startTime = new Date(reservation.start_time)
-                          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+                          try {
+                            const startTime = new Date(reservation.start_time)
+                            return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+                          } catch (error) {
+                            console.error(`Invalid date in calendar: ${reservation.start_time}`, error);
+                            return false
+                          }
                         })
 
                         return (
@@ -232,8 +266,8 @@ export default function Dashboard() {
       </div>
       
       {/* Room Detail Modal */}
-      <RoomDetail 
-        booking={selectedBooking} 
+      <ReservationDetail 
+        reservation={selectedBooking} 
         isOpen={isDetailOpen} 
         onClose={() => setIsDetailOpen(false)} 
       />

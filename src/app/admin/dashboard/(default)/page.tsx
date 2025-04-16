@@ -144,6 +144,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
       <div className="flex items-center gap-1">
         <span className="text-xs">page</span>
         <input
+          title="Page number"
           type="text"
           value={inputPage}
           onChange={handleInputChange}
@@ -345,7 +346,6 @@ const DashboardPage = () => {
       
       // Get today's date
       const today = new Date()
-      const todayStr = today.toISOString().split('T')[0]
       
       setUsers(formattedUsers)
       setUserStats({
