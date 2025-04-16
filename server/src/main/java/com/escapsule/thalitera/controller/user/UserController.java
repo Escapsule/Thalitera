@@ -134,7 +134,8 @@ public class UserController {
     @GetMapping("/check-auth")
     public ApiResult<?> checkAuth(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if ( user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        log.info("user {} login...", user.getEmail());
         return ApiResult.success(true);
     }
 
@@ -273,6 +274,7 @@ public class UserController {
     @GetMapping("/logout")
     public ApiResult<?> logout(HttpSession session) {
         session.invalidate();
+        log.info("User logout: {}", session.getId());
         return ApiResult.success();
     }
 }

@@ -36,6 +36,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         // 2. Check if the user is logged in
         HttpSession session = request.getSession(false);
         // Does not automatically create a new session
