@@ -10,7 +10,6 @@ import com.escapsule.thalitera.vo.MeetingRoomVO;
 import com.escapsule.thalitera.vo.ReservationVO;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -86,6 +85,7 @@ public class ReservationController {
      * Update a meeting room booking
      *
      * @param reservationDTO The DTO object containing the parameters for the meeting room.
+     * @param session The HTTP session object.
      * @return Update result
      */
     @PostMapping("/update")
@@ -104,10 +104,11 @@ public class ReservationController {
      * Cancel a meeting room booking
      *
      * @param reservationId The ID of the reservation to be canceled.
+     * @param session The HTTP session object.
      * @return Cancel result
      */
     @PostMapping("/cancel")
-    public ApiResult<String> cancelReservation(@RequestBody @NotBlank UUID reservationId,
+    public ApiResult<String> cancelReservation(@RequestBody UUID reservationId,
                                                HttpSession session) {
         User user = (User) session.getAttribute("user");
         boolean success = reservationService.cancelReservation(reservationId, user.getUserId());
