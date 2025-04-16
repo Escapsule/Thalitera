@@ -36,8 +36,6 @@ public class MeetingRoomDTO {
 
     private Map<String, Object> facilities;
 
-    private UUID createdBy;
-
     private OffsetDateTime createdAt;
 
     private OffsetDateTime updatedAt;

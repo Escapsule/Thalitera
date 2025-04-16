@@ -12,9 +12,10 @@ public interface MeetingRoomService {
      * Add a new meeting room.
      *
      * @param meetingRoomDTO The DTO object containing the parameters for the meeting room.
+     * @param createdBy The ID of the admin who created the meeting room.
      * @return True if the addition is successful, throw an exception otherwise.
      */
-    boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO);
+    boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO, UUID createdBy);
 
     /**
      * Modify an existing meeting room.

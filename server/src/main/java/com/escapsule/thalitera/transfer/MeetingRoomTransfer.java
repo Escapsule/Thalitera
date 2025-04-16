@@ -26,10 +26,12 @@ public interface MeetingRoomTransfer {
     @Mapping(target = "facilities", expression = "java(mapMapToFacilities(source.getFacilities()))")
     @Mapping(target = "roomId", expression = "java(roomId)")
     @Mapping(target = "status", expression = "java(status)")
+    @Mapping(target = "createdBy", expression = "java(createdBy)")
     @Mapping(target = "createdAt", expression = "java(OffsetDateTime.now())")
     @Mapping(target = "updatedAt", expression = "java(OffsetDateTime.now())")
     MeetingRoom meetingRoomDTO2MeetingRoom(MeetingRoomDTO source,
                                            UUID roomId,
+                                           UUID createdBy,
                                            String status);
 
     @Mapping(target = "facilities", expression = "java(mapMapToFacilities(source.getFacilities()))")

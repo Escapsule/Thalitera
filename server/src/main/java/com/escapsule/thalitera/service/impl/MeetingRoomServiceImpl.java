@@ -31,7 +31,8 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
      */
     @Override
     @Transactional
-    public boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO) {
+    public boolean addMeetingRoom(MeetingRoomDTO meetingRoomDTO,
+                                  UUID createdBy) {
         // Check if the capacity is valid
         if (meetingRoomDTO.getCapacityMin() > meetingRoomDTO.getCapacityMax()) {
             throw new BaseException(ErrorCode.CAPACITY_ERROR);
@@ -40,6 +41,7 @@ public class MeetingRoomServiceImpl implements MeetingRoomService {
         MeetingRoom meetingRoom = MeetingRoomTransfer.INSTANCE.meetingRoomDTO2MeetingRoom(
                 meetingRoomDTO,
                 roomId,
+                createdBy,
                 MeetingRoomStatusConstant.MAINTENANCE
         );
         // Insert the meeting room

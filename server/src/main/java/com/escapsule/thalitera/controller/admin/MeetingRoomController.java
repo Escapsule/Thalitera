@@ -2,12 +2,14 @@ package com.escapsule.thalitera.controller.admin;
 
 import com.escapsule.thalitera.dto.MeetingRoomDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
+import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.MeetingRoomService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.vo.MeetingRoomVO;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,8 +54,10 @@ public class MeetingRoomController {
      * @return ApiResult with success message
      */
     @PostMapping("/add")
-    public ApiResult<String> addMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
-        boolean success = meetingRoomService.addMeetingRoom(meetingRoomDTO);
+    public ApiResult<String> addMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO,
+                                            HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        boolean success = meetingRoomService.addMeetingRoom(meetingRoomDTO, user.getUserId());
         if (success) {
             log.info("Add meeting room: {}", meetingRoomDTO);
             return ApiResult.success("Add successful.");
