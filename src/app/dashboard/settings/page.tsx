@@ -4,19 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Eye, EyeOff, Monitor, Smartphone, Laptop } from 'lucide-react'
+import useDeviceInfo from '@/hooks/use-device-info'
 
 interface UserProfile {
   user_id: string;
   user_name: string;
   email: string;
   avatar: string;
-}
-
-interface DeviceInfo {
-  type: string;
-  name: string;
-  os: string;
-  browser: string;
 }
 
 const Page = () => {
@@ -28,8 +22,8 @@ const Page = () => {
     avatar: ''
   });
   
-  // Current device info
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
+  // Get device info from hook
+  const deviceInfo = useDeviceInfo();
   
   // Profile edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -313,89 +307,9 @@ const Page = () => {
     }
   };
 
-  // Get current device information
-  const detectDeviceInfo = () => {
-    const userAgent = navigator.userAgent;
-    const platform = navigator.platform;
-    let deviceType = 'desktop';
-    let deviceName = 'Computer';
-    let os = 'Unknown';
-    let browser = 'Unknown';
-
-    // Detect device type
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
-      deviceType = 'mobile';
-      deviceName = 'Mobile Device';
-    } else if (/iPad|Macintosh|MacIntel/i.test(platform) && navigator.maxTouchPoints > 1) {
-      deviceType = 'tablet';
-      deviceName = 'Tablet';
-    } else if (/MacIntel|MacPPC|Mac68K|Macintosh/i.test(platform)) {
-      deviceType = 'laptop';
-      deviceName = 'MacBook';
-    } else if (/Win32|Win64|Windows|WinCE/i.test(platform)) {
-      deviceType = 'laptop';
-      deviceName = 'Windows PC';
-    } else if (/Linux/i.test(platform)) {
-      deviceType = 'laptop';
-      deviceName = 'Linux PC';
-    }
-
-    // Detect OS
-    if (/Windows NT 10.0/i.test(userAgent)) os = 'Windows 10';
-    else if (/Windows NT 6.3/i.test(userAgent)) os = 'Windows 8.1';
-    else if (/Windows NT 6.2/i.test(userAgent)) os = 'Windows 8';
-    else if (/Windows NT 6.1/i.test(userAgent)) os = 'Windows 7';
-    else if (/Mac OS X/i.test(userAgent)) {
-      const matches = userAgent.match(/Mac OS X ([0-9_]+)/i);
-      if (matches && matches[1]) {
-        os = 'macOS ' + matches[1].replace(/_/g, '.');
-      } else {
-        os = 'macOS';
-      }
-    }
-    else if (/Android/i.test(userAgent)) {
-      const matches = userAgent.match(/Android ([0-9.]+)/i);
-      if (matches && matches[1]) {
-        os = 'Android ' + matches[1];
-      } else {
-        os = 'Android';
-      }
-    }
-    else if (/iOS|iPhone|iPad|iPod/i.test(userAgent)) {
-      const matches = userAgent.match(/OS ([0-9_]+)/i);
-      if (matches && matches[1]) {
-        os = 'iOS ' + matches[1].replace(/_/g, '.');
-      } else {
-        os = 'iOS';
-      }
-    }
-    else if (/Linux/i.test(userAgent)) os = 'Linux';
-
-    // Detect browser
-    if (/Chrome/i.test(userAgent) && !/Chromium|Edge|Edg|OPR|Opera/i.test(userAgent)) {
-      browser = 'Chrome';
-    } else if (/Firefox/i.test(userAgent)) {
-      browser = 'Firefox';
-    } else if (/Safari/i.test(userAgent) && !/Chrome|Chromium|Edge|Edg|OPR|Opera/i.test(userAgent)) {
-      browser = 'Safari';
-    } else if (/Edge|Edg/i.test(userAgent)) {
-      browser = 'Edge';
-    } else if (/Opera|OPR/i.test(userAgent)) {
-      browser = 'Opera';
-    }
-
-    setDeviceInfo({
-      type: deviceType,
-      name: deviceName,
-      os,
-      browser
-    });
-  };
-
   // Initialize data on component mount
   useEffect(() => {
     fetchUserProfile();
-    detectDeviceInfo();
   }, []);
 
   // Get device icon based on type
@@ -656,7 +570,14 @@ const Page = () => {
                   {getDeviceIcon(deviceInfo.type)}
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">{deviceInfo.name}</p>
+                  <div className="flex items-center gap-4">
+                    <p className="font-medium">{deviceInfo.name}</p>
+                    {deviceInfo.isNewDevice && (
+                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                        New Device
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">Operating System:</span>
@@ -670,6 +591,12 @@ const Page = () => {
                       <span className="text-sm font-medium">Last Login:</span>
                       <span className="text-sm text-muted-foreground">{new Date().toLocaleString()}</span>
                     </div>
+                    {deviceInfo.fingerprint && (
+                      <div className="flex items-center gap-2 col-span-2">
+                        <span className="text-sm font-medium">Device Fingerprint:</span>
+                        <span className="text-sm text-muted-foreground font-mono">{deviceInfo.fingerprint}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
