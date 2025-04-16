@@ -7,6 +7,11 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface LoginHistoryMapper {
 
+    /**
+     * Insert login history
+     *
+     * @param loginHistory login history
+     */
     @Insert("INSERT INTO login_history (user_id, ip_address, device_fingerprint, success, failure_reason, location) " +
             "VALUES (#{userId}, #{ipAddress}, #{deviceFingerprint}, #{success}, #{failureReason}, #{location})")
     void insert(LoginHistory loginHistory);
