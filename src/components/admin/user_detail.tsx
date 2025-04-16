@@ -109,7 +109,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
           {/* Current Bookings */}
           {user.currentBookings && user.currentBookings.length > 0 && (
             <div className="grid gap-4">
-              <h3 className="text-lg font-medium">Current Bookings</h3>
+              <h3 className="text-lg font-medium">Current Booking</h3>
               <div className="space-y-4">
                 {user.currentBookings.map((booking) => (
                   <div key={booking.id} className="border rounded-lg p-4">

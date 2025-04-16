@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
 
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/meetingroom/all`, {
+    const response = await fetch(`http://${backendUrl}/admin/meetingroom/all`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -29,4 +29,16 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }

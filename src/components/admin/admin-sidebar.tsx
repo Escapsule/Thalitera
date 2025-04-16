@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, DoorOpen, Users} from "lucide-react"
+import { LayoutDashboard, DoorOpen, Users, Calendar} from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -32,6 +32,11 @@ const items = [
     title: "Manage User",
     url: "/admin/dashboard/manage-user",
     icon: Users,
+  },
+  {
+    title: "Manage Booking",
+    url: "/admin/dashboard/manage-booking",
+    icon: Calendar,
   }
 ]
 

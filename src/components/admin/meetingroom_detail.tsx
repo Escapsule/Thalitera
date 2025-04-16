@@ -163,7 +163,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
           {/* Current Bookings */}
           {booking.currentBookings && booking.currentBookings.length > 0 && (
             <div className="rounded-md border p-4">
-              <h4 className="text-sm font-medium mb-3">Current Bookings</h4>
+              <h4 className="text-sm font-medium mb-3">Current Booking</h4>
               <div className="space-y-3">
                 {booking.currentBookings.map((booking, index) => (
                   <div key={index} className="flex justify-between items-center text-sm">
