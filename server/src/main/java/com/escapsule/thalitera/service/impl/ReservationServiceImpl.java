@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.function.Function;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -110,12 +109,13 @@ public class ReservationServiceImpl implements ReservationService {
      */
     @Override
     @Transactional
-    public boolean makeReservation(ReservationDTO reservationDTO) {
+    public boolean makeReservation(ReservationDTO reservationDTO,
+                                   UUID userId) {
         // Generate a reservation ID
         UUID reservationId = UUID.randomUUID();
         // Construct the reservation object
         Reservation reservation = ReservationTransfer.INSTANCE.newReservationDTO2Reservation(
-                reservationDTO, reservationId, TokenUtils.generateShortToken()
+                reservationDTO, reservationId, TokenUtils.generateShortToken(), userId
         );
         reservationDTO.getAttendees().forEach(
                 userEmail -> {
@@ -154,15 +154,19 @@ public class ReservationServiceImpl implements ReservationService {
      * Update a reservation.
      *
      * @param reservationDTO The DTO object containing the parameters for the reservation.
+     * @param userId Operator
      * @return True if the update is successful, throw an exception otherwise.
      */
     @Override
     @Transactional
-    public boolean updateReservation(ReservationDTO reservationDTO) {
+    public boolean updateReservation(ReservationDTO reservationDTO, UUID userId) {
         // Get the old reservation
         Reservation oldReservation = reservationMapper.getReservationsByReservationId(reservationDTO.getReservationId());
         if (oldReservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
+        }
+        if (!oldReservation.getUserId().equals(userId)) {
+            throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot edit reservation created by other.");
         }
         // Get the list of confirmed reservations
         List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
@@ -184,7 +188,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
         // Update the reservation
         Reservation newReservation = ReservationTransfer.INSTANCE.updateReservationDTO2Reservation(
-                reservationDTO, oldReservation.getVersion(), oldReservation.getQrToken()
+                reservationDTO, oldReservation.getVersion(), oldReservation.getQrToken(), oldReservation.getUserId()
         );
         reservationDTO.getAttendees().forEach(
                 userEmail -> {
@@ -206,11 +210,12 @@ public class ReservationServiceImpl implements ReservationService {
      * Cancel a meeting room reservation.
      *
      * @param reservationId The ID of the reservation to cancel.
+     * @param userId Operator
      * @return True if the cancellation is successful, throw an exception otherwise.
      */
     @Override
     @Transactional
-    public boolean cancelReservation(UUID reservationId) {
+    public boolean cancelReservation(UUID reservationId, UUID userId) {
         // Check if the reservation ID is provided
         if (reservationId == null) {
             throw new BaseException(ErrorCode.MISSING_RESERVATION_ID);
@@ -220,6 +225,9 @@ public class ReservationServiceImpl implements ReservationService {
         // Check if the reservation exists
         if (reservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
+        }
+        if (!reservation.getUserId().equals(userId)) {
+            throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot cancel reservation created by other.");
         }
         // Update the reservation status
         reservationMapper.updateReservationStatus(reservationId, ReservationStatusConstant.CANCELED);
@@ -234,24 +242,19 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public List<ReservationVO> getAllReservations() {
         List<Reservation> reservations = reservationMapper.getAllReservations();
-        Function<UUID, String> getRoomNameByRoomId = roomId -> {
-            // Fetch the room name using the room ID
-            return meetingRoomMapper.getMeetingRoomByRoomId(roomId).getName();
-        };
-        Function<UUID, String> getUserNameByUserId = userId -> {
-            // Fetch the username using the user ID
-            return userMapper.getUserById(userId).getUsername();
-        };
-        return reservations
-                .stream()
-                .map(reservation ->
-                        ReservationTransfer.INSTANCE.reservation2ReservationVO(
-                                reservation,
-                                getRoomNameByRoomId,
-                                getUserNameByUserId
-                        )
-                )
-                .toList();
+        return ReservationTransfer.INSTANCE.mapReservation2ReservationVO(reservations, meetingRoomMapper, userMapper);
+    }
+
+    /**
+     * Fetch all reservations related to a specific user
+     *
+     * @param userId target user ID
+     * @return List of all reservations
+     */
+    @Override
+    public List<ReservationVO> getMyReservations(UUID userId) {
+        List<Reservation> reservations = reservationMapper.getUserRelatedReservationByUserId(userId);
+        return ReservationTransfer.INSTANCE.mapReservation2ReservationVO(reservations, meetingRoomMapper, userMapper);
     }
 
     /**

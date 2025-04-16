@@ -33,10 +33,7 @@ public class ReservationVO {
 
     private OffsetDateTime updatedAt;
 
-    /**
-     * userId
-     */
-    private List<String> attendees;
+    private List<UserVO> attendees;
 
     private String purpose;
 

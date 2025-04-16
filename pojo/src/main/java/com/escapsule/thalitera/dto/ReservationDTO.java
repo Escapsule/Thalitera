@@ -25,9 +25,6 @@ public class ReservationDTO {
     @TableField(value = "room_id", typeHandler = PgUUIDTypeHandler.class)
     private UUID roomId;
 
-    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
-    private UUID userId;
-
     private List<String> attendees;
 
     private Integer attendeesCount;

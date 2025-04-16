@@ -1,8 +1,13 @@
 package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.Reservation;
-import com.escapsule.thalitera.handler.PGListTypeHandler;
-import org.apache.ibatis.annotations.*;
+import com.escapsule.thalitera.handler.PGUUIDListTypeHandler;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.OffsetDateTime;
 
@@ -20,7 +25,6 @@ public interface ReservationMapper {
           AND end_time <= #{end}
           AND status = 'confirmed'
     """)
-
     double getTotalBookedHours(
             @Param("roomId") UUID roomId,
             @Param("start") OffsetDateTime start,
@@ -45,6 +49,11 @@ public interface ReservationMapper {
     void updateReservation(Reservation newReservation);
 
     @Select("SELECT * FROM reservations")
-    @Result(property = "attendees", column = "attendees", typeHandler = PGListTypeHandler.class)
+    @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
     List<Reservation> getAllReservations();
+
+    @Select("SELECT * FROM reservations WHERE user_id = #{userId} OR attendees @> jsonb_build_array(#{userId})")
+    @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
+    List<Reservation> getUserRelatedReservationByUserId(UUID userId);
+
 }
