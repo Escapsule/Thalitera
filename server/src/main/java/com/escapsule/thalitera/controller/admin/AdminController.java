@@ -36,6 +36,7 @@ public class AdminController {
      */
     @GetMapping("/users")
     public ApiResult<List<UserVO>> getAllUsers() {
+        log.info("Get all users...");
         return ApiResult.success(adminService.getAllUsers());
     }
 

@@ -35,6 +35,7 @@ public class MeetingRoomController {
     @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllMeetingRooms() {
         List<MeetingRoom> meetingRooms = meetingRoomService.getAllMeetingRooms();
+        log.info("Get all meeting rooms: {}", meetingRooms);
         return ApiResult.success(
                 meetingRooms
                         .stream()
@@ -53,8 +54,10 @@ public class MeetingRoomController {
     public ApiResult<String> addMeetingRoom(@RequestBody @Valid MeetingRoomDTO meetingRoomDTO) {
         boolean success = meetingRoomService.addMeetingRoom(meetingRoomDTO);
         if (success) {
+            log.info("Add meeting room: {}", meetingRoomDTO);
             return ApiResult.success("Add successful.");
         } else {
+            log.info("Add meeting room failed: {}", meetingRoomDTO);
             return ApiResult.success("Add failed.");
         }
     }
@@ -72,8 +75,10 @@ public class MeetingRoomController {
         }
         boolean success = meetingRoomService.modifyMeetingRoom(meetingRoomDTO);
         if (success) {
+            log.info("Modify meeting room: {}", meetingRoomDTO);
             return ApiResult.success("Modify successful.");
         } else {
+            log.info("Modify meeting room failed: {}", meetingRoomDTO);
             return ApiResult.success("Modify failed.");
         }
     }
