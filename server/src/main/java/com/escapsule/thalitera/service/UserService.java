@@ -33,9 +33,10 @@ public interface UserService {
      * @param dto UserLoginDTO include email and password
      * @param ip  user ip
      * @param userAgent user agent
+     * @param fingerprint user fingerprint
      * @return User
      */
-    User login(UserLoginDTO dto, String ip, String userAgent);
+    User login(UserLoginDTO dto, String ip, String userAgent, String fingerprint);
 
     /**
      * Get user's calendar

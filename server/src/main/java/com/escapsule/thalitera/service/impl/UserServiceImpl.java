@@ -128,7 +128,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User login(UserLoginDTO dto,
                       String ip,
-                      String userAgent) {
+                      String userAgent,
+                      String fingerprint) {
 
         // verify if user exist
         User user = userMapper.getUserByEmail(dto.getEmail());
@@ -142,6 +143,7 @@ public class UserServiceImpl implements UserService {
         DeviceFingerprint df = DeviceFingerprint.builder()
                 .browser(userAgentUtils.parseBrowser(ua))
                 .os(userAgentUtils.parseOS(ua))
+                .print(fingerprint)
                 .build();
 
         Point location = GeometryUtils.createPoint(

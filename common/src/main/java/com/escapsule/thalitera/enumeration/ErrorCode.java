@@ -21,7 +21,7 @@ public enum ErrorCode {
     USER_REGISTER_FAILED(2006, "User register failed, please try again."),
     USER_NOT_ACTIVE(2007, "User not active."),
     USER_PASSWORD_INCORRECT(2008, "User password incorrect."),
-    USER_IP_ADDRESS_INVALID(2019, "User ip address invalid."),
+    USER_IP_ADDRESS_INVALID(2009, "User ip address invalid."),
     USER_AGENT_INVALID(2010, "User agent invalid."),
     USER_NOT_LOGIN(2011, "User not login"),
     EMAIL_VERIFICATION_FAILED(2012, "Email verification failed"),

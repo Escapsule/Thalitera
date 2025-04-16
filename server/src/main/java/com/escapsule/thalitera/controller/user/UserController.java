@@ -66,11 +66,12 @@ public class UserController {
     @PostMapping("/login")
     public ApiResult<?> login (@RequestBody UserLoginDTO dto,
                                @RequestHeader("User-Agent") String userAgent,
+                               @RequestHeader("THALITERA_FINGERPRINT")String fingerprint,
                                HttpServletRequest httpRequest,
                                HttpSession session) {
         log.info("User login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
-        User user = userService.login(dto, ip, userAgent);
+        User user = userService.login(dto, ip, userAgent, fingerprint);
         session.setAttribute("user", user);
         log.info("User login success: {}", dto.getEmail());
         return ApiResult.success();
