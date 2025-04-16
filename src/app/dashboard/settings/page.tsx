@@ -443,10 +443,10 @@ const Page = () => {
         );
       case 'security':
         return (
-          <div className="p-6 bg-white rounded-lg">
+          <div className="p-6 bg-[lch(100_0_0)] rounded-lg">
             <h2 className="text-xl font-semibold text-[lch(17_23_133)] mb-6">Security Settings</h2>
             
-            <div className="max-w-2xl">
+            <div className="max-w-5xl">
               <div className="space-y-6">
                 {/* Change Password Form - Now open by default */}
                 <>
@@ -604,7 +604,7 @@ const Page = () => {
         <p className="text-muted-foreground">Manage your profile and security settings</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col md:flex-row gap-12">
         {/* Sidebar - made narrower with sharper edges */}
         <div className="w-full md:w-52 space-y-1.5">
           <div 

@@ -1,44 +1,99 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { Clock } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { bookings } from "@/lib/fake_data"
 import { RoomDetail } from "@/components/user/room_detail"
 import Link from "next/link"
+
+// Reservation type definition based on API response
+interface Attendee {
+  user_id: string;
+  avatar: string;
+  username: string;
+  email: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Reservation {
+  reservation_id: string;
+  room_id: string;
+  room_name: string;
+  user_id: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  updated_at: string;
+  attendees: Attendee[];
+  purpose: string;
+  status: string; // pending, confirmed, canceled, completed
+}
 
 export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showAllBookings, setShowAllBookings] = useState(false)
-  const [selectedBooking, setSelectedBooking] = useState<typeof bookings[0] | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<Reservation | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/user/calendar')
+        if (!response.ok) {
+          throw new Error('Failed to fetch calendar')
+        }
+        const data = await response.json()
+        setReservations(data.data || [])
+      } catch (error) {
+        console.error('Error fetching calendar:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReservations()
+  }, [])
 
   // Calculate statistics - include today's bookings in the count
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const futureBookings = bookings.filter((booking) => {
-    const bookingDate = new Date(booking.date)
-    bookingDate.setHours(0, 0, 0, 0)
-    return bookingDate >= today
+  
+  const futureReservations = reservations.filter((reservation) => {
+    const startTime = new Date(reservation.start_time)
+    return startTime >= today && reservation.status !== 'canceled'
   }).length
 
   // Get bookings for selected date or all future bookings (including today)
-  const bookingsToDisplay = showAllBookings 
-    ? bookings.filter((booking) => {
-        const bookingDate = new Date(booking.date)
-        bookingDate.setHours(0, 0, 0, 0)
-        return bookingDate >= today
+  const reservationsToDisplay = showAllBookings 
+    ? reservations.filter((reservation) => {
+        const startTime = new Date(reservation.start_time)
+        return startTime >= today && reservation.status !== 'canceled'
       })
-    : bookings.filter((booking) => date && booking.date.toDateString() === date.toDateString())
+    : reservations.filter((reservation) => {
+        if (!date) return false
+        const startTime = new Date(reservation.start_time)
+        return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+      })
 
   // Handle opening the detail modal
-  const handleOpenDetail = (booking: typeof bookings[0]) => {
-    setSelectedBooking(booking)
+  const handleOpenDetail = (reservation: Reservation) => {
+    setSelectedBooking(reservation)
     setIsDetailOpen(true)
+  }
+
+  // Format time string from API timestamp
+  const formatTimeString = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return format(date, "h:mm a")
   }
 
   return (
@@ -58,7 +113,7 @@ export default function Dashboard() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="text-[lch(17_23_133)]">Future Bookings</CardDescription>
-                <CardTitle className="text-4xl text-[lch(17_23_133)]">{futureBookings}</CardTitle>
+                <CardTitle className="text-4xl text-[lch(17_23_133)]">{futureReservations}</CardTitle>
               </CardHeader>
             </Card>
           </div>
@@ -70,22 +125,28 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {bookingsToDisplay.length > 0 ? (
-                    bookingsToDisplay.map((booking) => (
+                  {loading ? (
+                    <div className="flex h-[200px] items-center justify-center">
+                      <div className="text-center">
+                        <h3 className="font-medium">Loading your reservations...</h3>
+                      </div>
+                    </div>
+                  ) : reservationsToDisplay.length > 0 ? (
+                    reservationsToDisplay.map((reservation) => (
                       <div 
-                        key={booking.id} 
+                        key={reservation.reservation_id} 
                         className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
-                        onClick={() => handleOpenDetail(booking)}
+                        onClick={() => handleOpenDetail(reservation)}
                       >
                         <div className="space-y-1">
-                          <h3 className="font-medium">{booking.roomName}</h3>
+                          <h3 className="font-medium">{reservation.room_name}</h3>
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Clock className="mr-1 h-4 w-4" />
-                            {booking.startTime} - {booking.endTime}
+                            {formatTimeString(reservation.start_time)} - {formatTimeString(reservation.end_time)}
                           </div>
                         </div>
                         <Badge variant="outline" className="ml-auto">
-                          {format(booking.date, "MMM d")}
+                          {format(new Date(reservation.start_time), "MMM d")}
                         </Badge>
                       </div>
                     ))
@@ -145,7 +206,10 @@ export default function Dashboard() {
                     components={{
                       DayContent: (props) => {
                         const date = props.date
-                        const hasBooking = bookings.some((booking) => booking.date.toDateString() === date.toDateString())
+                        const hasBooking = reservations.some((reservation) => {
+                          const startTime = new Date(reservation.start_time)
+                          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+                        })
 
                         return (
                           <div className="relative flex h-10 w-10 items-center justify-center p-0">
