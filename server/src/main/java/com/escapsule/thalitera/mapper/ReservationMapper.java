@@ -33,6 +33,7 @@ public interface ReservationMapper {
 
 
     @Select("SELECT * FROM reservations WHERE room_id = #{roomId} AND status = 'confirmed'")
+    @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
     List<Reservation> getConfirmedReservationsByRoomId(UUID roomId);
 
     void makeReservation(Reservation reservation);
@@ -44,6 +45,7 @@ public interface ReservationMapper {
     void updateReservationStatus(UUID reservationId, String status);
 
     @Select("SELECT * FROM reservations WHERE reservation_id = #{reservationId}")
+    @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
     Reservation getReservationsByReservationId(UUID reservationId);
 
     void updateReservation(Reservation newReservation);
