@@ -2,6 +2,7 @@
 
 import { format } from "date-fns"
 import { Clock, MapPin, Users, Calendar as CalendarIcon, Info, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -41,9 +42,10 @@ type ReservationDetailProps = {
   reservation: Reservation | null
   isOpen: boolean
   onClose: () => void
+  onCancel: (reservationId: string) => Promise<void>
 }
 
-export function ReservationDetail({ reservation, isOpen, onClose }: ReservationDetailProps) {
+export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: ReservationDetailProps) {
   if (!reservation) return null
 
   // Hardcoded room data - in a real app, you would fetch this from API
@@ -62,42 +64,57 @@ export function ReservationDetail({ reservation, isOpen, onClose }: ReservationD
     }
   }
 
-  const handleCancel = async () => {
-    try {
-      console.log("Cancellation requested for reservation:", reservation.reservation_id);
-      
-      // Show confirmation dialog (in a real app, use a proper confirmation dialog component)
-      if (!window.confirm('Are you sure you want to cancel this reservation?')) {
-        return;
-      }
-      
-      const response = await fetch('/api/user/meetingroom/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+  const handleCancel = () => {
+    // Create a styled confirmation dialog in the center of the screen
+    toast(
+      <div className="flex flex-col items-center gap-4">
+        <h3 className="text-lg font-medium">Cancel Reservation</h3>
+        <p>Are you sure you want to cancel this reservation?</p>
+        <div className="flex gap-3 mt-2 w-full">
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={() => toast.dismiss()}
+          >
+            No, Keep It
+          </Button>
+          <Button 
+            variant="destructive" 
+            className="flex-1"
+            onClick={async () => {
+              toast.dismiss();
+              try {
+                await onCancel(reservation.reservation_id);
+                toast.success("Reservation cancelled successfully");
+              } catch (err) {
+                console.error("Error cancelling reservation:", err);
+                toast.error("Failed to cancel reservation");
+              }
+            }}
+          >
+            Yes, Cancel
+          </Button>
+        </div>
+      </div>,
+      {
+        duration: 100000, // Keep it open until user interaction
+        className: "custom-confirmation-toast",
+        unstyled: true,
+        style: {
+          maxWidth: "400px",
+          padding: "20px",
+          backgroundColor: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          position: "fixed",
+          top: "50%", 
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 9999,
         },
-        body: JSON.stringify({
-          reservationId: reservation.reservation_id,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to cancel reservation');
       }
-      
-      // Display success message (in a real app, use a proper toast notification)
-      alert('Reservation cancelled successfully');
-      
-      // Close the modal
-      onClose();
-      
-      // Force refresh the page to update the reservations list
-      window.location.reload();
-    } catch (error) {
-      console.error("Error cancelling reservation:", error);
-      alert('Failed to cancel reservation. Please try again.');
-    }
+    );
   };
 
   // 安全的format函数，处理可能的日期解析错误

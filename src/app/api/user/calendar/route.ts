@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 
 // Define interfaces for the backend response
 interface MeetingRoom {
+  reservation_id: string;
   room_id: string;
   image: string | null;
   name: string;
@@ -19,6 +20,7 @@ interface MeetingRoom {
 }
 
 interface CalendarItem {
+  reservation_id: string;
   start_time: string;
   end_time: string;
   meeting_room: MeetingRoom;
@@ -75,7 +77,7 @@ export async function GET() {
       );
     }
 
-    const response = await fetch(`${backendUrl}/user/calendar`, {
+    const response = await fetch(`${backendUrl}/user/meetingroom/reservations`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -83,6 +85,8 @@ export async function GET() {
       },
       credentials: 'include',
     });
+
+    // console.log('Calendar API response:', response);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -126,7 +130,7 @@ export async function GET() {
           const normalizedEndTime = normalizeDate(item.end_time);
           
           return {
-            reservation_id: item.meeting_room?.room_id || '',
+            reservation_id: item.reservation_id || '',
             room_id: item.meeting_room?.room_id || '',
             room_name: item.meeting_room?.name || '',
             user_id: '', // Backend doesn't provide this directly
@@ -140,10 +144,12 @@ export async function GET() {
           };
         })
       };
+
       // console.log('Transformed data:', transformedData);
       
       return NextResponse.json(transformedData);
     }
+
     
     return NextResponse.json(data);
   } catch (error) {
