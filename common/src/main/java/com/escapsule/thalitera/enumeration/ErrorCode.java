@@ -56,7 +56,7 @@ public enum ErrorCode {
     TOTP_SECRET_NOT_FOUND(2606, "TOTP secret not found"),
     TOTP_RECOVERY_CODES_NOT_FOUND(2607, "TOTP recovery codes not found"),
     USER_HAS_NEW_DEVICE(2608, "User has new device, please give MFA code"),
-    USER_MFA_VERIFICATION_FAILED(2609, "User MFA verification failed"),
+
     // 3000 ~ 3999 database related
 
 

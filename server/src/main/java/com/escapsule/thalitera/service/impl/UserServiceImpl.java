@@ -397,7 +397,7 @@ public class UserServiceImpl implements UserService {
             }
         }
         logLoginAttempt(user, df.getIp(), df, location, false, null);
-        throw new BaseException(ErrorCode.USER_MFA_VERIFICATION_FAILED);
+        throw new BaseException(ErrorCode.TOTP_CODE_INCORRECT);
     }
 
     /**
