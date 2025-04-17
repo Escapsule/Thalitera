@@ -2,6 +2,7 @@ package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
+import com.escapsule.thalitera.json.DeviceFingerprint;
 import jakarta.validation.constraints.NotNull;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -101,4 +102,16 @@ public interface UserMapper {
             "mfa_secret = #{secret}, mfa_enable = #{mfaEnable}, updated_at = now()" +
             "WHERE user_id = #{userId}")
     void updateMfaSecret(UUID userId, boolean mfaEnable, String secret);
+
+    /**
+     * Update user trusted device
+     *
+     * @param userId user id
+     * @param trustedDevice trusted device
+     */
+    @Update("UPDATE users SET " +
+            "trusted_devices = #{trustedDevice, typeHandler=com.escapsule.thalitera.handler.DFListTypeHandler}, " +
+            "updated_at = now() " +
+            "WHERE user_id = #{userId}")
+    void updateTrustedDevice(UUID userId, List<DeviceFingerprint> trustedDevice);
 }

@@ -3,6 +3,7 @@ package com.escapsule.thalitera.service.impl;
 import com.escapsule.thalitera.constant.UserStatusConstant;
 import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.LoginHistory;
+import com.escapsule.thalitera.entity.MfaRecoveryCode;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
@@ -13,6 +14,7 @@ import com.escapsule.thalitera.json.DeviceFingerprint;
 import com.escapsule.thalitera.json.RegisterVerifyContent;
 import com.escapsule.thalitera.mapper.LoginHistoryMapper;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
+import com.escapsule.thalitera.mapper.MfaRecoveryCodeMapper;
 import com.escapsule.thalitera.mapper.UserMapper;
 import com.escapsule.thalitera.properties.ConfigProperties;
 import com.escapsule.thalitera.service.LoginHistoryService;
@@ -39,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.FontFormatException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -50,12 +53,14 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, List<String>> redisTemplateList;
     private final LoginHistoryMapper loginHistoryMapper;
     private final LoginHistoryService loginHistoryService;
     private final ApplicationEventPublisher eventPublisher;
     private final ConfigProperties configProperties;
     private final UserAgentUtils userAgentUtils;
     private final MeetingRoomMapper meetingRoomMapper;
+    private final MfaRecoveryCodeMapper mfaRecoveryCodeMapper;
 
     /**
      * Register user
@@ -144,6 +149,7 @@ public class UserServiceImpl implements UserService {
                 .browser(userAgentUtils.parseBrowser(ua))
                 .os(userAgentUtils.parseOS(ua))
                 .print(fingerprint)
+                .ip(ip)
                 .build();
 
         Point location = GeometryUtils.createPoint(
@@ -172,13 +178,21 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_NOT_MFA);
         }
 
-        // TODO: verify if user login on new device
-        // TODO: recovery codes to protect account without providing a password
+        if (isNewDevice(user, df)) {
+            if (dto.getTotpCode() == null && dto.getRecoveryCode() == null) {
+                log.warn("User has new device: {}, please add the MFA code or Recovery code", dto.getEmail());
+                logLoginAttempt(user, ip, df, location, false, ErrorCode.USER_HAS_NEW_DEVICE);
+                throw new BaseException(ErrorCode.USER_HAS_NEW_DEVICE);
+            }
+            verifyMfaOrRecovery(user, dto.getTotpCode(), dto.getRecoveryCode(), df, location);
+            addTrustedDevice(user, df);
+        }
 
         logLoginAttempt(user, ip, df, location, true, null);
 
         return user;
     }
+
 
     /**
      * Get user's calendar
@@ -274,7 +288,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public String mfaSetup(String email) {
+    public MfaSetupDTO mfaSetup(String email) {
         User user = userMapper.getUserByEmail(email);
         if (user == null) {
             throw new BaseException(ErrorCode.USER_NOT_FOUND);
@@ -293,15 +307,28 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.TOTP_QR_CODE_GENERATION_FAILED);
         }
 
+
+        List<String> plainCodes = TotpUtils.generateRecoveryCodes(5);
+
         // save secret to redis
         redisTemplate.opsForValue().set(
                 "mfa_secret:" + user.getUserId(),
                 secret,
-                5,
+                8,
                 TimeUnit.MINUTES
         );
 
-        return qrcode;
+        redisTemplateList.opsForValue().set(
+                "mfa_recovery_codes:" + user.getUserId(),
+                plainCodes,
+                8,
+                TimeUnit.MINUTES
+        );
+
+        return MfaSetupDTO.builder()
+                .qrCode(qrcode)
+                .recoveryCodes(plainCodes)
+                .build();
     }
 
     /**
@@ -319,7 +346,6 @@ public class UserServiceImpl implements UserService {
         }
 
         String secret = redisTemplate.opsForValue().get("mfa_secret:" + user.getUserId());
-
         if (secret == null) {
             throw new BaseException(ErrorCode.TOTP_SECRET_NOT_FOUND);
         }
@@ -329,11 +355,64 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.TOTP_CODE_INCORRECT);
         }
 
+        List<String> plainCodes = redisTemplateList.opsForValue().get("mfa_recovery_codes:" + user.getUserId());
+        if (plainCodes == null) {
+            throw new BaseException(ErrorCode.TOTP_RECOVERY_CODES_NOT_FOUND);
+        }
+
         userMapper.updateMfaSecret(user.getUserId(), true, secret);
+        mfaRecoveryCodeMapper.insertBatch(
+                TotpUtils.hashCodes(plainCodes),
+                user.getUserId()
+        );
 
         log.info("User MFA enabled successfully: {}", email);
     }
 
+
+    private void verifyMfaOrRecovery(User user,
+                                     String totpCode,
+                                     String recoveryCode,
+                                     DeviceFingerprint df,
+                                     Point location) {
+        if (totpCode != null && TotpUtils.verifyCode(user.getMfaSecret(), totpCode)) {
+            return;
+        }
+
+        if (recoveryCode != null) {
+            List<MfaRecoveryCode> recoveryCodes = mfaRecoveryCodeMapper.findValidCodes(user.getUserId());
+            for (MfaRecoveryCode rc : recoveryCodes) {
+                if (PasswordUtils.matches(recoveryCode, rc.getCodeHash())) {
+                    mfaRecoveryCodeMapper.updateCodeUsed(rc.getId());
+                    return;
+                }
+            }
+        }
+        logLoginAttempt(user, df.getIp(), df, location, false, null);
+        throw new BaseException(ErrorCode.USER_MFA_VERIFICATION_FAILED);
+    }
+
+    private void addTrustedDevice(User user, DeviceFingerprint df) {
+        List<DeviceFingerprint> trustedDevice;
+        if (user.getTrustedDevice() == null) {
+            trustedDevice = new ArrayList<>();
+        } else {
+            trustedDevice = user.getTrustedDevice();
+        }
+        trustedDevice.add(df);
+        userMapper.updateTrustedDevice(user.getUserId(), trustedDevice);
+    }
+
+    private boolean isNewDevice(User user, DeviceFingerprint df) {
+        List<DeviceFingerprint> trustedDevice = user.getTrustedDevice();
+        return trustedDevice == null || trustedDevice.stream()
+                .noneMatch(deviceFingerprint ->
+                        deviceFingerprint.getPrint().equals(df.getPrint())
+                                && deviceFingerprint.getOs().equals(df.getOs())
+                                && deviceFingerprint.getBrowser().equals(df.getBrowser())
+                                && deviceFingerprint.getIp().equals(df.getIp())
+                );
+    }
 
     /**
      * Store forget password captcha

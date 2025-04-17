@@ -20,4 +20,6 @@ public class DeviceFingerprint extends Jsonb implements Serializable {
     private String os;
 
     private String print;
+
+    private String ip;
 }

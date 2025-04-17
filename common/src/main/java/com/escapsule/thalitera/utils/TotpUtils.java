@@ -8,11 +8,14 @@ import dev.samstevens.totp.exceptions.QrGenerationException;
 import dev.samstevens.totp.qr.QrData;
 import dev.samstevens.totp.qr.QrGenerator;
 import dev.samstevens.totp.qr.ZxingPngQrGenerator;
+import dev.samstevens.totp.recovery.RecoveryCodeGenerator;
 import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * TotpUtils encapsulates TOTP-related operations:
@@ -26,6 +29,7 @@ public class TotpUtils {
     private static final SecretGenerator SECRET_GENERATOR = new DefaultSecretGenerator(64);
     private static final CodeVerifier CODE_VERIFIER;
     private static final QrGenerator QR_GENERATOR = new ZxingPngQrGenerator();
+    private static final RecoveryCodeGenerator RECOVERY_GENERATOR = new RecoveryCodeGenerator();
 
     static {
         CODE_VERIFIER = new DefaultCodeVerifier(new DefaultCodeGenerator(), new SystemTimeProvider());
@@ -78,5 +82,26 @@ public class TotpUtils {
         byte[] imageData = QR_GENERATOR.generate(data);
         String base64Image = Base64.getEncoder().encodeToString(imageData);
         return "data:image/png;base64," + base64Image;
+    }
+
+    /**
+     * Generate a list of recovery codes.
+     *
+     * @param amount The number of recovery codes to generate.
+     * @return A list of recovery codes.
+     */
+    public static List<String> generateRecoveryCodes(int amount) {
+        String[] codes = RECOVERY_GENERATOR.generateCodes(amount);
+        return Arrays.asList(codes);
+    }
+
+    /**
+     * Hash the recovery codes.
+     *
+     * @param codes The recovery codes to hash.
+     * @return A list of hashed recovery codes.
+     */
+    public static List<String> hashCodes(List<String> codes) {
+        return codes.stream().map(PasswordUtils::encode).toList();
     }
 }

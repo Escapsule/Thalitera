@@ -88,9 +88,9 @@ public class UserController {
             @ApiResponse(responseCode = "2604", description = "TOTP QR code generation failed."),
     })
     @GetMapping("/mfa/setup")
-    public ApiResult<String> mfaSetup(String email) {
-        String qrcode = userService.mfaSetup(email);
-        return ApiResult.success(qrcode);
+    public ApiResult<MfaSetupDTO> mfaSetup(String email) {
+        MfaSetupDTO dto = userService.mfaSetup(email);
+        return ApiResult.success(dto);
     }
 
     /**

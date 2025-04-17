@@ -71,7 +71,7 @@ public interface UserService {
      * @param email user email
      * @return qr code (base64 / png)
      */
-    String mfaSetup(String email);
+    MfaSetupDTO mfaSetup(String email);
 
     /**
      * Enable user mfa
