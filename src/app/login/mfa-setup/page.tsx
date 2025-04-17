@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeviceInfo } from '@/hooks/use-device-info';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export default function MfaSetupPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isRedirectedFromLogin, setIsRedirectedFromLogin] = useState<boolean>(false);
   const { setupMfa, enableMfa, error, isAuthenticated, login } = useAuth();
+  const deviceInfo = useDeviceInfo();
   const router = useRouter();
 
   // Get user email from localStorage or session
@@ -119,7 +121,15 @@ export default function MfaSetupPage() {
             sessionStorage.removeItem('temp_password');
             
             // Try to log in with the new MFA setup
-            await login(email, storedPassword, undefined, totp_code);
+            const loginResult = await login(email, storedPassword, deviceInfo?.fingerprint, totp_code);
+            
+            if (loginResult) {
+              console.log('Auto-login successful after MFA setup');
+              router.push('/dashboard');
+              return;
+            } else {
+              console.error('Auto-login failed after MFA setup');
+            }
           }
         }
         

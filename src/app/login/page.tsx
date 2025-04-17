@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeviceInfo } from '@/hooks/use-device-info';
-import { checkMfaStatus } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,12 +14,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// MFA verification status
-type AuthStep = 'email' | 'mfa-verification' | 'password' | 'register';
+// Types for auth steps - streamlined for combined login
+type AuthStep = 'login' | 'register';
 
 export default function LoginPage() {
   // Current step in the auth flow
-  const [authStep, setAuthStep] = useState<AuthStep>('email');
+  const [authStep, setAuthStep] = useState<AuthStep>('login');
   
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -29,8 +28,6 @@ export default function LoginPage() {
   const [mfaMethod, setMfaMethod] = useState<'totp' | 'recovery'>('totp');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const [verifiedMfaCode, setVerifiedMfaCode] = useState<string>('');
-  const [verifiedRecoveryCode, setVerifiedRecoveryCode] = useState<string>('');
   
   const { login, register, error, isAuthenticated } = useAuth();
   const deviceInfo = useDeviceInfo();
@@ -53,95 +50,8 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Handle email submission - first step
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Check if MFA is required for this email
-      console.log('Checking MFA status for email:', email);
-      const mfaStatus = await checkMfaStatus(email);
-      
-      if (mfaStatus.error) {
-        console.error('Error checking MFA status:', mfaStatus.error);
-        return;
-      }
-      
-      if (mfaStatus.isMfaRequired) {
-        if (!mfaStatus.isMfaSetUp) {
-          // MFA required but not set up - redirect to setup
-          console.log('MFA required but not set up, redirecting to setup page');
-          localStorage.setItem('user_email', email);
-          console.log('Stored email in localStorage:', localStorage.getItem('user_email'));
-          
-          // Also store the password temporarily for completing the login flow after MFA setup
-          if (password) {
-            sessionStorage.setItem('temp_password', password);
-            console.log('Stored temporary password in sessionStorage');
-          }
-          
-          router.push('/login/mfa-setup');
-        } else {
-          // MFA required and set up - proceed to verification
-          console.log('MFA required and set up, proceeding to verification');
-          setAuthStep('mfa-verification');
-        }
-      } else {
-        // MFA not required - proceed directly to password
-        console.log('MFA not required, proceeding to password entry');
-        setAuthStep('password');
-      }
-    } catch (error) {
-      console.error('Error checking MFA status:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle MFA verification
-  const handleMfaVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) return;
-    
-    const mfaCode = mfaMethod === 'totp' ? totpCode : undefined;
-    const recovery = mfaMethod === 'recovery' ? recoveryCode : undefined;
-    
-    if (!mfaCode && !recovery) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      console.log('Verifying MFA code before password entry');
-      
-      // Store the verified codes for the next step
-      if (mfaMethod === 'totp') {
-        setVerifiedMfaCode(totpCode);
-        setVerifiedRecoveryCode('');
-      } else {
-        setVerifiedRecoveryCode(recoveryCode);
-        setVerifiedMfaCode('');
-      }
-      
-      // In a real implementation, we would verify the MFA code here
-      // against the backend to ensure it's valid before asking for password
-      // For this implementation, we'll just proceed to password step
-      
-      // Move to password entry
-      setAuthStep('password');
-    } catch (error) {
-      console.error('MFA verification error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle final login with password
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  // Handle login submission
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) return;
@@ -149,19 +59,25 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      console.log('Attempting final login with email and password');
+      // Use the TOTP code or recovery code if provided
+      const mfaCode = mfaMethod === 'totp' ? totpCode : undefined;
+      const recovery = mfaMethod === 'recovery' ? recoveryCode : undefined;
       
-      // Use the verified MFA code from previous step
-      const mfaCode = verifiedMfaCode || undefined;
-      const recovery = verifiedRecoveryCode || undefined;
+      console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none' });
       
       const success = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
       
       if (success) {
         console.log('Login successful, redirecting to dashboard');
         router.push('/dashboard');
+      } else if (error && error.includes('MFA not enabled')) {
+        // Handle case where MFA is required but not set up
+        console.log('MFA required but not set up, redirecting to setup page');
+        localStorage.setItem('user_email', email);
+        sessionStorage.setItem('temp_password', password);
+        router.push('/login/mfa-setup');
       } else {
-        // If login fails at this point, it's likely a password issue
+        // Login failed for other reasons
         console.error('Login failed with error:', error);
       }
     } finally {
@@ -196,7 +112,7 @@ export default function LoginPage() {
   };
 
   const switchToLogin = () => {
-    setAuthStep('email');
+    setAuthStep('login');
     setSuccessMessage('');
   };
 
@@ -216,15 +132,11 @@ export default function LoginPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center text-2xl">
-              {authStep === 'email' && 'Sign In'}
-              {authStep === 'mfa-verification' && 'Multi-Factor Authentication'}
-              {authStep === 'password' && 'Enter Password'}
+              {authStep === 'login' && 'Sign In'}
               {authStep === 'register' && 'Create an account'}
             </CardTitle>
             <CardDescription className="text-center">
-              {authStep === 'email' && 'Enter your email to begin the login process'}
-              {authStep === 'mfa-verification' && 'Enter your verification code to proceed'}
-              {authStep === 'password' && 'Enter your password to complete sign in'}
+              {authStep === 'login' && 'Enter your credentials to sign in'}
               {authStep === 'register' && 'Enter your email and password to create an account'}
             </CardDescription>
           </CardHeader>
@@ -242,8 +154,8 @@ export default function LoginPage() {
               </div>
             )}
             
-            {authStep === 'email' && (
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
+            {authStep === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input 
@@ -256,82 +168,6 @@ export default function LoginPage() {
                   />
                 </div>
                 
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Checking...' : 'Continue'}
-                </Button>
-              </form>
-            )}
-            
-            {authStep === 'mfa-verification' && (
-              <form onSubmit={handleMfaVerification} className="space-y-4">
-                <Tabs defaultValue="totp" onValueChange={(v) => setMfaMethod(v as 'totp' | 'recovery')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="totp">Authenticator App</TabsTrigger>
-                    <TabsTrigger value="recovery">Recovery Code</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="totp" className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="totp">Authentication Code</Label>
-                      <Input 
-                        id="totp" 
-                        type="text" 
-                        placeholder="000000" 
-                        value={totpCode}
-                        onChange={(e) => setTotpCode(e.target.value)}
-                        maxLength={6}
-                        pattern="[0-9]{6}"
-                        required
-                      />
-                      <p className="text-xs text-gray-500">
-                        Enter the 6-digit code from your authenticator app
-                      </p>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="recovery" className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="recovery">Recovery Code</Label>
-                      <Input 
-                        id="recovery" 
-                        type="text" 
-                        placeholder="xxxx-xxxx-xxxx-xxxx" 
-                        value={recoveryCode}
-                        onChange={(e) => setRecoveryCode(e.target.value)}
-                        required
-                      />
-                      <p className="text-xs text-gray-500">
-                        Enter one of your recovery codes (this can only be used once)
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting || 
-                    (mfaMethod === 'totp' && totpCode.length !== 6) || 
-                    (mfaMethod === 'recovery' && !recoveryCode)}
-                >
-                  {isSubmitting ? 'Verifying...' : 'Verify'}
-                </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setAuthStep('email')}
-                >
-                  Back
-                </Button>
-              </form>
-            )}
-            
-            {authStep === 'password' && (
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input 
@@ -341,6 +177,67 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                </div>
+                
+                <div className="space-y-3">
+                  <Label>Multi-Factor Authentication (if enabled)</Label>
+                  <Tabs defaultValue="totp" onValueChange={(v) => setMfaMethod(v as 'totp' | 'recovery')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="totp">Authenticator App</TabsTrigger>
+                      <TabsTrigger value="recovery">Recovery Code</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="totp" className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="totp">Authentication Code</Label>
+                        <Input 
+                          id="totp" 
+                          type="text" 
+                          placeholder="000000" 
+                          value={totpCode}
+                          onChange={(e) => setTotpCode(e.target.value)}
+                          maxLength={6}
+                          pattern="[0-9]{6}"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter the 6-digit code from your authenticator app
+                        </p>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="recovery" className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="recovery">Recovery Code</Label>
+                        <Input 
+                          id="recovery" 
+                          type="text" 
+                          placeholder="xxxx-xxxx-xxxx-xxxx" 
+                          value={recoveryCode}
+                          onChange={(e) => setRecoveryCode(e.target.value)}
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter one of your recovery codes (this can only be used once)
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  
+                  <div className="text-center">
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="text-sm text-blue-600"
+                      onClick={() => {
+                        localStorage.setItem('user_email', email);
+                        if (password) {
+                          sessionStorage.setItem('temp_password', password);
+                        }
+                        router.push('/login/mfa-setup');
+                      }}
+                    >
+                      I haven&apos;t set up MFA yet
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -359,15 +256,6 @@ export default function LoginPage() {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Signing in...' : 'Sign In'}
-                </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setAuthStep('mfa-verification')}
-                >
-                  Back
                 </Button>
               </form>
             )}
