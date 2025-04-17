@@ -339,7 +339,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public void enableMfa(String email, String totpCode) {
+    public void enableMfa(String email, String totpCode, String userAgent, String fingerprint, String ip) {
         User user = userMapper.getUserByEmail(email);
         if (user == null) {
             throw new BaseException(ErrorCode.USER_NOT_FOUND);
@@ -366,6 +366,16 @@ public class UserServiceImpl implements UserService {
                 user.getUserId()
         );
 
+        UserAgent ua = userAgentUtils.parse(userAgent);
+
+        DeviceFingerprint df = DeviceFingerprint.builder()
+                .browser(userAgentUtils.parseBrowser(ua))
+                .os(userAgentUtils.parseOS(ua))
+                .print(fingerprint)
+                .ip(ip)
+                .build();
+
+        addTrustedDevice(user, df);
         log.info("User MFA enabled successfully: {}", email);
     }
 

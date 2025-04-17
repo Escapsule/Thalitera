@@ -78,8 +78,11 @@ public interface UserService {
      *
      * @param email user email
      * @param totpCode user totp code
+     * @param userAgent user agent
+     * @param fingerprint user fingerprint
+     * @param ip user ip
      */
-    void enableMfa(String email, String totpCode);
+    void enableMfa(String email, String totpCode, String userAgent, String fingerprint, String ip);
 
     void rollbackToNoMfa(String email);
 }

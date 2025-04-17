@@ -107,8 +107,12 @@ public class UserController {
             @ApiResponse(responseCode = "2605", description = "MFA code incorrect."),
     })
     @PostMapping("/mfa/enable")
-    public ApiResult<String> enableMfa(@RequestBody MfaEnableDTO dto) {
-        userService.enableMfa(dto.getEmail(), dto.getTotpCode());
+    public ApiResult<String> enableMfa(@RequestBody MfaEnableDTO dto,
+                                       @RequestHeader("User-Agent") String userAgent,
+                                       @RequestHeader("THALITERA_FINGERPRINT")String fingerprint,
+                                       HttpServletRequest httpRequest) {
+        String ip = IpUtils.getClientIp(httpRequest);
+        userService.enableMfa(dto.getEmail(), dto.getTotpCode(), userAgent, fingerprint, ip);
         return ApiResult.success();
     }
 
