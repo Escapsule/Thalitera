@@ -46,6 +46,7 @@ export function useAuth(): UseAuthReturn {
         // Client-side created cookies
         'thalitera_session=; Path=/; Max-Age=0',
         'thalitera_auth=; Path=/; Max-Age=0',
+        'thalitera_session_marker=; Path=/; Max-Age=0',
         // For any dashboard-specific cookies
         'dashboard_*=; Path=/; Max-Age=0'
       ];
@@ -78,41 +79,29 @@ export function useAuth(): UseAuthReturn {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Check for valid THALITERA_SESSION_ID cookie - ONLY consider server-set cookies valid
-        const hasCookie = typeof window !== 'undefined' && 
-          document.cookie.split(';')
-            .map(c => c.trim())
-            .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
+        // Use API to check auth status instead of checking cookies directly
+        const response = await fetch('/api/user/check-auth', {
+          method: 'GET',
+          credentials: 'include', // Include cookies in the request
+        });
         
-        // Any other session cookies should be cleared (client-created ones)
-        const hasInvalidCookies = typeof window !== 'undefined' && 
-          document.cookie.split(';')
-            .map(c => c.trim())
-            .some(cookie => 
-              cookie.startsWith('thalitera_session=') || 
-              cookie.startsWith('dashboard_')
-            );
+        const data = await response.json();
+        const authenticated = data.code === 200;
         
-        if (hasInvalidCookies) {
-          console.log('Found client-created session cookies - clearing them');
-          clearAllAuthCookies();
-        }
+        console.log('Auth check response in useAuth:', data.code, authenticated ? 'authenticated' : 'not authenticated');
         
-        // User is authenticated ONLY if they have a valid server-set THALITERA_SESSION_ID cookie
-        setIsAuthenticated(hasCookie);
+        setIsAuthenticated(authenticated);
         
-        // Sync localStorage with cookie state
-        if (hasCookie) {
+        // Sync localStorage with auth state
+        if (authenticated) {
           localStorage.setItem('thalitera_auth', 'true');
         } else {
           localStorage.removeItem('thalitera_auth');
         }
       } catch (error) {
         console.error('Auth verification error:', error);
-        // On error, check for cookie and use that to determine auth state
-        const hasCookie = typeof window !== 'undefined' && 
-          document.cookie.includes('THALITERA_SESSION_ID=');
-        setIsAuthenticated(hasCookie);
+        setIsAuthenticated(false);
+        localStorage.removeItem('thalitera_auth');
       } finally {
         setIsLoading(false);
       }
@@ -120,24 +109,13 @@ export function useAuth(): UseAuthReturn {
 
     verifyAuth();
     
-    // Set up interval to periodically check and clear any client-side cookies
-    const cookieCleanupInterval = setInterval(() => {
-      const hasInvalidCookies = typeof window !== 'undefined' && 
-        document.cookie.split(';')
-          .map(c => c.trim())
-          .some(cookie => 
-            (cookie.startsWith('thalitera_session=') && !cookie.includes('THALITERA_SESSION_ID')) || 
-            cookie.startsWith('dashboard_')
-          );
-      
-      if (hasInvalidCookies) {
-        console.log('Cleanup: Found client-created session cookies - clearing them');
-        clearAllAuthCookies();
-      }
-    }, 10000); // Check every 10 seconds
+    // Set up interval to periodically check auth status
+    const authCheckInterval = setInterval(() => {
+      verifyAuth();
+    }, 30000); // Check every 30 seconds
     
-    return () => clearInterval(cookieCleanupInterval);
-  }, [clearAllAuthCookies]);
+    return () => clearInterval(authCheckInterval);
+  }, []);
 
   // Login function
   const login = useCallback(async (
@@ -163,7 +141,8 @@ export function useAuth(): UseAuthReturn {
         console.log('Login API returned success');
         
         // After successful login, check if the cookie was set by the server
-        const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
+        const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=') || 
+                          document.cookie.includes('thalitera_session_marker=');
         console.log('Cookie check after login:', hasCookie ? 'found' : 'not found');
         
         // Only set local auth state if server cookie exists

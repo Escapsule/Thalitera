@@ -74,8 +74,8 @@ interface CardProps {
 }
 
 const Card = ({ children, title }: CardProps) => (
-  <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
+  <div className="bg-white rounded-xl shadow-lg p-6 h-full flex flex-col border border-gray-100">
+    <h2 className="text-xl font-semibold mb-4 text-gray-800">{title}</h2>
     <div className="flex-1 flex flex-col min-h-0">
       {children}
     </div>
@@ -83,13 +83,13 @@ const Card = ({ children, title }: CardProps) => (
 )
 
 const StatCard = ({ title, value, suffix = '', icon, className }: StatCardProps) => (
-  <div className="bg-white p-3 rounded-lg shadow-md h-full">
-    <div className="flex items-start justify-between mb-1 h-[32px]">
-      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
-      {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
+  <div className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-xl shadow-md h-full border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+    <div className="flex items-start justify-between mb-2 h-[32px]">
+      <h3 className={`text-gray-600 font-medium ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
+      {icon && <span className="text-primary flex-shrink-0 bg-primary/10 p-2 rounded-full">{icon}</span>}
     </div>
     <div className="h-[32px] flex items-center">
-      <p className="text-lg sm:text-xl font-semibold break-all">
+      <p className="text-lg sm:text-2xl font-bold text-gray-800">
         {value.toLocaleString()}{suffix}
       </p>
     </div>
@@ -133,16 +133,16 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
   }
 
   return (
-    <div className="flex justify-center items-center gap-1 text-sm">
+    <div className="flex justify-center items-center gap-2 text-sm">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
+        className="px-3 py-1 text-xs rounded-md border border-gray-200 disabled:opacity-50 hover:bg-gray-50 transition-colors duration-200 font-medium"
       >
-        previous page
+        Previous
       </button>
       <div className="flex items-center gap-1">
-        <span className="text-xs">page</span>
+        <span className="text-xs font-medium text-gray-600">Page</span>
         <input
           title="Page number"
           type="text"
@@ -150,16 +150,16 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           onBlur={handleInputSubmit}
-          className="w-8 px-1 py-0.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-10 px-2 py-1 text-xs text-center border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
-        <span className="text-xs">, total {totalPages} pages</span>
+        <span className="text-xs text-gray-500">of {totalPages}</span>
       </div>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
+        className="px-3 py-1 text-xs rounded-md border border-gray-200 disabled:opacity-50 hover:bg-gray-50 transition-colors duration-200 font-medium"
       >
-        next page
+        Next
       </button>
     </div>
   )
@@ -423,20 +423,21 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <div className="flex min-h-[95cvh] flex-col py-6 ml-12 bg-gray-50">
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
+        <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
         <div className="ml-auto flex items-center gap-4">
-          <Avatar>
+          <Avatar className="border-2 border-primary/20">
             <AvatarImage src="/placeholder-user.jpg" alt="User" />
-            <AvatarFallback>TH</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary font-medium">TH</AvatarFallback>
           </Avatar>
         </div>
       </header>
       
       <div className="flex flex-1 justify-center">
-        <main className="flex-1 p-4 md:p-6 min-w-[80vw] max-w-[80vw] mx-auto">
-          <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+        <main className="flex-1 p-6 md:p-8 min-w-[80vw] max-w-[80vw] mx-auto">
+          <div className="space-y-8">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="w-full min-w-0">
                 <Card title="Meeting Room Usage">
                   <div className="flex flex-col h-full">
@@ -464,7 +465,7 @@ const DashboardPage = () => {
 
                     <div className="flex-1 flex flex-col min-h-0">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                        <h3 className="text-lg font-medium">Meeting Rooms</h3>
+                        <h3 className="text-lg font-medium text-gray-800">Meeting Rooms</h3>
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
@@ -474,30 +475,30 @@ const DashboardPage = () => {
                               setRoomSearchQuery(e.target.value)
                               setRoomCurrentPage(1)
                             }}
-                            className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 pr-8 shadow-sm"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
                             <Search className="h-4 w-4" />
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto mb-1">
+                      <div className="flex-1 overflow-y-auto mb-4 pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                         <div className="space-y-4">
                           {currentRooms.map((room) => (
                             <div 
                               key={room.id}
-                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-md"
                               onClick={() => handleViewRoom(room)}
                             >
-                              <div className="flex justify-between items-start mb-2">
+                              <div className="flex justify-between items-start mb-3">
                                 <div>
-                                  <h4 className="font-medium">{room.name}</h4>
+                                  <h4 className="font-medium text-gray-800">{room.name}</h4>
                                   <p className="text-sm text-gray-500">{room.location}</p>
                                 </div>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                                   room.status === 'available' ? 'bg-green-100 text-green-800' :
-                                  room.status === 'booked' ? 'bg-yellow-100 text-yellow-800' :
-                                  room.status === 'in_use' ? 'bg-red-100 text-red-800' :
+                                  room.status === 'booked' ? 'bg-amber-100 text-amber-800' :
+                                  room.status === 'in_use' ? 'bg-rose-100 text-rose-800' :
                                   'bg-gray-100 text-gray-800'
                                 }`}>
                                   {room.status === 'available' ? 'Available' :
@@ -508,25 +509,25 @@ const DashboardPage = () => {
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-gray-400" />
-                                  <span>{room.capacity} people</span>
+                                  <Users className="h-4 w-4 text-primary/70" />
+                                  <span className="text-gray-700">{room.capacity} people</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <BarChart2 className="h-4 w-4 text-gray-400" />
-                                  <span>Utilization: {room.utilizationRate}%</span>
+                                  <BarChart2 className="h-4 w-4 text-primary/70" />
+                                  <span className="text-gray-700">Utilization: {room.utilizationRate}%</span>
                                 </div>
                               </div>
                               {room.currentBookings && room.currentBookings.length > 0 && (
-                                <div className="mt-2 text-sm text-gray-500">
-                                  <span>Current: {room.currentBookings[0].userName} ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
+                                <div className="mt-3 text-sm bg-gray-50 p-2 rounded-md border border-gray-100">
+                                  <span className="text-gray-700">Current: <span className="font-medium">{room.currentBookings[0].userName}</span> ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
                                 </div>
                               )}
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="sticky bottom-0 bg-white border-t">
-                        <div className="py-1">
+                      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-lg">
+                        <div className="py-2">
                           <Pagination
                             currentPage={roomCurrentPage}
                             totalPages={roomTotalPages}
@@ -566,7 +567,7 @@ const DashboardPage = () => {
 
                     <div className="flex-1 flex flex-col min-h-0">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                        <h3 className="text-lg font-medium">Users</h3>
+                        <h3 className="text-lg font-medium text-gray-800">Users</h3>
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
@@ -576,30 +577,30 @@ const DashboardPage = () => {
                               setUserSearchQuery(e.target.value)
                               setUserCurrentPage(1)
                             }}
-                            className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 pr-8 shadow-sm"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
                             <Search className="h-4 w-4" />
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto mb-1">
+                      <div className="flex-1 overflow-y-auto mb-4 pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                         <div className="space-y-4">
                           {currentUsers.map((user) => (
                             <div
                               key={user.id}
-                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-md"
                               onClick={() => handleViewUser(user)}
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
                                   <div className="relative">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <Avatar className="h-10 w-10 border-2 border-gray-100">
+                                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
                                         {user.name.charAt(0).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
+                                    <span className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${
                                       user.status === 'online' 
                                         ? 'bg-green-500' 
                                         : 'bg-gray-400'
@@ -607,31 +608,31 @@ const DashboardPage = () => {
                                   </div>
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium">{user.name}</span>
-                                      <span className="text-sm text-gray-500">ID: {user.id}</span>
+                                      <span className="font-medium text-gray-800">{user.name}</span>
+                                      <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">ID: {user.id}</span>
                                     </div>
                                     <span className="text-xs text-gray-500">Last Login: {user.lastLogin}</span>
                                   </div>
                                 </div>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                                   user.status === 'online'
                                     ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    : 'bg-gray-100 text-gray-600'
                                 }`}>
                                   {user.status === 'online' ? 'Online' : 'Offline'}
                                 </span>
                               </div>
                               {user.currentBookings && user.currentBookings.length > 0 && (
-                                <div className="mt-2 text-sm text-gray-500">
-                                  <span>Current Booking: {user.currentBookings[0].roomName} ({user.currentBookings[0].startTime} - {user.currentBookings[0].endTime})</span>
+                                <div className="mt-3 text-sm bg-gray-50 p-2 rounded-md border border-gray-100">
+                                  <span className="text-gray-700">Current Booking: <span className="font-medium">{user.currentBookings[0].roomName}</span> ({user.currentBookings[0].startTime} - {user.currentBookings[0].endTime})</span>
                                 </div>
                               )}
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="sticky bottom-0 bg-white border-t">
-                        <div className="py-1">
+                      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-lg">
+                        <div className="py-2">
                           <Pagination
                             currentPage={userCurrentPage}
                             totalPages={userTotalPages}
@@ -648,7 +649,7 @@ const DashboardPage = () => {
             {/* Statistics Chart Area */}
             <div className="w-full min-w-0">
               <Card title="Meeting Room Booking Preference Analysis">
-                <div className="w-full overflow-x-auto">
+                <div className="w-full overflow-x-auto p-2">
                   <RoomCharts rooms={rooms} />
                 </div>
               </Card>

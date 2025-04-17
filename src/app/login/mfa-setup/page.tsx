@@ -172,24 +172,24 @@ export default function MfaSetupPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[lch(100_0_0)]">
+      <Card className="w-full max-w-3xl shadow-lg border border-[lch(97_0_0)]">
+        <CardHeader className="bg-[lch(100_0_0)] border-b border-[lch(97_0_0)] pb-6">
+          <CardTitle className="text-2xl font-bold text-[lch(17_23_133)] text-center">
             {step === 'setup' && 'Set Up Multi-Factor Authentication'}
             {step === 'verify' && 'Verify Your Authentication App'}
             {step === 'complete' && 'Multi-Factor Authentication Enabled'}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-center text-[lch(56_0_0)] mt-2">
             {step === 'setup' && 'Add an extra layer of security to your account'}
             {step === 'verify' && 'Scan the QR code with your authenticator app and verify to complete setup'}
             {step === 'complete' && 'Your account is now protected with multi-factor authentication'}
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-[lch(57_24_27)] bg-[lch(97_2_27)]">
               <AlertTriangleIcon className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
@@ -198,13 +198,13 @@ export default function MfaSetupPage() {
           
           {step === 'setup' && (
             <div className="space-y-4">
-              <p>
+              <p className="text-[lch(17_23_133)] text-center">
                 Multi-factor authentication adds an extra layer of security to your account by requiring 
                 a verification code in addition to your password when you sign in.
               </p>
               
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-2 max-w-md mx-auto">
+                <Label htmlFor="email" className="text-[lch(17_23_133)]">Email</Label>
                 <Input 
                   id="email" 
                   type="email" 
@@ -212,31 +212,34 @@ export default function MfaSetupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="border-[lch(92_0_0)] focus:ring-[lch(17_23_133)/50] focus:border-[lch(17_23_133)]"
                 />
               </div>
               
-              <Button 
-                onClick={handleSetupMfa}
-                disabled={isSubmitting || !email}
-                className="w-full"
-              >
-                {isSubmitting ? 'Setting up...' : 'Set Up MFA'}
-              </Button>
+              <div className="pt-4 flex justify-center">
+                <Button 
+                  onClick={handleSetupMfa}
+                  disabled={isSubmitting || !email}
+                  className="w-full max-w-md bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)] text-[lch(100_0_0)]"
+                >
+                  {isSubmitting ? 'Setting up...' : 'Set Up MFA'}
+                </Button>
+              </div>
             </div>
           )}
           
           {step === 'verify' && (
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Step 1: Scan QR Code</h3>
-                <p>
+                <h3 className="text-lg font-medium text-[lch(17_23_133)] text-center">Step 1: Scan QR Code</h3>
+                <p className="text-[lch(17_23_133)] text-center">
                   Scan this QR code with your authenticator app (like Google Authenticator, 
                   Microsoft Authenticator, or Authy).
                 </p>
                 
                 <div className="flex justify-center py-4">
                   {qrCode && (
-                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
+                    <div className="overflow-hidden rounded-lg border border-[lch(92_0_0)] bg-[lch(100_0_0)] p-2 shadow-md">
                       <Image 
                         src={qrCode} 
                         alt="QR Code for Authenticator App" 
@@ -249,40 +252,52 @@ export default function MfaSetupPage() {
                 </div>
               </div>
               
-              <Separator />
+              <Separator className="bg-[lch(92_0_0)]" />
               
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Step 2: Save Recovery Codes</h3>
-                <p>
+                <h3 className="text-lg font-medium text-[lch(17_23_133)] text-center">Step 2: Save Recovery Codes</h3>
+                <p className="text-[lch(17_23_133)] text-center">
                   Save these recovery codes in a safe place. If you lose your authenticator app, 
                   you can use one of these codes to sign in. Each code can only be used once.
                 </p>
                 
-                <div className="flex space-x-2">
-                  <Button variant="outline" onClick={() => setShowRecoveryCodes(!showRecoveryCodes)}>
+                <div className="flex justify-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowRecoveryCodes(!showRecoveryCodes)}
+                    className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
+                  >
                     {showRecoveryCodes ? 'Hide Codes' : 'Show Codes'}
                   </Button>
-                  <Button variant="outline" onClick={downloadRecoveryCodes}>
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadRecoveryCodes}
+                    className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
+                  >
                     Download Codes
                   </Button>
                 </div>
                 
                 {showRecoveryCodes && (
-                  <div className="mt-4 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-4">
+                  <div className="mt-4 space-y-2 rounded-md border border-[lch(92_0_0)] bg-[lch(97_0_0)] p-4">
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                       {recoveryCodes.map((code, index) => (
                         <div 
                           key={index} 
-                          className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-2"
+                          className="flex items-center justify-between rounded-md border border-[lch(92_0_0)] bg-[lch(100_0_0)] p-2 hover:shadow-md transition-shadow duration-200"
                         >
-                          <code className="font-mono text-sm">{code}</code>
+                          <code className="font-mono text-sm text-[lch(17_23_133)]">{code}</code>
                           <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={() => copyRecoveryCode(code, index)}
                             title="Copy to clipboard"
+                            className="text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
                           >
-                            {copiedIndex === index ? <CheckCircleIcon className="h-4 w-4 text-green-500" /> : <CopyIcon className="h-4 w-4" />}
+                            {copiedIndex === index ? 
+                              <CheckCircleIcon className="h-4 w-4 text-[lch(47_69_149)]" /> : 
+                              <CopyIcon className="h-4 w-4" />
+                            }
                           </Button>
                         </div>
                       ))}
@@ -291,17 +306,17 @@ export default function MfaSetupPage() {
                 )}
               </div>
               
-              <Separator />
+              <Separator className="bg-[lch(92_0_0)]" />
               
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Step 3: Verify Setup</h3>
-                <p>
+                <h3 className="text-lg font-medium text-[lch(17_23_133)] text-center">Step 3: Verify Setup</h3>
+                <p className="text-[lch(17_23_133)] text-center">
                   Enter the 6-digit verification code from your authenticator app to complete setup.
                 </p>
                 
                 <form onSubmit={handleVerifyMfa} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="totp_code">Verification Code</Label>
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <Label htmlFor="totp_code" className="text-[lch(17_23_133)]">Verification Code</Label>
                     <Input 
                       id="totp_code" 
                       type="text" 
@@ -311,35 +326,40 @@ export default function MfaSetupPage() {
                       maxLength={6}
                       pattern="[0-9]{6}"
                       required
+                      className="border-[lch(92_0_0)] focus:ring-[lch(17_23_133)/50] focus:border-[lch(17_23_133)] text-center text-lg tracking-widest"
                     />
                   </div>
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isSubmitting || totp_code.length !== 6}
-                  >
-                    {isSubmitting ? 'Verifying...' : 'Verify and Enable'}
-                  </Button>
+                  <div className="pt-4 flex justify-center">
+                    <Button 
+                      type="submit" 
+                      className="w-full max-w-md bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)] text-[lch(100_0_0)]"
+                      disabled={isSubmitting || totp_code.length !== 6}
+                    >
+                      {isSubmitting ? 'Verifying...' : 'Verify and Enable'}
+                    </Button>
+                  </div>
                 </form>
               </div>
             </div>
           )}
           
           {step === 'complete' && (
-            <div className="space-y-4 text-center">
-              <div className="flex justify-center">
-                <CheckCircleIcon className="h-16 w-16 text-green-500" />
+            <div className="space-y-6 text-center">
+              <div className="flex justify-center py-4">
+                <div className="rounded-full bg-[lch(94_5_133)] p-4">
+                  <CheckCircleIcon className="h-16 w-16 text-[lch(47_69_149)]" />
+                </div>
               </div>
               
-              <h3 className="text-xl font-medium">Setup Complete!</h3>
+              <h3 className="text-xl font-bold text-[lch(17_23_133)]">Setup Complete!</h3>
               
-              <p>
+              <p className="text-[lch(17_23_133)] max-w-lg mx-auto">
                 Your account is now protected with multi-factor authentication. 
                 You&apos;ll need to enter a verification code each time you sign in.
               </p>
               
-              <Alert>
+              <Alert className="bg-[lch(94_5_133)] text-[lch(17_23_133)] border-[lch(17_23_133)/20] max-w-lg mx-auto">
                 <AlertDescription>
                   Remember to keep your recovery codes in a safe place. You&apos;ll need them 
                   if you lose access to your authenticator app.
@@ -349,19 +369,23 @@ export default function MfaSetupPage() {
           )}
         </CardContent>
         
-        <CardFooter>
-          <div className="flex w-full justify-between">
+        <CardFooter className="border-t border-[lch(97_0_0)] bg-[lch(97_0_0)] rounded-b-xl py-4 flex justify-center">
+          <div className="flex w-full max-w-md justify-between">
             {step !== 'setup' && (
               <Button 
                 variant="outline" 
                 onClick={() => router.push('/login')}
+                className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
               >
                 Back to Login
               </Button>
             )}
             
             {step === 'complete' && (
-              <Button onClick={handleComplete}>
+              <Button 
+                onClick={handleComplete}
+                className="bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)] text-[lch(100_0_0)] ml-auto"
+              >
                 Continue to Login
               </Button>
             )}

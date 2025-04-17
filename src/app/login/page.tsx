@@ -34,14 +34,31 @@ export default function LoginPage() {
   const deviceInfo = useDeviceInfo();
   const router = useRouter();
 
-  // Check if already authenticated via THALITERA_SESSION_ID cookie
+  // Check if already authenticated
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasSessionCookie = document.cookie.includes('THALITERA_SESSION_ID=');
-      if (hasSessionCookie) {
-        router.push('/dashboard');
+    const checkAuth = async () => {
+      try {
+        // Use API to check auth status
+        const response = await fetch('/api/user/check-auth', {
+          method: 'GET',
+          credentials: 'include', // Include cookies in the request
+        });
+        
+        const data = await response.json();
+        if (data.code === 200) {
+          console.log('Already authenticated, redirecting to dashboard');
+          router.push('/dashboard');
+        } else if (data.code === 2019) {
+          // MFA required but not set up - redirect to setup if user is logged in
+          console.log('MFA required but not set up, redirecting to setup page');
+          router.push('/login/mfa-setup');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
       }
-    }
+    };
+    
+    checkAuth();
   }, [router]);
 
   // Redirect if already authenticated
@@ -72,16 +89,12 @@ export default function LoginPage() {
       if (result.success) {
         console.log('Login successful, redirecting to dashboard');
         router.push('/dashboard');
-      } else if (result.code === 2018) {
+      } else if (result.code === 2018 || result.code === 2019) {
         // MFA not enabled but required - redirect to MFA setup
         console.log('MFA required but not set up, redirecting to setup page');
         localStorage.setItem('user_email', email);
         sessionStorage.setItem('temp_password', password);
         router.push('/login/mfa-setup');
-      } else if (result.code === 2019) {
-        // MFA required - show MFA input
-        console.log('MFA required, showing MFA input');
-        setShowMfaInput(true);
       } else if (result.code === 2608) {
         // New device requires MFA - show MFA input
         console.log('New device detected, MFA required, showing MFA input');

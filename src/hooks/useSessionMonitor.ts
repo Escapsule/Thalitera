@@ -22,6 +22,7 @@ export function useSessionMonitor() {
   // Clear session cookie function
   const clearSessionCookie = () => {
     document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+    document.cookie = 'thalitera_session_marker=; Path=/; Max-Age=0';
     localStorage.removeItem('thalitera_auth');
     console.log('Session cookie cleared due to invalid auth status');
   };

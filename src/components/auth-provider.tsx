@@ -12,35 +12,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to clear invalid client-side created cookies
-function clearInvalidCookies() {
-  if (typeof window !== 'undefined') {
-    // Clear any client-side created session cookies
-    const invalidCookies = document.cookie.split(';')
-      .map(c => c.trim())
-      .filter(cookie => 
-        cookie.startsWith('THALITERA_SESSION_ID=dashboard_') || 
-        cookie.startsWith('thalitera_session=') ||
-        cookie.startsWith('dashboard_')
-      );
-    
-    if (invalidCookies.length > 0) {
-      console.log('Found invalid client-created cookies in AuthProvider - clearing them');
-      
-      invalidCookies.forEach(cookie => {
-        const name = cookie.split('=')[0];
-        document.cookie = `${name}=; Path=/; Max-Age=0`;
-        document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-      });
-      
-      // Also clear these specific cookies
-      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
-      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
-    }
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -55,33 +26,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Clear any client-side created cookies first
-        clearInvalidCookies();
+        // Use the API to check auth status instead of checking cookies directly
+        const response = await fetch('/api/user/check-auth', {
+          method: 'GET',
+          credentials: 'include', // Important: include cookies in the request
+        });
         
-        // Check for valid THALITERA_SESSION_ID cookie (only valid if set by server)
-        let authenticated = false;
+        const data = await response.json();
+        const authenticated = data.code === 200;
         
-        if (typeof window !== 'undefined') {
-          // Check for server-set THALITERA_SESSION_ID cookie
-          const hasCookie = document.cookie.split(';')
-            .map(c => c.trim())
-            .some(cookie => 
-              cookie.startsWith('THALITERA_SESSION_ID=') && 
-              !cookie.includes('dashboard_') && 
-              !cookie.includes('authProvider_')
-            );
-          
-          authenticated = hasCookie;
-          
-          // Synchronize localStorage with cookies
-          if (hasCookie) {
-            localStorage.setItem('thalitera_auth', 'true');
-          } else {
-            localStorage.removeItem('thalitera_auth');
-          }
-        }
+        console.log('Auth check response:', data.code, authenticated ? 'authenticated' : 'not authenticated');
         
         setAuthenticated(authenticated);
+        
+        // Synchronize localStorage with auth state
+        if (authenticated) {
+          localStorage.setItem('thalitera_auth', 'true');
+        } else {
+          localStorage.removeItem('thalitera_auth');
+        }
         
         // Redirect to login if not authenticated and trying to access protected routes
         if (!authenticated && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin'))) {
@@ -117,12 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     verifyAuth();
     
-    // Set up interval to clear any client-side created cookies periodically
-    const cookieCleanupInterval = setInterval(() => {
-      clearInvalidCookies();
-    }, 5000); // Check every 5 seconds
+    // Set up interval to check auth status periodically
+    const authCheckInterval = setInterval(() => {
+      verifyAuth();
+    }, 30000); // Check every 30 seconds
     
-    return () => clearInterval(cookieCleanupInterval);
+    return () => clearInterval(authCheckInterval);
   }, [pathname, router, sessionStatus]);
 
   const value = {

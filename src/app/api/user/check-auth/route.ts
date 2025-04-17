@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    console.log('Backend URL:', backendUrl);
+    console.log('Backend URL for auth check:', backendUrl);
     
     // Forward all cookies from the client request
     const headers: HeadersInit = {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
       ?.split('=')[1] || '';
     
-    console.log('Session ID from request:', sessionId ? 'Found' : 'Not found');
+    console.log('Session ID from request:', sessionId ? 'Found (value hidden)' : 'Not found');
     
     if (cookie) {
       // Send the cookie header as-is
@@ -28,9 +28,11 @@ export async function GET(request: NextRequest) {
       if (sessionId) {
         headers['Cookie'] = `THALITERA_SESSION_ID=${sessionId}`;
       }
+    } else {
+      console.log('No cookies found in the request');
     }
 
-    console.log('Sending request to backend with cookies');
+    console.log('Sending auth check request to backend with cookies');
     
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/user/check-auth`, {
@@ -39,25 +41,32 @@ export async function GET(request: NextRequest) {
       credentials: 'include',
     });
 
-    console.log('Response status:', response.status);
+    console.log('Auth check response status:', response.status);
     
     // Get the response data
     const data = await response.json();
+    console.log('Auth check response code:', data.code);
 
     // Create a new response with the data
     const nextResponse = NextResponse.json(data);
 
     // Forward any cookies from the backend response
+    let cookiesForwarded = false;
     response.headers.forEach((value, key) => {
       if (key.toLowerCase() === 'set-cookie') {
         console.log('Forwarding cookie from backend response');
         nextResponse.headers.set(key, value);
+        cookiesForwarded = true;
       }
     });
+    
+    if (!cookiesForwarded) {
+      console.log('No cookies to forward from backend response');
+    }
 
     return nextResponse;
   } catch (error) {
-    console.error('API route error:', error);
+    console.error('Check auth API error:', error);
     return NextResponse.json(
       {
         code: 500,

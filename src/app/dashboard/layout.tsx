@@ -22,7 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       // Verify existing authentication - only check THALITERA_SESSION_ID cookie
       const hasLocalStorageAuth = localStorage.getItem('thalitera_auth') === 'true';
       const hasCookie = document.cookie.split(';').some(cookie => 
-        cookie.trim().startsWith('THALITERA_SESSION_ID=')
+        cookie.trim().startsWith('THALITERA_SESSION_ID=') || cookie.trim().startsWith('thalitera_session_marker=')
       );
       
       // Log authentication state for debugging
