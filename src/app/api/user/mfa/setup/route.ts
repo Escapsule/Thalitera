@@ -42,6 +42,22 @@ export async function GET(request: NextRequest) {
       hasRecoveryCodes: Array.isArray(data.data?.recoveryCodes),
     });
     
+    // Make sure the data has the format expected by the frontend
+    if (data.data) {
+      // Convert backend field names to frontend expected field names if needed
+      if (data.data.qrCode && !data.data.qr_code) {
+        data.data.qr_code = data.data.qrCode;
+      }
+      if (data.data.recoveryCodes && !data.data.recovery_codes) {
+        data.data.recovery_codes = data.data.recoveryCodes;
+      }
+      
+      console.log('MFA setup data with normalized fields:', {
+        hasQrCode: !!data.data.qr_code,
+        hasRecoveryCodes: Array.isArray(data.data.recovery_codes),
+      });
+    }
+    
     // Return the response
     return NextResponse.json(data);
   } catch (error) {

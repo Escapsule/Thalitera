@@ -364,7 +364,7 @@ export async function enableMfa(email: string, totpCode: string): Promise<ApiRes
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, totpCode }),
+      body: JSON.stringify({ email, totp_code: totpCode }),
       credentials: 'include',
     });
 

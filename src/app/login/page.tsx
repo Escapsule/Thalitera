@@ -76,6 +76,14 @@ export default function LoginPage() {
           // MFA required but not set up - redirect to setup
           console.log('MFA required but not set up, redirecting to setup page');
           localStorage.setItem('user_email', email);
+          console.log('Stored email in localStorage:', localStorage.getItem('user_email'));
+          
+          // Also store the password temporarily for completing the login flow after MFA setup
+          if (password) {
+            sessionStorage.setItem('temp_password', password);
+            console.log('Stored temporary password in sessionStorage');
+          }
+          
           router.push('/login/mfa-setup');
         } else {
           // MFA required and set up - proceed to verification

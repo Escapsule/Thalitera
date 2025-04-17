@@ -17,7 +17,7 @@ export default function MfaSetupPage() {
   const [qrCode, setQrCode] = useState<string>('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [showRecoveryCodes, setShowRecoveryCodes] = useState<boolean>(false);
-  const [totpCode, setTotpCode] = useState<string>('');
+  const [totp_code, setTotp_code] = useState<string>('');
   const [step, setStep] = useState<'setup' | 'verify' | 'complete'>('setup');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -29,6 +29,7 @@ export default function MfaSetupPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedEmail = localStorage.getItem('user_email');
+      console.log('MFA setup page - storedEmail from localStorage:', storedEmail);
       if (storedEmail) {
         setEmail(storedEmail);
         setIsRedirectedFromLogin(true);
@@ -38,10 +39,23 @@ export default function MfaSetupPage() {
 
   // Check authentication status
   useEffect(() => {
-    // In our new flow, user is redirected to MFA setup from login
-    // and should return to login after setup is complete
-    if (!isRedirectedFromLogin && !isAuthenticated && typeof window !== 'undefined') {
-      router.push('/login');
+    // Give time for the first useEffect to run and set isRedirectedFromLogin
+    if (typeof window !== 'undefined') {
+      const timeoutId = setTimeout(() => {
+        // Only redirect if we're not redirected from login and not authenticated
+        console.log('MFA setup page - checking auth state:', { 
+          isRedirectedFromLogin, 
+          isAuthenticated,
+          email: localStorage.getItem('user_email')
+        });
+        
+        if (!isRedirectedFromLogin && !isAuthenticated) {
+          console.log('MFA setup page - redirecting to login page');
+          router.push('/login');
+        }
+      }, 500); // Small delay to ensure localStorage is checked first
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, router, isRedirectedFromLogin]);
 
@@ -55,10 +69,21 @@ export default function MfaSetupPage() {
       const response = await setupMfa(email);
       
       if (response && response.code === 200 && response.data) {
-        console.log('MFA setup successful, proceeding to verification step');
-        setQrCode(response.data.qr_code);
-        setRecoveryCodes(response.data.recovery_codes);
-        setStep('verify');
+        console.log('MFA setup successful, proceeding to verification step', response.data);
+        
+        // Check if the response data has the expected properties
+        const qrCodeValue = response.data.qr_code;
+        const recoveryCodesArray = response.data.recovery_codes;
+        
+        if (qrCodeValue) {
+          setQrCode(qrCodeValue);
+          if (Array.isArray(recoveryCodesArray)) {
+            setRecoveryCodes(recoveryCodesArray);
+          }
+          setStep('verify');
+        } else {
+          console.error('Invalid QR code in response:', response.data);
+        }
       } else {
         console.error('MFA setup failed:', response?.message || 'Unknown error');
       }
@@ -72,13 +97,13 @@ export default function MfaSetupPage() {
   const handleVerifyMfa = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !totpCode) return;
+    if (!email || !totp_code) return;
     
     setIsSubmitting(true);
     
     try {
       console.log('Verifying and enabling MFA for email:', email);
-      const response = await enableMfa(email, totpCode);
+      const response = await enableMfa(email, totp_code);
       
       if (response && response.code === 200) {
         console.log('MFA successfully enabled');
@@ -94,7 +119,7 @@ export default function MfaSetupPage() {
             sessionStorage.removeItem('temp_password');
             
             // Try to log in with the new MFA setup
-            await login(email, storedPassword, undefined, totpCode);
+            await login(email, storedPassword, undefined, totp_code);
           }
         }
         
@@ -266,13 +291,13 @@ export default function MfaSetupPage() {
                 
                 <form onSubmit={handleVerifyMfa} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="totpCode">Verification Code</Label>
+                    <Label htmlFor="totp_code">Verification Code</Label>
                     <Input 
-                      id="totpCode" 
+                      id="totp_code" 
                       type="text" 
                       placeholder="000000" 
-                      value={totpCode}
-                      onChange={(e) => setTotpCode(e.target.value)}
+                      value={totp_code}
+                      onChange={(e) => setTotp_code(e.target.value)}
                       maxLength={6}
                       pattern="[0-9]{6}"
                       required
@@ -282,7 +307,7 @@ export default function MfaSetupPage() {
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={isSubmitting || totpCode.length !== 6}
+                    disabled={isSubmitting || totp_code.length !== 6}
                   >
                     {isSubmitting ? 'Verifying...' : 'Verify and Enable'}
                   </Button>

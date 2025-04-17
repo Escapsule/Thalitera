@@ -6,17 +6,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate request body
-    if (!body.email || !body.totpCode) {
+    if (!body.email || !body.totp_code) {
       return NextResponse.json(
         {
           code: 400,
-          message: 'Email and totpCode are required',
+          message: 'Email and totp_code are required',
           data: null,
           timestamp: new Date().toISOString(),
         },
         { status: 400 }
       );
     }
+
+    console.log('MFA enable request body:', body);
+
+
     
     // Create headers object for the backend request
     const headers: HeadersInit = {
