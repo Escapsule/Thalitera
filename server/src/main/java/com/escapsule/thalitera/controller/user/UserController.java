@@ -183,7 +183,7 @@ public class UserController {
     /**
      * Check user auth
      *
-     * @param session The HTTP session object used to store the user's information.
+     * @param request The HTTP request object used to get the user's information.
      * @return Returns the result of the login operation.
      */
     @Operation(summary = "Check user auth",
@@ -193,10 +193,14 @@ public class UserController {
             @ApiResponse(responseCode = "2011", description = "User not login"),
     })
     @GetMapping("/check-auth")
-    public ApiResult<?> checkAuth(HttpSession session) {
+    public ApiResult<?> checkAuth(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+
         User user = (User) session.getAttribute("user");
         if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
-        log.info("user {} login...", user.getEmail());
+
+        log.info("user {} still logged in", user.getEmail());
         return ApiResult.success(true);
     }
 
@@ -217,9 +221,13 @@ public class UserController {
         User user = (User) session.getAttribute("user");
         if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         UserVO vo = UserVO.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .avatar(user.getAvatar())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .status(user.getStatus())
                 .build();
         log.info("User check info: {}", vo.getEmail());
         return ApiResult.success(vo);

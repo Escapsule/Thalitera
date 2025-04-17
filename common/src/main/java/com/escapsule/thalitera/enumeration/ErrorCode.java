@@ -58,8 +58,8 @@ public enum ErrorCode {
     TOTP_RECOVERY_CODES_NOT_FOUND(2607, "TOTP recovery codes not found"),
     USER_HAS_NEW_DEVICE(2608, "User has new device, please give MFA code"),
 
-    // 3000 ~ 3999 database related
-
+    // 3001 ~ 3999 database related
+    DATABASE_CONNECTION_ERROR(3001, "Database connection error, please try again later."),
 
     // 5000 ~ 5999 system level error
     SYSTEM_BUSY(5000, "The system is busy, please try again later."),
