@@ -8,6 +8,7 @@ import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -83,5 +84,13 @@ public class GlobalExceptionHandler {
         ApiResult<?> response = ApiResult.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
                 HttpStatus.METHOD_NOT_ALLOWED.getReasonPhrase());
         return new ResponseEntity<>(response, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    // Handling database connection exceptions
+    @ExceptionHandler(CannotCreateTransactionException.class)
+    public ResponseEntity<ApiResult<?>> handleGlobalException(CannotCreateTransactionException ex, WebRequest request) {
+        ApiResult<?> response = ApiResult.error(ErrorCode.DATABASE_CONNECTION_ERROR.getCode(),
+                ErrorCode.DATABASE_CONNECTION_ERROR.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

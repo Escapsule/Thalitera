@@ -44,7 +44,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 2. Check if the user is logged in
         HttpSession session = request.getSession(false);
         // Does not automatically create a new session
-        if (session == null && session.getAttribute("user") == null) {
+        if (session == null || session.getAttribute("user") == null) {
             // 3. Unlogged-in users access protected interfaces, denied access
             sendUnauthorizedError(response);
             return false;
