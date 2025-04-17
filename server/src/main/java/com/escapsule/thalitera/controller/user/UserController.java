@@ -46,7 +46,6 @@ public class UserController {
      *
      * @param dto       The email address and password provided by the user for login.
      * @param httpRequest The HTTP request object used to retrieve the client's IP address.
-     * @param session   The HTTP session object used to store the user's information.
      * @param userAgent The user agent string of the client's browser.
      * @return Returns the result of the login operation.
      */
@@ -64,14 +63,23 @@ public class UserController {
     public ApiResult<?> login (@RequestBody UserLoginDTO dto,
                                @RequestHeader("User-Agent") String userAgent,
                                @RequestHeader("THALITERA_FINGERPRINT")String fingerprint,
-                               HttpServletRequest httpRequest,
-                               HttpSession session) {
+                               HttpServletRequest httpRequest) {
         log.info("User login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
-        User user = userService.login(dto, ip, userAgent, fingerprint);
-        session.setAttribute("user", user);
-        log.info("User login success: {}", dto.getEmail());
-        return ApiResult.success();
+
+        try {
+            User user = userService.login(dto, ip, userAgent, fingerprint);
+
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute("user", user);
+
+            log.info("User login success: {}", dto.getEmail());
+            return ApiResult.success();
+        } catch (BaseException e) {
+            log.warn("Login failed: {}", dto.getEmail());
+            return ApiResult.error(ErrorCode.LOGIN_FAILED.getCode(), e.getMessage());
+        }
+
     }
 
     /**
