@@ -32,53 +32,36 @@ export async function GET(request: NextRequest) {
 
     console.log('Sending request to backend with cookies');
     
-    // Forward the request to the backend
-    const response = await fetch(`${backendUrl}/user/check-auth`, {
+
+    const response = await fetch(`${backendUrl}/user/info`, {
       method: 'GET',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
+      },
       credentials: 'include',
     });
 
     console.log('Response status:', response.status);
-    
-    // Get the response data
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Error response body:', text);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
-
-    // Create a new response with the data
-    const nextResponse = NextResponse.json(data);
-
-    // Forward any cookies from the backend response
-    response.headers.forEach((value, key) => {
-      if (key.toLowerCase() === 'set-cookie') {
-        console.log('Forwarding cookie from backend response');
-        nextResponse.headers.set(key, value);
-      }
-    });
-
-    return nextResponse;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(
       {
         code: 500,
-        message: 'An error occurred during auth check',
+        message: 'Failed to obtain user information',
         data: null,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
-}
-
-// Handle OPTIONS requests for CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
 } 

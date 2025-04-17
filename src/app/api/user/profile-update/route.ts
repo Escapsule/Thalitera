@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // Update user information
 export async function POST(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     console.log(body)
 
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/user/profile/update`, {
+    const response = await fetch(`${backendUrl}/user/profile/update`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

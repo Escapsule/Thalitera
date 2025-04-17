@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
-import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,12 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Global authentication helper script */}
-        <Script 
-          src="/auth-helper.js" 
-          strategy="beforeInteractive" 
-          id="auth-helper"
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

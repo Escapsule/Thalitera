@@ -22,7 +22,7 @@ const getApiUrl = () => {
 };
 
 // Login function to authenticate users
-export async function login(email: string, password: string): Promise<ApiResponse> {
+export async function login(email: string, password: string, fingerprint?: string): Promise<ApiResponse> {
   try {
     // First handle client-side cookie creation for redundancy
     const clientSessionId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
@@ -48,16 +48,24 @@ export async function login(email: string, password: string): Promise<ApiRespons
     localStorage.setItem('thalitera_auth', 'true');
     localStorage.setItem('thalitera_session_id', clientSessionId);
     
+    // Create headers with basic requirements
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Accept': '*/*',
+      'Accept-Encoding': 'gzip, deflate, br, zstd',
+      'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+      'Connection': 'keep-alive',
+    };
+    
+    // Add fingerprint to headers if provided
+    if (fingerprint) {
+      headers['THALITERA_FINGERPRINT'] = fingerprint;
+    }
+    
     // Now proceed with the API call
     const response = await fetch(`${getApiUrl()}/user/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-        'Connection': 'keep-alive',
-      },
+      headers,
       body: JSON.stringify({ email, password }),
       credentials: 'include', // Important to include cookies in the request
     });
