@@ -369,7 +369,15 @@ public class UserServiceImpl implements UserService {
         log.info("User MFA enabled successfully: {}", email);
     }
 
-
+    /**
+     * Verify MFA or recovery code
+     *
+     * @param user       User
+     * @param totpCode   TOTP code
+     * @param recoveryCode Recovery code
+     * @param df         Device fingerprint
+     * @param location   Location
+     */
     private void verifyMfaOrRecovery(User user,
                                      String totpCode,
                                      String recoveryCode,
@@ -392,6 +400,16 @@ public class UserServiceImpl implements UserService {
         throw new BaseException(ErrorCode.USER_MFA_VERIFICATION_FAILED);
     }
 
+    /**
+     * Add a trusted device for the specified user.
+     * <p>
+     * The function first checks whether the user already has a trusted device list.
+     * If the user does not have a trusted device list, a new list is created.
+     * Then the incoming device fingerprint is added to this list, and the user's trusted device list is updated.
+     *
+     * @param user You need to add a user object for a trusted device, and it cannot be null.
+     * @param df The device fingerprint object to be added cannot be null.
+     */
     private void addTrustedDevice(User user, DeviceFingerprint df) {
         List<DeviceFingerprint> trustedDevice;
         if (user.getTrustedDevice() == null) {
@@ -403,6 +421,17 @@ public class UserServiceImpl implements UserService {
         userMapper.updateTrustedDevice(user.getUserId(), trustedDevice);
     }
 
+    /**
+     * Check if the device is a new device for the specified user.
+     * <p>
+     * The function first checks whether the user already has a trusted device list.
+     * If the user does not have a trusted device list, it returns true.
+     * Then the incoming device fingerprint is compared with each device in the trusted device list.
+     * If the incoming device fingerprint does not match any device in the trusted device list, it returns true.
+     *
+     * @param user You need to add a user object for a trusted device, and itcannot be null.
+     * @param df The device fingerprint object to be compared cannot be null.
+     */
     private boolean isNewDevice(User user, DeviceFingerprint df) {
         List<DeviceFingerprint> trustedDevice = user.getTrustedDevice();
         return trustedDevice == null || trustedDevice.stream()

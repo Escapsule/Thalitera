@@ -2,12 +2,10 @@ package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
+import com.escapsule.thalitera.handler.DFListTypeHandler;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import jakarta.validation.constraints.NotNull;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +20,9 @@ public interface UserMapper {
      * @return User entity
      */
     @Select("SELECT * FROM users WHERE email = #{email}")
+    @Results({
+            @Result(property = "trustedDevice", column = "trusted_devices", typeHandler = DFListTypeHandler.class)
+    })
     User getUserByEmail(String email);
 
     /**
