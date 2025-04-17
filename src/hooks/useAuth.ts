@@ -11,10 +11,15 @@ import {
   ApiResponse
 } from '@/lib/auth';
 
+interface LoginResult {
+  success: boolean;
+  code: number;
+}
+
 interface UseAuthReturn {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, fingerprint?: string, totpCode?: string, recoveryCode?: string) => Promise<boolean>;
+  login: (email: string, password: string, fingerprint?: string, totpCode?: string, recoveryCode?: string) => Promise<LoginResult>;
   register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   setupMfa: (email: string) => Promise<ApiResponse<MfaSetupResponse> | null>;
@@ -108,7 +113,7 @@ export function useAuth(): UseAuthReturn {
     fingerprint?: string,
     totpCode?: string, 
     recoveryCode?: string
-  ): Promise<boolean> => {
+  ): Promise<LoginResult> => {
     setIsLoading(true);
     setError(null);
     
@@ -126,7 +131,7 @@ export function useAuth(): UseAuthReturn {
         const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
         console.log('Cookie check after login:', hasCookie ? 'found' : 'not found');
         
-        // Always set localStorage on successful login
+        // Only save cookies for status code 200
         setLocalStorageAuth(true);
         setIsAuthenticated(true);
         
@@ -139,29 +144,35 @@ export function useAuth(): UseAuthReturn {
         sessionStorage.setItem('coming_from_login', 'true');
         sessionStorage.setItem('last_redirect_time', Date.now().toString());
         
-        return true;
+        return { success: true, code: 200 };
       } 
       // Handle MFA not set up error (code 2018)
       else if (response.code === 2018) {
         setError('MFA not enabled. You need to set up Multi-Factor Authentication.');
         console.log('MFA not enabled error detected (code 2018)');
-        return false;
+        return { success: false, code: 2018 };
       }
       // Handle MFA required error for existing setups (code 2019)
       else if (response.code === 2019) {
         setError('MFA required. Please provide your authentication code.');
         console.log('MFA required error detected (code 2019)');
-        return false;
+        return { success: false, code: 2019 };
+      }
+      // Handle new device requiring MFA (code 2608)
+      else if (response.code === 2608) {
+        setError('New device detected. Please provide your authentication code.');
+        console.log('New device MFA required error detected (code 2608)');
+        return { success: false, code: 2608 };
       }
       // Handle other errors
       else {
         setError(response.message || 'Login failed');
-        return false;
+        return { success: false, code: response.code };
       }
     } catch (error) {
       console.error('Login error:', error);
       setError('An unexpected error occurred');
-      return false;
+      return { success: false, code: 0 };
     } finally {
       setIsLoading(false);
     }

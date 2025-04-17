@@ -123,7 +123,7 @@ export default function MfaSetupPage() {
             // Try to log in with the new MFA setup
             const loginResult = await login(email, storedPassword, deviceInfo?.fingerprint, totp_code);
             
-            if (loginResult) {
+            if (loginResult.success) {
               console.log('Auto-login successful after MFA setup');
               router.push('/dashboard');
               return;

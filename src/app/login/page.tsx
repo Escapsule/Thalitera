@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [mfaMethod, setMfaMethod] = useState<'totp' | 'recovery'>('totp');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [showMfaInput, setShowMfaInput] = useState<boolean>(false);
   
   const { login, register, error, isAuthenticated } = useAuth();
   const deviceInfo = useDeviceInfo();
@@ -60,25 +61,31 @@ export default function LoginPage() {
     
     try {
       // Use the TOTP code or recovery code if provided
-      const mfaCode = mfaMethod === 'totp' ? totpCode : undefined;
-      const recovery = mfaMethod === 'recovery' ? recoveryCode : undefined;
+      const mfaCode = showMfaInput && mfaMethod === 'totp' ? totpCode : undefined;
+      const recovery = showMfaInput && mfaMethod === 'recovery' ? recoveryCode : undefined;
       
       console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none' });
       
-      const success = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
+      const result = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
       
-      if (success) {
+      // Handle different status codes
+      if (result.success) {
         console.log('Login successful, redirecting to dashboard');
         router.push('/dashboard');
-      } else if (error && error.includes('MFA not enabled')) {
-        // Handle case where MFA is required but not set up
+      } else if (result.code === 2018) {
+        // MFA not enabled but required - redirect to MFA setup
         console.log('MFA required but not set up, redirecting to setup page');
         localStorage.setItem('user_email', email);
         sessionStorage.setItem('temp_password', password);
         router.push('/login/mfa-setup');
-      } else {
-        // Login failed for other reasons
-        console.error('Login failed with error:', error);
+      } else if (result.code === 2019) {
+        // MFA required - show MFA input
+        console.log('MFA required, showing MFA input');
+        setShowMfaInput(true);
+      } else if (result.code === 2608) {
+        // New device requires MFA - show MFA input
+        console.log('New device detected, MFA required, showing MFA input');
+        setShowMfaInput(true);
       }
     } finally {
       setIsSubmitting(false);
@@ -109,11 +116,13 @@ export default function LoginPage() {
   const switchToRegister = () => {
     setAuthStep('register');
     setSuccessMessage('');
+    setShowMfaInput(false);
   };
 
   const switchToLogin = () => {
     setAuthStep('login');
     setSuccessMessage('');
+    setShowMfaInput(false);
   };
 
   return (
@@ -179,66 +188,51 @@ export default function LoginPage() {
                   />
                 </div>
                 
-                <div className="space-y-3">
-                  <Label>Multi-Factor Authentication (if enabled)</Label>
-                  <Tabs defaultValue="totp" onValueChange={(v) => setMfaMethod(v as 'totp' | 'recovery')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="totp">Authenticator App</TabsTrigger>
-                      <TabsTrigger value="recovery">Recovery Code</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="totp" className="space-y-4 pt-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="totp">Authentication Code</Label>
-                        <Input 
-                          id="totp" 
-                          type="text" 
-                          placeholder="000000" 
-                          value={totpCode}
-                          onChange={(e) => setTotpCode(e.target.value)}
-                          maxLength={6}
-                          pattern="[0-9]{6}"
-                        />
-                        <p className="text-xs text-gray-500">
-                          Enter the 6-digit code from your authenticator app
-                        </p>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="recovery" className="space-y-4 pt-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="recovery">Recovery Code</Label>
-                        <Input 
-                          id="recovery" 
-                          type="text" 
-                          placeholder="xxxx-xxxx-xxxx-xxxx" 
-                          value={recoveryCode}
-                          onChange={(e) => setRecoveryCode(e.target.value)}
-                        />
-                        <p className="text-xs text-gray-500">
-                          Enter one of your recovery codes (this can only be used once)
-                        </p>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                  
-                  <div className="text-center">
-                    <Button 
-                      type="button" 
-                      variant="link" 
-                      className="text-sm text-blue-600"
-                      onClick={() => {
-                        localStorage.setItem('user_email', email);
-                        if (password) {
-                          sessionStorage.setItem('temp_password', password);
-                        }
-                        router.push('/login/mfa-setup');
-                      }}
-                    >
-                      I haven&apos;t set up MFA yet
-                    </Button>
+                {showMfaInput && (
+                  <div className="space-y-3">
+                    <Label>Multi-Factor Authentication</Label>
+                    <Tabs defaultValue="totp" onValueChange={(v) => setMfaMethod(v as 'totp' | 'recovery')} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="totp">Authenticator App</TabsTrigger>
+                        <TabsTrigger value="recovery">Recovery Code</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="totp" className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="totp">Authentication Code</Label>
+                          <Input 
+                            id="totp" 
+                            type="text" 
+                            placeholder="000000" 
+                            value={totpCode}
+                            onChange={(e) => setTotpCode(e.target.value)}
+                            maxLength={6}
+                            pattern="[0-9]{6}"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Enter the 6-digit code from your authenticator app
+                          </p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="recovery" className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="recovery">Recovery Code</Label>
+                          <Input 
+                            id="recovery" 
+                            type="text" 
+                            placeholder="xxxx-xxxx-xxxx-xxxx" 
+                            value={recoveryCode}
+                            onChange={(e) => setRecoveryCode(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500">
+                            Enter one of your recovery codes (this can only be used once)
+                          </p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                </div>
+                )}
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
