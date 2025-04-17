@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Search, Settings } from "lucide-react"
+import { LayoutDashboard, Search, Settings, Shield } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -27,6 +27,11 @@ const items = [
     title: "Search",
     url: "/dashboard/search",
     icon: Search,
+  },
+  {
+    title: "MFA Setup",
+    url: "/dashboard/mfa-setup",
+    icon: Shield,
   },
   {
     title: "Settings",

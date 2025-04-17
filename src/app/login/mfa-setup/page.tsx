@@ -1,0 +1,338 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { CopyIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
+
+export default function MfaSetupPage() {
+  const [email, setEmail] = useState<string>('');
+  const [qrCode, setQrCode] = useState<string>('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState<boolean>(false);
+  const [totpCode, setTotpCode] = useState<string>('');
+  const [step, setStep] = useState<'setup' | 'verify' | 'complete'>('setup');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [isRedirectedFromLogin, setIsRedirectedFromLogin] = useState<boolean>(false);
+  const { setupMfa, enableMfa, error, isAuthenticated, login } = useAuth();
+  const router = useRouter();
+
+  // Get user email from localStorage or session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedEmail = localStorage.getItem('user_email');
+      if (storedEmail) {
+        setEmail(storedEmail);
+        setIsRedirectedFromLogin(true);
+      }
+    }
+  }, []);
+
+  // Check authentication status
+  useEffect(() => {
+    // In our new flow, user is redirected to MFA setup from login
+    // and should return to login after setup is complete
+    if (!isRedirectedFromLogin && !isAuthenticated && typeof window !== 'undefined') {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router, isRedirectedFromLogin]);
+
+  const handleSetupMfa = async () => {
+    if (!email) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Setting up MFA for email:', email);
+      const response = await setupMfa(email);
+      
+      if (response && response.code === 200 && response.data) {
+        console.log('MFA setup successful, proceeding to verification step');
+        setQrCode(response.data.qr_code);
+        setRecoveryCodes(response.data.recovery_codes);
+        setStep('verify');
+      } else {
+        console.error('MFA setup failed:', response?.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('MFA setup error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !totpCode) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Verifying and enabling MFA for email:', email);
+      const response = await enableMfa(email, totpCode);
+      
+      if (response && response.code === 200) {
+        console.log('MFA successfully enabled');
+        
+        // If this was redirected from login, we need to complete the login process
+        if (isRedirectedFromLogin) {
+          // Get the stored password (from sessionStorage for this particular flow)
+          const storedPassword = sessionStorage.getItem('temp_password');
+          
+          if (storedPassword) {
+            console.log('Attempting login with newly enabled MFA');
+            // Clear the temporary password
+            sessionStorage.removeItem('temp_password');
+            
+            // Try to log in with the new MFA setup
+            await login(email, storedPassword, undefined, totpCode);
+          }
+        }
+        
+        setStep('complete');
+      } else {
+        console.error('MFA verification failed:', response?.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('MFA verification error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleComplete = () => {
+    // Clear stored data
+    localStorage.removeItem('user_email');
+    sessionStorage.removeItem('temp_password');
+    
+    // With the new flow, we always redirect back to login
+    // after MFA setup is complete
+    router.push('/login');
+  };
+
+  const copyRecoveryCode = (code: string, index: number) => {
+    navigator.clipboard.writeText(code);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const downloadRecoveryCodes = () => {
+    const element = document.createElement('a');
+    const content = `THALITERA RECOVERY CODES\n\nKeep these codes safe and secure. Each code can only be used once.\n\n${recoveryCodes.join('\n')}\n\nGenerated on: ${new Date().toLocaleString()}`;
+    const file = new Blob([content], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'thalitera-recovery-codes.txt';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  return (
+    <div className="container mx-auto max-w-3xl py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">
+            {step === 'setup' && 'Set Up Multi-Factor Authentication'}
+            {step === 'verify' && 'Verify Your Authentication App'}
+            {step === 'complete' && 'Multi-Factor Authentication Enabled'}
+          </CardTitle>
+          <CardDescription>
+            {step === 'setup' && 'Add an extra layer of security to your account'}
+            {step === 'verify' && 'Scan the QR code with your authenticator app and verify to complete setup'}
+            {step === 'complete' && 'Your account is now protected with multi-factor authentication'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangleIcon className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {step === 'setup' && (
+            <div className="space-y-4">
+              <p>
+                Multi-factor authentication adds an extra layer of security to your account by requiring 
+                a verification code in addition to your password when you sign in.
+              </p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <Button 
+                onClick={handleSetupMfa}
+                disabled={isSubmitting || !email}
+                className="w-full"
+              >
+                {isSubmitting ? 'Setting up...' : 'Set Up MFA'}
+              </Button>
+            </div>
+          )}
+          
+          {step === 'verify' && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Step 1: Scan QR Code</h3>
+                <p>
+                  Scan this QR code with your authenticator app (like Google Authenticator, 
+                  Microsoft Authenticator, or Authy).
+                </p>
+                
+                <div className="flex justify-center py-4">
+                  {qrCode && (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
+                      <Image 
+                        src={qrCode} 
+                        alt="QR Code for Authenticator App" 
+                        width={200} 
+                        height={200}
+                        className="h-[200px] w-[200px]"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Step 2: Save Recovery Codes</h3>
+                <p>
+                  Save these recovery codes in a safe place. If you lose your authenticator app, 
+                  you can use one of these codes to sign in. Each code can only be used once.
+                </p>
+                
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={() => setShowRecoveryCodes(!showRecoveryCodes)}>
+                    {showRecoveryCodes ? 'Hide Codes' : 'Show Codes'}
+                  </Button>
+                  <Button variant="outline" onClick={downloadRecoveryCodes}>
+                    Download Codes
+                  </Button>
+                </div>
+                
+                {showRecoveryCodes && (
+                  <div className="mt-4 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-4">
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                      {recoveryCodes.map((code, index) => (
+                        <div 
+                          key={index} 
+                          className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-2"
+                        >
+                          <code className="font-mono text-sm">{code}</code>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => copyRecoveryCode(code, index)}
+                            title="Copy to clipboard"
+                          >
+                            {copiedIndex === index ? <CheckCircleIcon className="h-4 w-4 text-green-500" /> : <CopyIcon className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Step 3: Verify Setup</h3>
+                <p>
+                  Enter the 6-digit verification code from your authenticator app to complete setup.
+                </p>
+                
+                <form onSubmit={handleVerifyMfa} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="totpCode">Verification Code</Label>
+                    <Input 
+                      id="totpCode" 
+                      type="text" 
+                      placeholder="000000" 
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      required
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isSubmitting || totpCode.length !== 6}
+                  >
+                    {isSubmitting ? 'Verifying...' : 'Verify and Enable'}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          )}
+          
+          {step === 'complete' && (
+            <div className="space-y-4 text-center">
+              <div className="flex justify-center">
+                <CheckCircleIcon className="h-16 w-16 text-green-500" />
+              </div>
+              
+              <h3 className="text-xl font-medium">Setup Complete!</h3>
+              
+              <p>
+                Your account is now protected with multi-factor authentication. 
+                You&apos;ll need to enter a verification code each time you sign in.
+              </p>
+              
+              <Alert>
+                <AlertDescription>
+                  Remember to keep your recovery codes in a safe place. You&apos;ll need them 
+                  if you lose access to your authenticator app.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter>
+          <div className="flex w-full justify-between">
+            {step !== 'setup' && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/login')}
+              >
+                Back to Login
+              </Button>
+            )}
+            
+            {step === 'complete' && (
+              <Button onClick={handleComplete}>
+                Continue to Login
+              </Button>
+            )}
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+} 

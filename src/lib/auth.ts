@@ -15,6 +15,20 @@ export interface User {
   username?: string;
 }
 
+// MFA setup response type - updated to match actual API response
+export interface MfaSetupResponse {
+  qr_code: string;  // Changed from qrCode to qr_code to match API
+  recovery_codes: string[];  // Changed from recoveryCodes to recovery_codes
+}
+
+// Login request body type
+export interface LoginRequest {
+  email: string;
+  password: string;
+  totp_code?: string;
+  recovery_code?: string;
+}
+
 // Get the API URL - using the Next.js proxy to avoid CORS issues
 const getApiUrl = () => {
   // Use relative URL to leverage Next.js API routes proxy
@@ -22,7 +36,13 @@ const getApiUrl = () => {
 };
 
 // Login function to authenticate users
-export async function login(email: string, password: string, fingerprint?: string): Promise<ApiResponse> {
+export async function login(
+  email: string, 
+  password: string, 
+  fingerprint?: string, 
+  totpCode?: string, 
+  recoveryCode?: string
+): Promise<ApiResponse> {
   try {
     // First handle client-side cookie creation for redundancy
     const clientSessionId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
@@ -62,11 +82,20 @@ export async function login(email: string, password: string, fingerprint?: strin
       headers['THALITERA_FINGERPRINT'] = fingerprint;
     }
     
+    // Create the request body with TOTP or recovery code if provided
+    const requestBody: LoginRequest = { email, password };
+    if (totpCode) {
+      requestBody.totp_code = totpCode;
+    }
+    if (recoveryCode) {
+      requestBody.recovery_code = recoveryCode;
+    }
+    
     // Now proceed with the API call
     const response = await fetch(`${getApiUrl()}/user/login`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(requestBody),
       credentials: 'include', // Important to include cookies in the request
     });
 
@@ -286,9 +315,6 @@ export async function logout(): Promise<ApiResponse> {
     
     // Even if the API call fails, still clear cookies and localStorage
     document.cookie = 'THALITERA_SESSION_ID=; Max-Age=0; path=/';
-    document.cookie = 'thalitera_session=; Max-Age=0; path=/';
-    document.cookie = 'thalitera_auth=; Max-Age=0; path=/';
-    document.cookie = 'thalitera-session-id=; Max-Age=0; path=/';
     
     localStorage.removeItem('thalitera_auth');
     localStorage.removeItem('thalitera_session_id');
@@ -298,6 +324,118 @@ export async function logout(): Promise<ApiResponse> {
       message: 'An error occurred during logout',
       data: null,
       timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+// MFA setup function to get QR code and recovery codes
+export async function setupMfa(email: string): Promise<ApiResponse<MfaSetupResponse>> {
+  try {
+    console.log('Setting up MFA for email:', email);
+    const response = await fetch(`${getApiUrl()}/user/mfa/setup?email=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    const result = await response.json();
+    console.log('MFA setup response code:', result.code);
+    
+    return result;
+  } catch (error) {
+    console.error('MFA setup error:', error);
+    return {
+      code: 500,
+      message: 'An error occurred while setting up MFA',
+      data: { qr_code: '', recovery_codes: [] },
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+// Enable MFA function to verify and enable MFA for a user
+export async function enableMfa(email: string, totpCode: string): Promise<ApiResponse> {
+  try {
+    console.log('Enabling MFA for email:', email);
+    const response = await fetch(`${getApiUrl()}/user/mfa/enable`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, totpCode }),
+      credentials: 'include',
+    });
+
+    const result = await response.json();
+    console.log('MFA enable response code:', result.code);
+    
+    return result;
+  } catch (error) {
+    console.error('MFA enable error:', error);
+    return {
+      code: 500,
+      message: 'An error occurred while enabling MFA',
+      data: null,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+// Function to check if MFA is required for a user (without login)
+export async function checkMfaStatus(email: string): Promise<{
+  isMfaRequired: boolean;
+  isMfaSetUp: boolean;
+  error?: string;
+}> {
+  try {
+    console.log('Checking MFA status for email:', email);
+    
+    // First try to get MFA QR code
+    const setupResponse = await fetch(`${getApiUrl()}/user/mfa/setup?email=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+    
+    const setupResult = await setupResponse.json();
+    console.log('MFA status check response code:', setupResult.code);
+    
+    if (setupResult.code === 200 && setupResult.data && setupResult.data.qr_code) {
+      // If we can get QR code, MFA is required but not set up yet
+      return {
+        isMfaRequired: true,
+        isMfaSetUp: false,
+      };
+    } else if (setupResult.code === 403) {
+      // If we get a 403, MFA is already set up
+      return {
+        isMfaRequired: true,
+        isMfaSetUp: true,
+      };
+    } else if (setupResult.code === 404 || setupResult.code === 400) {
+      // If we get a 404 or 400, MFA is not required
+      return {
+        isMfaRequired: false,
+        isMfaSetUp: false,
+      };
+    } else {
+      // Some other error
+      return {
+        isMfaRequired: false,
+        isMfaSetUp: false,
+        error: setupResult.message || 'Unknown error checking MFA status',
+      };
+    }
+  } catch (error) {
+    console.error('MFA status check error:', error);
+    return {
+      isMfaRequired: false,
+      isMfaSetUp: false,
+      error: 'An error occurred checking MFA status',
     };
   }
 } 

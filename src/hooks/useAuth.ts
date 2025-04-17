@@ -1,14 +1,24 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { login as loginApi, register as registerApi, logout as logoutApi } from '@/lib/auth';
+import { 
+  login as loginApi, 
+  register as registerApi, 
+  logout as logoutApi,
+  setupMfa as setupMfaApi,
+  enableMfa as enableMfaApi,
+  MfaSetupResponse,
+  ApiResponse
+} from '@/lib/auth';
 
 interface UseAuthReturn {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, fingerprint?: string) => Promise<boolean>;
+  login: (email: string, password: string, fingerprint?: string, totpCode?: string, recoveryCode?: string) => Promise<boolean>;
   register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  setupMfa: (email: string) => Promise<ApiResponse<MfaSetupResponse> | null>;
+  enableMfa: (email: string, totpCode: string) => Promise<ApiResponse | null>;
   error: string | null;
 }
 
@@ -92,13 +102,22 @@ export function useAuth(): UseAuthReturn {
   }, [checkLocalStorage, setLocalStorageAuth, createCookieFromLocalStorage]);
 
   // Login function
-  const login = useCallback(async (email: string, password: string, fingerprint?: string): Promise<boolean> => {
+  const login = useCallback(async (
+    email: string, 
+    password: string, 
+    fingerprint?: string,
+    totpCode?: string, 
+    recoveryCode?: string
+  ): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await loginApi(email, password, fingerprint);
+      const response = await loginApi(email, password, fingerprint, totpCode, recoveryCode);
       
+      console.log('Login response code:', response.code);
+      
+      // Handle successful login (code 200)
       if (response.code === 200) {
         console.log('Login API returned success');
         
@@ -121,7 +140,21 @@ export function useAuth(): UseAuthReturn {
         sessionStorage.setItem('last_redirect_time', Date.now().toString());
         
         return true;
-      } else {
+      } 
+      // Handle MFA not set up error (code 2018)
+      else if (response.code === 2018) {
+        setError('MFA not enabled. You need to set up Multi-Factor Authentication.');
+        console.log('MFA not enabled error detected (code 2018)');
+        return false;
+      }
+      // Handle MFA required error for existing setups (code 2019)
+      else if (response.code === 2019) {
+        setError('MFA required. Please provide your authentication code.');
+        console.log('MFA required error detected (code 2019)');
+        return false;
+      }
+      // Handle other errors
+      else {
         setError(response.message || 'Login failed');
         return false;
       }
@@ -200,12 +233,68 @@ export function useAuth(): UseAuthReturn {
     }
   }, [setLocalStorageAuth]);
 
+  // Setup MFA
+  const setupMfa = useCallback(async (email: string): Promise<ApiResponse<MfaSetupResponse> | null> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Setting up MFA for email in useAuth:', email);
+      const response = await setupMfaApi(email);
+      
+      console.log('MFA setup API response:', response);
+      
+      if (response.code === 200 && response.data) {
+        return response;
+      } else {
+        console.error('MFA setup failed with code:', response.code, 'message:', response.message);
+        setError(response.message || 'Failed to setup MFA');
+        return null;
+      }
+    } catch (error) {
+      console.error('MFA setup error:', error);
+      setError('An unexpected error occurred during MFA setup');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Enable MFA
+  const enableMfa = useCallback(async (email: string, totpCode: string): Promise<ApiResponse | null> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Enabling MFA for email in useAuth:', email);
+      const response = await enableMfaApi(email, totpCode);
+      
+      console.log('MFA enable API response:', response);
+      
+      if (response.code === 200) {
+        return response;
+      } else {
+        console.error('MFA enable failed with code:', response.code, 'message:', response.message);
+        setError(response.message || 'Failed to enable MFA');
+        return null;
+      }
+    } catch (error) {
+      console.error('MFA enable error:', error);
+      setError('An unexpected error occurred while enabling MFA');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isAuthenticated,
     isLoading,
     login,
     register,
     logout,
+    setupMfa,
+    enableMfa,
     error
   };
 } 
