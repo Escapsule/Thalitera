@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -16,6 +17,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Use the session monitor
+  const { sessionStatus } = useSessionMonitor();
 
   // Check authentication status on mount and route changes
   useEffect(() => {
@@ -29,18 +33,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // First check localStorage for auth state
           authenticated = localStorage.getItem('thalitera_auth') === 'true';
           
-          // Then check for cookies if needed
+          // Then check for cookie if needed - only check THALITERA_SESSION_ID
           if (!authenticated) {
-            const sessionCookieNames = [
-              'THALITERA_SESSION_ID',
-              'thalitera_session',
-              'thalitera_auth',
-              'thalitera-session-id'
-            ];
-            
-            const hasCookie = sessionCookieNames.some(name => 
-              document.cookie.split(';').map(c => c.trim()).some(cookie => cookie.startsWith(`${name}=`))
-            );
+            const hasCookie = document.cookie.split(';')
+              .map(c => c.trim())
+              .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
             
             authenticated = hasCookie;
             
@@ -49,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               localStorage.setItem('thalitera_auth', 'true');
             }
           } else {
-            // Create cookies for server-side checks if needed
+            // Create cookie for server-side checks if needed
             const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
             if (!hasCookie) {
               const tempSessionId = `authProvider_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
@@ -93,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     verifyAuth();
-  }, [pathname, router]);
+  }, [pathname, router, sessionStatus]);
 
   const value = {
     isAuthenticated,

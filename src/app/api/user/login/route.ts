@@ -2,17 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const body = await request.json();
 
     console.log(body);
 
+    // Create headers object for the backend request
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Forward fingerprint if present in the request headers
+    const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
+    if (fingerprint) {
+      headers['THALITERA_FINGERPRINT'] = fingerprint;
+      console.log('Forwarding fingerprint to backend:', fingerprint);
+    }
+
+
+    console.log(headers);
+
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/user/login`, {
+    const response = await fetch(`${backendUrl}/user/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -95,7 +108,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, THALITERA_FINGERPRINT',
       'Access-Control-Max-Age': '86400',
     },
   });

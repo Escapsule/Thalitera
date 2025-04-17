@@ -120,3 +120,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes scaleCenter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scaleCenter {
+  animation: scaleCenter 0.2s ease-out;
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     
     // Forward all cookies from the client request
     const headers: HeadersInit = {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the backend
-    const response = await fetch(`http://${backendUrl}/user/logout`, {
+    const response = await fetch(`${backendUrl}/user/logout`, {
       method: 'POST',
       headers,
       credentials: 'include',
