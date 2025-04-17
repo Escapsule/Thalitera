@@ -411,14 +411,15 @@ public class UserServiceImpl implements UserService {
      * @param df The device fingerprint object to be added cannot be null.
      */
     private void addTrustedDevice(User user, DeviceFingerprint df) {
-        List<DeviceFingerprint> trustedDevice;
+        List<DeviceFingerprint> trustedDevices;
         if (user.getTrustedDevice() == null) {
-            trustedDevice = new ArrayList<>();
+            trustedDevices = new ArrayList<>();
         } else {
-            trustedDevice = user.getTrustedDevice();
+            trustedDevices = new ArrayList<>(user.getTrustedDevice());
         }
-        trustedDevice.add(df);
-        userMapper.updateTrustedDevice(user.getUserId(), trustedDevice);
+        trustedDevices.add(df);
+        user.setTrustedDevice(trustedDevices);
+        userMapper.updateTrustedDevice(user.getUserId(), trustedDevices);
     }
 
     /**
