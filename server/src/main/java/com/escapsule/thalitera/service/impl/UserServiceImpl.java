@@ -370,6 +370,25 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * Rollback to no MFA
+     *
+     * @param email user email
+     */
+    @Override
+    public void rollbackToNoMfa(String email) {
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        userMapper.updateMfaSecret(user.getUserId(), false, null);
+        userMapper.updateTrustedDevice(user.getUserId(), null);
+        mfaRecoveryCodeMapper.deleteByUserId(user.getUserId());
+
+        log.info("User MFA rollback to no MFA successfully: {}", email);
+    }
+
+    /**
      * Verify MFA or recovery code
      *
      * @param user       User

@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.MfaRecoveryCode;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -32,4 +33,7 @@ public interface MfaRecoveryCodeMapper {
      */
     @Update("UPDATE mfa_recovery_code SET used = TRUE WHERE id = #{id}")
     void updateCodeUsed(Long id);
+
+    @Delete("DELETE FROM mfa_recovery_code WHERE user_id = #{userId}")
+    void deleteByUserId(UUID userId);
 }

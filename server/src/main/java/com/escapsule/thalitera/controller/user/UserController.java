@@ -113,6 +113,19 @@ public class UserController {
     }
 
     /**
+     * TODO: Prod need to delete
+     * Handles user mfa rollback requests.
+     *
+     * @param email The user's email address, used for identity verification
+     * @return Returns the result of the mfa rollback operation
+     */
+    @GetMapping("/mfa/rollback")
+    public ApiResult<?> rollbackToNoMfa(String email) {
+        userService.rollbackToNoMfa(email);
+        return ApiResult.success();
+    }
+
+    /**
      * Handles user registration requests.
      *
      * @param dto The email address and password provided by the user for registration.

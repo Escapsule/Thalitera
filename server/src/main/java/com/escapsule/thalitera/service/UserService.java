@@ -80,4 +80,6 @@ public interface UserService {
      * @param totpCode user totp code
      */
     void enableMfa(String email, String totpCode);
+
+    void rollbackToNoMfa(String email);
 }
