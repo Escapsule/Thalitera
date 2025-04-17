@@ -32,36 +32,45 @@ export function useAuth(): UseAuthReturn {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check for auth in localStorage as fallback
-  const checkLocalStorage = useCallback(() => {
+  // Clear ANY session cookies - aggressive approach
+  const clearAllAuthCookies = useCallback(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('thalitera_auth') === 'true';
-    }
-    return false;
-  }, []);
-  
-  // Set auth in localStorage as fallback
-  const setLocalStorageAuth = useCallback((value: boolean) => {
-    if (typeof window !== 'undefined') {
-      if (value) {
-        localStorage.setItem('thalitera_auth', 'true');
-      } else {
-        localStorage.removeItem('thalitera_auth');
-      }
-    }
-  }, []);
-
-  // Create cookie from localStorage auth data
-  const createCookieFromLocalStorage = useCallback(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('thalitera_auth') === 'true') {
-      const tempSessionId = `useAuth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      console.log('Aggressively clearing ALL auth cookies');
       
-      // Create only the main cookie
-      document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
+      // Clear the session cookie - multiple variations to ensure it's cleared
+      const cookies = [
+        // THALITERA_SESSION_ID with various path/domain combinations
+        'THALITERA_SESSION_ID=; Path=/; Max-Age=0',
+        'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+        'THALITERA_SESSION_ID=; Path=/; Domain=localhost; Max-Age=0',
+        // Client-side created cookies
+        'thalitera_session=; Path=/; Max-Age=0',
+        'thalitera_auth=; Path=/; Max-Age=0',
+        // For any dashboard-specific cookies
+        'dashboard_*=; Path=/; Max-Age=0'
+      ];
       
-      return true;
+      // Apply all cookie clearing directives
+      cookies.forEach(cookie => {
+        document.cookie = cookie;
+      });
+      
+      // Manually check for cookies with THALITERA_SESSION or dashboard_ prefix and clear them
+      const existingCookies = document.cookie.split(';');
+      existingCookies.forEach(cookie => {
+        const trimmedCookie = cookie.trim();
+        if (
+          trimmedCookie.startsWith('THALITERA_SESSION_ID=') || 
+          trimmedCookie.startsWith('thalitera_session=') ||
+          trimmedCookie.startsWith('dashboard_')
+        ) {
+          const name = trimmedCookie.split('=')[0];
+          document.cookie = `${name}=; Path=/; Max-Age=0`;
+          document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          console.log(`Explicitly cleared cookie: ${name}`);
+        }
+      });
     }
-    return false;
   }, []);
 
   // Check authentication status on mount
@@ -69,42 +78,66 @@ export function useAuth(): UseAuthReturn {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Check for cookie first
+        // Check for valid THALITERA_SESSION_ID cookie - ONLY consider server-set cookies valid
         const hasCookie = typeof window !== 'undefined' && 
           document.cookie.split(';')
             .map(c => c.trim())
             .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
         
-        // Check localStorage
-        const hasLocalStorage = checkLocalStorage();
+        // Any other session cookies should be cleared (client-created ones)
+        const hasInvalidCookies = typeof window !== 'undefined' && 
+          document.cookie.split(';')
+            .map(c => c.trim())
+            .some(cookie => 
+              cookie.startsWith('thalitera_session=') || 
+              cookie.startsWith('dashboard_')
+            );
         
-        // Synchronize states
-        if (hasCookie && !hasLocalStorage) {
-          console.log('Cookie found but localStorage not set, synchronizing');
-          setLocalStorageAuth(true);
-        } else if (hasLocalStorage && !hasCookie) {
-          console.log('localStorage auth found but no cookie, creating cookie');
-          createCookieFromLocalStorage();
+        if (hasInvalidCookies) {
+          console.log('Found client-created session cookies - clearing them');
+          clearAllAuthCookies();
         }
         
-        // User is authenticated if either localStorage or cookie is present
-        setIsAuthenticated(hasLocalStorage || hasCookie);
+        // User is authenticated ONLY if they have a valid server-set THALITERA_SESSION_ID cookie
+        setIsAuthenticated(hasCookie);
         
+        // Sync localStorage with cookie state
+        if (hasCookie) {
+          localStorage.setItem('thalitera_auth', 'true');
+        } else {
+          localStorage.removeItem('thalitera_auth');
+        }
       } catch (error) {
         console.error('Auth verification error:', error);
-        // On error, fall back to localStorage
-        const localAuth = checkLocalStorage();
-        setIsAuthenticated(localAuth);
-        if (localAuth) {
-          createCookieFromLocalStorage();
-        }
+        // On error, check for cookie and use that to determine auth state
+        const hasCookie = typeof window !== 'undefined' && 
+          document.cookie.includes('THALITERA_SESSION_ID=');
+        setIsAuthenticated(hasCookie);
       } finally {
         setIsLoading(false);
       }
     };
 
     verifyAuth();
-  }, [checkLocalStorage, setLocalStorageAuth, createCookieFromLocalStorage]);
+    
+    // Set up interval to periodically check and clear any client-side cookies
+    const cookieCleanupInterval = setInterval(() => {
+      const hasInvalidCookies = typeof window !== 'undefined' && 
+        document.cookie.split(';')
+          .map(c => c.trim())
+          .some(cookie => 
+            (cookie.startsWith('thalitera_session=') && !cookie.includes('THALITERA_SESSION_ID')) || 
+            cookie.startsWith('dashboard_')
+          );
+      
+      if (hasInvalidCookies) {
+        console.log('Cleanup: Found client-created session cookies - clearing them');
+        clearAllAuthCookies();
+      }
+    }, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(cookieCleanupInterval);
+  }, [clearAllAuthCookies]);
 
   // Login function
   const login = useCallback(async (
@@ -118,6 +151,9 @@ export function useAuth(): UseAuthReturn {
     setError(null);
     
     try {
+      // Clear any existing cookies before login
+      clearAllAuthCookies();
+      
       const response = await loginApi(email, password, fingerprint, totpCode, recoveryCode);
       
       console.log('Login response code:', response.code);
@@ -126,57 +162,65 @@ export function useAuth(): UseAuthReturn {
       if (response.code === 200) {
         console.log('Login API returned success');
         
-        // After successful login, the cookie should be set
-        // Check if the THALITERA_SESSION_ID cookie exists in the browser
+        // After successful login, check if the cookie was set by the server
         const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
         console.log('Cookie check after login:', hasCookie ? 'found' : 'not found');
         
-        // Only save cookies for status code 200
-        setLocalStorageAuth(true);
-        setIsAuthenticated(true);
-        
-        // Create cookie if needed
-        if (!hasCookie) {
-          createCookieFromLocalStorage();
+        // Only set local auth state if server cookie exists
+        if (hasCookie) {
+          setIsAuthenticated(true);
+          localStorage.setItem('thalitera_auth', 'true');
+          
+          // Track that we're coming from login in sessionStorage to help detect loops
+          sessionStorage.setItem('coming_from_login', 'true');
+          sessionStorage.setItem('last_redirect_time', Date.now().toString());
+        } else {
+          console.warn('Login successful but no session cookie found! Authentication may fail.');
         }
-        
-        // Track that we're coming from login in sessionStorage to help detect loops
-        sessionStorage.setItem('coming_from_login', 'true');
-        sessionStorage.setItem('last_redirect_time', Date.now().toString());
         
         return { success: true, code: 200 };
       } 
-      // Handle MFA not set up error (code 2018)
-      else if (response.code === 2018) {
-        setError('MFA not enabled. You need to set up Multi-Factor Authentication.');
-        console.log('MFA not enabled error detected (code 2018)');
-        return { success: false, code: 2018 };
-      }
-      // Handle MFA required error for existing setups (code 2019)
-      else if (response.code === 2019) {
-        setError('MFA required. Please provide your authentication code.');
-        console.log('MFA required error detected (code 2019)');
-        return { success: false, code: 2019 };
-      }
-      // Handle new device requiring MFA (code 2608)
-      else if (response.code === 2608) {
-        setError('New device detected. Please provide your authentication code.');
-        console.log('New device MFA required error detected (code 2608)');
-        return { success: false, code: 2608 };
-      }
-      // Handle other errors
+      // For non-200 status codes, ensure no cookies are present
       else {
-        setError(response.message || 'Login failed');
-        return { success: false, code: response.code };
+        // Just to be absolutely certain, clear cookies again
+        clearAllAuthCookies();
+        
+        // Handle MFA not set up error (code 2018)
+        if (response.code === 2018) {
+          setError('MFA not enabled. You need to set up Multi-Factor Authentication.');
+          console.log('MFA not enabled error detected (code 2018)');
+          return { success: false, code: 2018 };
+        }
+        // Handle MFA required error for existing setups (code 2019)
+        else if (response.code === 2019) {
+          setError('MFA required. Please provide your authentication code.');
+          console.log('MFA required error detected (code 2019)');
+          return { success: false, code: 2019 };
+        }
+        // Handle new device requiring MFA (code 2608)
+        else if (response.code === 2608) {
+          setError('New device detected. Please provide your authentication code.');
+          console.log('New device MFA required error detected (code 2608)');
+          return { success: false, code: 2608 };
+        }
+        // Handle other errors
+        else {
+          setError(response.message || 'Login failed');
+          return { success: false, code: response.code };
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
       setError('An unexpected error occurred');
+      
+      // Clear any cookies that might have been set
+      clearAllAuthCookies();
+      
       return { success: false, code: 0 };
     } finally {
       setIsLoading(false);
     }
-  }, [setLocalStorageAuth, createCookieFromLocalStorage]);
+  }, [clearAllAuthCookies]);
 
   // Register function
   const register = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -210,15 +254,10 @@ export function useAuth(): UseAuthReturn {
       
       // Update local state
       setIsAuthenticated(false);
-      setLocalStorageAuth(false);
       
-      // Clear auth data from localStorage
+      // Clear all auth data
       localStorage.removeItem('thalitera_auth');
-      
-      // Clear session cookie - try both domain and no domain for maximum compatibility
-      const domain = window.location.hostname;
-      document.cookie = `THALITERA_SESSION_ID=; Path=/; domain=${domain}; Max-Age=0`;
-      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+      clearAllAuthCookies();
       
       console.log('Auth data cleared in useAuth');
       
@@ -230,19 +269,14 @@ export function useAuth(): UseAuthReturn {
       
       // Even if logout API fails, clear local auth data
       setIsAuthenticated(false);
-      setLocalStorageAuth(false);
-      
-      // Clear local storage
       localStorage.removeItem('thalitera_auth');
-      
-      // Clear session cookie
-      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+      clearAllAuthCookies();
       
       window.location.href = '/login';
     } finally {
       setIsLoading(false);
     }
-  }, [setLocalStorageAuth]);
+  }, [clearAllAuthCookies]);
 
   // Setup MFA
   const setupMfa = useCallback(async (email: string): Promise<ApiResponse<MfaSetupResponse> | null> => {

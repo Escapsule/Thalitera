@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
       console.log('Forwarding fingerprint to backend:', fingerprint);
     }
 
-
     console.log(headers);
 
     // Forward the request to the backend
@@ -32,64 +31,75 @@ export async function POST(request: NextRequest) {
     // Get the response data
     const data = await response.json();
 
-    console.log(data);
+    console.log('Backend response:', data);
 
     // Create a new response with the data
-    const nextResponse = NextResponse.json(data);
+    // For non-200 codes, use an appropriate HTTP status
+    const httpStatus = data.code === 200 ? 200 : 401;
+    const nextResponse = NextResponse.json(data, { status: httpStatus });
 
-    // Forward all headers for debugging
+    // Log all headers for debugging
     console.log('All response headers:');
     response.headers.forEach((value, key) => {
       console.log(`${key}: ${value}`);
     });
 
+    // CRITICAL: For non-200 status codes, explicitly clear any session cookies
+    // before forwarding anything from the backend
+    if (data.code !== 200) {
+      console.log(`Non-success status code ${data.code} - FORCIBLY clearing session cookies`);
+      
+      // First, clear any existing cookies multiple ways to ensure they're gone
+      const clearCookies = [
+        'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+        'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+        'THALITERA_SESSION_ID=; Path=/; Domain=localhost; Max-Age=0',
+        'thalitera_session=; Path=/; Max-Age=0',
+        'thalitera_auth=; Path=/; Max-Age=0'
+      ];
+      
+      clearCookies.forEach(cookie => {
+        nextResponse.headers.set('Set-Cookie', cookie);
+      });
+      
+      // Don't forward any Set-Cookie headers from the backend for non-success response.
+      console.log('Intercepted and blocked backend cookies for non-success response.');
+      
+      return nextResponse;
+    }
+    
+    // Only for status code 200, forward backend cookies:
+    console.log('Success login with code 200 - forwarding session cookies');
+    
     // Check for cookies in the response headers
-    let cookiesFound = false;
+    let hasForwardedCookies = false;
     response.headers.forEach((value, key) => {
       if (key.toLowerCase() === 'set-cookie') {
-        // Parse the cookie to make sure SameSite and other attributes are set correctly
+        // Log the cookie we received
         console.log('Original cookie from backend:', value);
         
-        // Forward the cookie as-is first
+        // Forward the cookie as-is
         nextResponse.headers.append('Set-Cookie', value);
-        cookiesFound = true;
-        
-        // Parse the Set-Cookie value to extract the session ID for our own record
-        const sessionIdMatch = value.match(/THALITERA_SESSION_ID=([^;]+)/);
-        if (sessionIdMatch && sessionIdMatch[1]) {
-          console.log(`Extracted session ID: ${sessionIdMatch[1].substring(0, 10)}...`);
-          
-          // Also set a backup cookie with explicit attributes for safety
-          const secureCookie = `THALITERA_SESSION_ID=${sessionIdMatch[1]}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
-          nextResponse.headers.append('Set-Cookie', secureCookie);
-          console.log('Added backup cookie with explicit attributes');
-        }
+        hasForwardedCookies = true;
       }
     });
 
-    // If no cookies were found but authentication was successful, set a fallback cookie
-    if (!cookiesFound) {
-      console.warn('No cookies received from backend response');
-      
-      // If backend doesn't set cookies but authentication was successful,
-      // generate a temporary session ID as fallback
-      if (data.code === 200) {
-        const tempSessionId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        const sessionCookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
-        nextResponse.headers.set('Set-Cookie', sessionCookie);
-        console.log('Manually set temporary session cookie as fallback');
-      }
-    }
-    
-    // Add a special header to make session visible to client-side JS for debugging
-    if (data.code === 200) {
-      nextResponse.headers.set('X-Session-Debug', 'session-active');
+    // Log whether cookies were found and forwarded
+    if (hasForwardedCookies) {
+      console.log('Successfully forwarded cookies from backend');
+    } else {
+      console.log('No cookies found in backend response to forward');
     }
 
+    // Add a special header to make session visible to client-side JS for debugging
+    nextResponse.headers.set('X-Session-Debug', 'session-active');
+    
     return nextResponse;
   } catch (error) {
     console.error('API route error:', error);
-    return NextResponse.json(
+    
+    // On error, make sure to clear any session cookies
+    const errorResponse = NextResponse.json(
       {
         code: 500,
         message: 'An error occurred during login',
@@ -98,6 +108,20 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+    
+    // Clear all possible cookies
+    const clearCookies = [
+      'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+      'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'thalitera_session=; Path=/; Max-Age=0',
+      'thalitera_auth=; Path=/; Max-Age=0'
+    ];
+    
+    clearCookies.forEach(cookie => {
+      errorResponse.headers.set('Set-Cookie', cookie);
+    });
+    
+    return errorResponse;
   }
 }
 

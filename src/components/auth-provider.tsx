@@ -12,6 +12,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to clear invalid client-side created cookies
+function clearInvalidCookies() {
+  if (typeof window !== 'undefined') {
+    // Clear any client-side created session cookies
+    const invalidCookies = document.cookie.split(';')
+      .map(c => c.trim())
+      .filter(cookie => 
+        cookie.startsWith('THALITERA_SESSION_ID=dashboard_') || 
+        cookie.startsWith('thalitera_session=') ||
+        cookie.startsWith('dashboard_')
+      );
+    
+    if (invalidCookies.length > 0) {
+      console.log('Found invalid client-created cookies in AuthProvider - clearing them');
+      
+      invalidCookies.forEach(cookie => {
+        const name = cookie.split('=')[0];
+        document.cookie = `${name}=; Path=/; Max-Age=0`;
+        document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      });
+      
+      // Also clear these specific cookies
+      document.cookie = 'THALITERA_SESSION_ID=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_session=; Path=/; Max-Age=0';
+      document.cookie = 'thalitera_auth=; Path=/; Max-Age=0';
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -26,32 +55,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Direct check for localStorage auth to avoid API calls
+        // Clear any client-side created cookies first
+        clearInvalidCookies();
+        
+        // Check for valid THALITERA_SESSION_ID cookie (only valid if set by server)
         let authenticated = false;
         
         if (typeof window !== 'undefined') {
-          // First check localStorage for auth state
-          authenticated = localStorage.getItem('thalitera_auth') === 'true';
+          // Check for server-set THALITERA_SESSION_ID cookie
+          const hasCookie = document.cookie.split(';')
+            .map(c => c.trim())
+            .some(cookie => 
+              cookie.startsWith('THALITERA_SESSION_ID=') && 
+              !cookie.includes('dashboard_') && 
+              !cookie.includes('authProvider_')
+            );
           
-          // Then check for cookie if needed - only check THALITERA_SESSION_ID
-          if (!authenticated) {
-            const hasCookie = document.cookie.split(';')
-              .map(c => c.trim())
-              .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
-            
-            authenticated = hasCookie;
-            
-            // Synchronize localStorage with cookies if needed
-            if (hasCookie && !localStorage.getItem('thalitera_auth')) {
-              localStorage.setItem('thalitera_auth', 'true');
-            }
+          authenticated = hasCookie;
+          
+          // Synchronize localStorage with cookies
+          if (hasCookie) {
+            localStorage.setItem('thalitera_auth', 'true');
           } else {
-            // Create cookie for server-side checks if needed
-            const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
-            if (!hasCookie) {
-              const tempSessionId = `authProvider_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-              document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
-            }
+            localStorage.removeItem('thalitera_auth');
           }
         }
         
@@ -90,6 +116,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     verifyAuth();
+    
+    // Set up interval to clear any client-side created cookies periodically
+    const cookieCleanupInterval = setInterval(() => {
+      clearInvalidCookies();
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(cookieCleanupInterval);
   }, [pathname, router, sessionStatus]);
 
   const value = {
