@@ -53,7 +53,7 @@ public enum ErrorCode {
     CAPTCHA_INCORRECT(2603, "Captcha incorrect."),
     TOTP_QR_CODE_GENERATION_FAILED(2604, "TOTP QR code generation failed."),
     TOTP_CODE_INCORRECT(2605, "MFA code incorrect."),
-
+    TOTP_SECRET_NOT_FOUND(2606, "TOTP secret not found"),
 
     // 3000 ~ 3999 database related
 

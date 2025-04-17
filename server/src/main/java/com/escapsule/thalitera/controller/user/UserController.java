@@ -74,19 +74,44 @@ public class UserController {
         return ApiResult.success();
     }
 
+    /**
+     * Handles user mfa setup requests.
+     *
+     * @param email The user's email address, used for identity verification
+     * @return Returns the result of the mfa setup operation
+     */
     @Operation(summary = "User mfa setup",
             description = "The user provides the email address and password for registration.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User mfa setup successfully"),
+            @ApiResponse(responseCode = "2002", description = "User not exist."),
+            @ApiResponse(responseCode = "2604", description = "TOTP QR code generation failed."),
+    })
     @GetMapping("/mfa/setup")
     public ApiResult<String> mfaSetup(String email) {
         String qrcode = userService.mfaSetup(email);
         return ApiResult.success(qrcode);
     }
 
+    /**
+     * Handles user mfa enable requests.
+     *
+     * @param dto The email address and password provided by the user for registration.
+     * @return Returns the result of the mfa enable operation
+     */
+    @Operation(summary = "User mfa enable",
+            description = "The user provides the email address and password for registration.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User mfa enable successfully"),
+            @ApiResponse(responseCode = "2002", description = "User not exist."),
+            @ApiResponse(responseCode = "2605", description = "MFA code incorrect."),
+    })
     @PostMapping("/mfa/enable")
     public ApiResult<String> enableMfa(@RequestBody MfaEnableDTO dto) {
         userService.enableMfa(dto.getEmail(), dto.getTotpCode());
         return ApiResult.success();
     }
+
     /**
      * Handles user registration requests.
      *

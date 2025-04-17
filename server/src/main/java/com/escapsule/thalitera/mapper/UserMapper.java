@@ -97,6 +97,8 @@ public interface UserMapper {
      * @param userId user id
      * @param secret MFA secret
      */
-    @Update("UPDATE users SET mfa_secret = #{secret} WHERE user_id = #{userId}")
-    void updateMfaSecret(UUID userId, String secret);
+    @Update("UPDATE users SET " +
+            "mfa_secret = #{secret}, mfa_enable = #{mfaEnable}, updated_at = now()" +
+            "WHERE user_id = #{userId}")
+    void updateMfaSecret(UUID userId, boolean mfaEnable, String secret);
 }

@@ -52,6 +52,8 @@ public class User implements Serializable {
      */
     private List<TrustedDevice> trustedDevice;
 
+    private boolean mfaEnable;
+
     private OffsetDateTime createdAt;
 
     private OffsetDateTime updatedAt;

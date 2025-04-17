@@ -166,14 +166,14 @@ public class UserServiceImpl implements UserService {
         }
 
         // verify if user has MFA enabled
-        if (user.getMfaSecret() == null) {
+        if (!user.isMfaEnable()) {
             log.error("User does not have MFA enabled: {}", dto.getEmail());
             logLoginAttempt(user, ip, df, location, false, ErrorCode.USER_NOT_MFA);
             throw new BaseException(ErrorCode.USER_NOT_MFA);
         }
 
         // TODO: verify if user login on new device
-        // TODO: recovery codes to protect account without providing a TO=
+        // TODO: recovery codes to protect account without providing a password
 
         logLoginAttempt(user, ip, df, location, true, null);
 
@@ -293,9 +293,13 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.TOTP_QR_CODE_GENERATION_FAILED);
         }
 
-        // update user mfa secret
-        user.setMfaSecret(secret);
-        userMapper.updateMfaSecret(user.getUserId(), secret);
+        // save secret to redis
+        redisTemplate.opsForValue().set(
+                "mfa_secret:" + user.getUserId(),
+                secret,
+                5,
+                TimeUnit.MINUTES
+        );
 
         return qrcode;
     }
@@ -314,11 +318,18 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(ErrorCode.USER_NOT_FOUND);
         }
 
-        if (!TotpUtils.verifyCode(user.getMfaSecret(), totpCode)) {
-                log.error("TOTP code is incorrect: {}", totpCode);
-                userMapper.updateMfaSecret(user.getUserId(), null);
-                throw new BaseException(ErrorCode.TOTP_CODE_INCORRECT);
+        String secret = redisTemplate.opsForValue().get("mfa_secret:" + user.getUserId());
+
+        if (secret == null) {
+            throw new BaseException(ErrorCode.TOTP_SECRET_NOT_FOUND);
         }
+
+        if (!TotpUtils.verifyCode(secret, totpCode)) {
+            log.error("TOTP code is incorrect: {}", totpCode);
+            throw new BaseException(ErrorCode.TOTP_CODE_INCORRECT);
+        }
+
+        userMapper.updateMfaSecret(user.getUserId(), true, secret);
 
         log.info("User MFA enabled successfully: {}", email);
     }
