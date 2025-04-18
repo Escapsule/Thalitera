@@ -3,6 +3,7 @@ package com.escapsule.thalitera.service;
 import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.LoginHistoryVO;
 import com.escapsule.thalitera.vo.TrustDeviceVO;
 
 import java.util.List;
@@ -109,4 +110,5 @@ public interface UserService {
      * @return User
      */
     User deleteTrustDevice(UUID userId, String fingerprint);
+
 }

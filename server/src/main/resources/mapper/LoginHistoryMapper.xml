@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.escapsule.thalitera.mapper.LoginHistoryMapper">
+    <resultMap id="LoginHistoryMap" type="com.escapsule.thalitera.vo.LoginHistoryVO">
+        <result property="loginTime"     column="login_time"/>
+        <result property="success"       column="success"/>
+        <result property="failureReason" column="failure_reason"/>
+        <association property="trustDevice" javaType="com.escapsule.thalitera.vo.TrustDeviceVO">
+            <result property="browser"     column="browser"/>
+            <result property="os"          column="os"/>
+            <result property="ip"          column="ip"/>
+            <result property="fingerprint" column="fingerprint"/>
+            <result property="location"    column="location"/>
+        </association>
+    </resultMap>
+    <select id="getLastByFingerprint"
+            parameterType="map"
+            resultMap="LoginHistoryMap">
+        SELECT DISTINCT ON (device_fingerprint->>'print')
+        login_time,
+        success,
+        failure_reason,
+        device_fingerprint->>'browser'   AS browser,
+        device_fingerprint->>'os'        AS os,
+        device_fingerprint->>'ip'        AS ip,
+        device_fingerprint->>'print'     AS fingerprint,
+        ST_AsGeoJSON(location)::text     AS location
+        FROM login_history
+        <where>
+            <!-- Must pass: Filter by userId. -->
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+            <!-- Option: Time range -->
+            <if test="dto.startTime != null">
+                AND login_time &gt;= #{dto.startTime}
+            </if>
+            <if test="dto.endTime != null">
+                AND login_time &lt;= #{dto.endTime}
+            </if>
+            <!-- Option: only view the failure records. -->
+            <if test="dto.success != null">
+                AND success = #{dto.success}
+            </if>
+        </where>
+        ORDER BY
+        device_fingerprint->>'print',
+        login_time DESC
+    </select>
+</mapper>

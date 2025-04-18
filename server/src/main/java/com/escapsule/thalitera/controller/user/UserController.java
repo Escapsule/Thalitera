@@ -5,9 +5,11 @@ import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.response.ApiResult;
+import com.escapsule.thalitera.service.LoginHistoryService;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.IpUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.LoginHistoryVO;
 import com.escapsule.thalitera.vo.TrustDeviceVO;
 import com.escapsule.thalitera.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +41,7 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    private final LoginHistoryService loginHistoryService;
 
     /**
      * Handles user login requests.
@@ -60,6 +63,8 @@ public class UserController {
             @ApiResponse(responseCode = "2008", description = "User password incorrect."),
             @ApiResponse(responseCode = "2009", description = "User ip address invalid."),
             @ApiResponse(responseCode = "2010", description = "User agent invalid."),
+            @ApiResponse(responseCode = "2018", description = "User is not MFA, please enable MFA."),
+            @ApiResponse(responseCode = "2608", description = "User has new device, please give MFA code"),
     })
     @PostMapping("/login")
     public ApiResult<?> login (@RequestBody UserLoginDTO dto,
@@ -215,7 +220,7 @@ public class UserController {
     @GetMapping("/info")
     public ApiResult<UserVO> getUserInfo(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+         if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         UserVO vo = UserVO.builder()
                 .userId(user.getUserId())
                 .email(user.getEmail())
@@ -276,6 +281,27 @@ public class UserController {
         }
 
         return ApiResult.success();
+    }
+
+    /**
+     * Get user login history
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @param dto     The login history query DTO.
+     * @return Returns the result of the user's login history.
+     */
+    @Operation(summary = "User login history",
+            description = "Get user login history.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User login history"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+    })
+    @PostMapping("/login-history")
+    public ApiResult<List<LoginHistoryVO>> getLoginHistory(@RequestBody(required = false) LoginHistoryQueryDTO dto,
+                                                           HttpSession session) {
+        User user = Optional.ofNullable((User) session.getAttribute("user"))
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
+        return ApiResult.success(loginHistoryService.getLoginHistory(user.getUserId(), dto));
     }
 
     /**

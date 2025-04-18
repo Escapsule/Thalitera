@@ -25,6 +25,7 @@ import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.TotpUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.LoginHistoryVO;
 import com.escapsule.thalitera.vo.TrustDeviceVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import com.pig4cloud.captcha.GifCaptcha;

@@ -32,6 +32,7 @@ public enum ErrorCode {
     USER_NOT_ADMIN(2017, "User is not admin."),
     USER_NOT_MFA(2018, "User is not MFA, please enable MFA."),
     DEVICE_NOT_FOUND(2019, "Device not found."),
+    USER_DONT_HAVE_LOGIN_HISTORY(2020, "User does not have login history."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
