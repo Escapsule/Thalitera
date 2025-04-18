@@ -128,7 +128,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
             option={{
               tooltip: {
                 trigger: 'item',
-                formatter: '{b}: {c} times ({d}%)'
+                formatter: '{b}: {d}%'
               },
               legend: {
                 orient: 'vertical',
@@ -168,7 +168,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
             option={{
               tooltip: {
                 trigger: 'item',
-                formatter: '{b}: {c} times ({d}%)'
+                formatter: '{b}: {d}%'
               },
               legend: {
                 orient: 'vertical',
@@ -212,7 +212,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
               axisPointer: {
                 type: 'shadow'
               },
-              formatter: '{b}: {c} times ({d}%)'
+              formatter: '{b}: {d}%'
             },
             grid: {
               left: '15%',
@@ -269,7 +269,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
           option={{
             tooltip: {
               trigger: 'axis',
-              formatter: '{b}:00 - {c} times'
+              formatter: '{b}:00 - {c} time(s)'
             },
             grid: {
               left: '3%',
@@ -289,7 +289,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
             },
             yAxis: {
               type: 'value',
-              name: 'Booking Count',
+              name: 'Booking Counts',
               nameLocation: 'middle',
               nameGap: 30
             },
