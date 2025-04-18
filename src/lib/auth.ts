@@ -277,14 +277,24 @@ export async function logout(): Promise<ApiResponse> {
 }
 
 // MFA setup function to get QR code and recovery codes
-export async function setupMfa(email: string): Promise<ApiResponse<MfaSetupResponse>> {
+export async function setupMfa(email: string, fingerprint?: string): Promise<ApiResponse<MfaSetupResponse>> {
   try {
     console.log('Setting up MFA for email:', email);
+    
+    // Create headers with basic requirements
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add fingerprint to headers if provided
+    if (fingerprint) {
+      headers['THALITERA_FINGERPRINT'] = fingerprint;
+      console.log('Adding fingerprint to MFA setup request:', fingerprint);
+    }
+    
     const response = await fetch(`${getApiUrl()}/user/mfa/setup?email=${encodeURIComponent(email)}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -304,14 +314,24 @@ export async function setupMfa(email: string): Promise<ApiResponse<MfaSetupRespo
 }
 
 // Enable MFA function to verify and enable MFA for a user
-export async function enableMfa(email: string, totpCode: string): Promise<ApiResponse> {
+export async function enableMfa(email: string, totpCode: string, fingerprint?: string): Promise<ApiResponse> {
   try {
     console.log('Enabling MFA for email:', email);
+    
+    // Create headers with basic requirements
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add fingerprint to headers if provided
+    if (fingerprint) {
+      headers['THALITERA_FINGERPRINT'] = fingerprint;
+      console.log('Adding fingerprint to MFA enable request:', fingerprint);
+    }
+    
     const response = await fetch(`${getApiUrl()}/user/mfa/enable`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ email, totp_code: totpCode }),
       credentials: 'include',
     });

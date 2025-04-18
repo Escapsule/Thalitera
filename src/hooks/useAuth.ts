@@ -22,8 +22,8 @@ interface UseAuthReturn {
   login: (email: string, password: string, fingerprint?: string, totpCode?: string, recoveryCode?: string) => Promise<LoginResult>;
   register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  setupMfa: (email: string) => Promise<ApiResponse<MfaSetupResponse> | null>;
-  enableMfa: (email: string, totpCode: string) => Promise<ApiResponse | null>;
+  setupMfa: (email: string, fingerprint?: string) => Promise<ApiResponse<MfaSetupResponse> | null>;
+  enableMfa: (email: string, totpCode: string, fingerprint?: string) => Promise<ApiResponse | null>;
   error: string | null;
 }
 
@@ -258,13 +258,13 @@ export function useAuth(): UseAuthReturn {
   }, [clearAllAuthCookies]);
 
   // Setup MFA
-  const setupMfa = useCallback(async (email: string): Promise<ApiResponse<MfaSetupResponse> | null> => {
+  const setupMfa = useCallback(async (email: string, fingerprint?: string): Promise<ApiResponse<MfaSetupResponse> | null> => {
     setIsLoading(true);
     setError(null);
     
     try {
       console.log('Setting up MFA for email in useAuth:', email);
-      const response = await setupMfaApi(email);
+      const response = await setupMfaApi(email, fingerprint);
       
       console.log('MFA setup API response:', response);
       
@@ -285,13 +285,13 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   // Enable MFA
-  const enableMfa = useCallback(async (email: string, totpCode: string): Promise<ApiResponse | null> => {
+  const enableMfa = useCallback(async (email: string, totpCode: string, fingerprint?: string): Promise<ApiResponse | null> => {
     setIsLoading(true);
     setError(null);
     
     try {
       console.log('Enabling MFA for email in useAuth:', email);
-      const response = await enableMfaApi(email, totpCode);
+      const response = await enableMfaApi(email, totpCode, fingerprint);
       
       console.log('MFA enable API response:', response);
       

@@ -20,12 +20,17 @@ export async function POST(request: NextRequest) {
 
     console.log('MFA enable request body:', body);
 
-
-    
     // Create headers object for the backend request
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
+    
+    // Forward fingerprint if present in the request headers
+    const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
+    if (fingerprint) {
+      headers['THALITERA_FINGERPRINT'] = fingerprint;
+      console.log('Forwarding fingerprint to backend:', fingerprint);
+    }
     
     // Forward cookies if present
     const cookies = request.cookies.getAll();
@@ -83,7 +88,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, THALITERA_FINGERPRINT',
       'Access-Control-Max-Age': '86400',
     },
   });

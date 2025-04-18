@@ -128,26 +128,6 @@ export default function Dashboard() {
 
   // Cancel reservation handler with optimistic updates
   const handleCancelReservation = async (reservationId: string) => {
-    // Optimistically update the UI first
-    const updatedReservations = reservations.map(reservation => 
-      reservation.reservation_id === reservationId 
-        ? { ...reservation, status: 'canceled' } 
-        : reservation
-    );
-    
-    setReservations(updatedReservations);
-    
-    // If selected booking is being canceled, update it too
-    if (selectedBooking && selectedBooking.reservation_id === reservationId) {
-      setSelectedBooking({ ...selectedBooking, status: 'canceled' });
-    }
-    
-    // Close the detail modal
-    setIsDetailOpen(false);
-    
-    // Show success toast
-    toast.success('Reservation cancelled successfully');
-    
     try {
       // Make the actual API call
       const response = await fetch('/api/user/meetingroom/cancel', {
@@ -164,20 +144,26 @@ export default function Dashboard() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to cancel reservation');
       }
+      
+      // On success, update the UI
+      const updatedReservations = reservations.map(reservation => 
+        reservation.reservation_id === reservationId 
+          ? { ...reservation, status: 'canceled' } 
+          : reservation
+      );
+      
+      setReservations(updatedReservations);
+      
+      // If selected booking is being canceled, update it too
+      if (selectedBooking && selectedBooking.reservation_id === reservationId) {
+        setSelectedBooking({ ...selectedBooking, status: 'canceled' });
+      }
+      
+      return Promise.resolve();
     } catch (error) {
       console.error("Error cancelling reservation:", error);
-      
-      // Revert the optimistic update on failure
-      const originalReservations = await fetch('/api/user/calendar')
-        .then(res => res.json())
-        .then(data => data.data || [])
-        .catch(err => {
-          console.error("Error fetching updated reservations:", err);
-          return reservations; // Fall back to the state before optimistic update
-        });
-      
-      setReservations(originalReservations);
       toast.error('Failed to cancel reservation. Please try again.');
+      return Promise.reject(error);
     }
   };
 
