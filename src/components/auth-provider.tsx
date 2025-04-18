@@ -26,10 +26,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
+        // Check if we have the admin flag in localStorage first
+        const isAdmin = typeof window !== 'undefined' && localStorage.getItem('is_admin') === 'true';
+        
+        // If user is admin and trying to access admin routes, allow without further checks
+        if (isAdmin && pathname?.startsWith('/admin')) {
+          console.log('Admin access detected for admin route, skipping further checks');
+          setAuthenticated(true);
+          return;
+        }
+        
         // Use the API to check auth status instead of checking cookies directly
         const response = await fetch('/api/user/check-auth', {
           method: 'GET',
           credentials: 'include', // Important: include cookies in the request
+          headers: isAdmin ? { 'admin-email': 'admin@xjtlu.edu.cn' } : {},
         });
         
         const data = await response.json();
@@ -44,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('thalitera_auth', 'true');
         } else {
           localStorage.removeItem('thalitera_auth');
+          // Don't remove is_admin here to prevent logout loops for admin users
         }
         
         // Redirect to login if not authenticated and trying to access protected routes

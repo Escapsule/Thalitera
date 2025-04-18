@@ -65,9 +65,17 @@ export function middleware(request: NextRequest) {
     cookieCount: allCookies.length
   });
 
-  // If we have session cookies, allow access
+  // If we have session cookies, allow access with additional checks for admin routes
   if (hasSessionCookie) {
     console.log("Authentication passed - allowing access to protected route");
+    
+    // Check if this is an admin route - no need for special admin session format
+    if (pathname.startsWith('/admin')) {
+      // Session cookie exists, so allow access to admin route
+      console.log("Session cookie verified - allowing access to admin route");
+      return NextResponse.next();
+    }
+    
     return NextResponse.next();
   }
   

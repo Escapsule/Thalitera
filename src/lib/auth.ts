@@ -94,6 +94,36 @@ export async function login(
       headers['THALITERA_FINGERPRINT'] = fingerprint;
     }
     
+    // Check if this is an admin login
+    if (email === 'admin@xjtlu.edu.cn') {
+      // Add admin email to headers for auth checks
+      headers['admin-email'] = email;
+      
+      // Use admin login endpoint
+      const adminResponse = await fetch(`${getApiUrl()}/admin/login`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email_address: email, password }),
+        credentials: 'include',
+      });
+
+      const adminResult = await adminResponse.json();
+      console.log('Admin login response:', adminResult);
+      
+      if (adminResult.code === 200) {
+        console.log('Admin login successful, session established');
+        localStorage.setItem('thalitera_auth', 'true');
+        localStorage.setItem('is_admin', 'true');
+      } else {
+        localStorage.removeItem('thalitera_auth');
+        localStorage.removeItem('is_admin');
+        clearAllSessionCookies();
+      }
+      
+      return adminResult;
+    }
+    
+    // Regular user login
     // Create the request body with TOTP or recovery code if provided
     const requestBody: LoginRequest = { email, password };
     if (totpCode) {
@@ -124,6 +154,7 @@ export async function login(
       
       // Keep track of authentication in localStorage ONLY
       localStorage.setItem('thalitera_auth', 'true');
+      localStorage.removeItem('is_admin');
       
       // Check if we have the session cookie after API call
       const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
@@ -135,6 +166,7 @@ export async function login(
     } else {
       // Login failed - clear localStorage
       localStorage.removeItem('thalitera_auth');
+      localStorage.removeItem('is_admin');
       
       // Clear any cookies that might have been set
       clearAllSessionCookies();
@@ -145,6 +177,7 @@ export async function login(
     console.error('Login error:', error);
     // Clear localStorage and cookies on error
     localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('is_admin');
     clearAllSessionCookies();
     
     return {

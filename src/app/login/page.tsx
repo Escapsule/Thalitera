@@ -77,26 +77,34 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      // Use the TOTP code or recovery code if provided
-      const mfaCode = showMfaInput && mfaMethod === 'totp' ? totpCode : undefined;
-      const recovery = showMfaInput && mfaMethod === 'recovery' ? recoveryCode : undefined;
+      // Check if attempting admin login
+      const isAdminLogin = email === 'admin@xjtlu.edu.cn';
       
-      console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none' });
+      // Use the TOTP code or recovery code if provided - but not for admin
+      const mfaCode = !isAdminLogin && showMfaInput && mfaMethod === 'totp' ? totpCode : undefined;
+      const recovery = !isAdminLogin && showMfaInput && mfaMethod === 'recovery' ? recoveryCode : undefined;
+      
+      console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none', isAdmin: isAdminLogin });
       
       const result = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
       
       // Handle different status codes
       if (result.success) {
         console.log('Login successful, redirecting to dashboard');
-        router.push('/dashboard');
-      } else if (result.code === 2018 || result.code === 2019) {
-        // MFA not enabled but required - redirect to MFA setup
+        // Check if admin login was successful
+        if (isAdminLogin && typeof window !== 'undefined' && localStorage.getItem('is_admin') === 'true') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
+      } else if (!isAdminLogin && (result.code === 2018 || result.code === 2019)) {
+        // MFA not enabled but required - redirect to MFA setup (skip for admin)
         console.log('MFA required but not set up, redirecting to setup page');
         localStorage.setItem('user_email', email);
         sessionStorage.setItem('temp_password', password);
         router.push('/login/mfa-setup');
-      } else if (result.code === 2608) {
-        // New device requires MFA - show MFA input
+      } else if (!isAdminLogin && result.code === 2608) {
+        // New device requires MFA - show MFA input (skip for admin)
         console.log('New device detected, MFA required, showing MFA input');
         setShowMfaInput(true);
       }
@@ -104,6 +112,13 @@ export default function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Effect to track when email changes - hide MFA input for admin
+  useEffect(() => {
+    if (email === 'admin@xjtlu.edu.cn') {
+      setShowMfaInput(false);
+    }
+  }, [email]);
 
   // Handle registration submission
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -188,6 +203,9 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
+                  {email === 'admin@xjtlu.edu.cn' && (
+                    <p className="text-xs text-blue-600">Admin login detected. MFA not required.</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
