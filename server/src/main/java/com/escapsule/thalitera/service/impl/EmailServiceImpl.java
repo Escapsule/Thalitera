@@ -5,6 +5,7 @@ import com.escapsule.thalitera.exception.EmailException;
 import com.escapsule.thalitera.properties.EmailProperties;
 import com.escapsule.thalitera.service.EmailService;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,15 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendMail(String to, String subject, String content) {
         try {
+
+            System.getProperties().setProperty("mail.mime.address.usecanonicalhostname", "false");
+
             MimeMessage msg = mailSender.createMimeMessage();
+
+            Session session = msg.getSession();
+            session.setDebug(true);
+            session.getProperties().setProperty("mail.smtp.localhost", emailProperties.getHost());
+
             MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
 
             helper.setFrom(emailProperties.getUsername());
