@@ -1,9 +1,11 @@
 package com.escapsule.thalitera.service;
 
 import com.escapsule.thalitera.dto.ReservationDTO;
+import com.escapsule.thalitera.dto.TimeRangeDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.vo.ReservationVO;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,4 +68,13 @@ public interface ReservationService {
      * @return List of all reservations
      */
     List<ReservationVO> getMyReservations(UUID userId);
+
+    /**
+     * Fetch all reserved time ranges related to a specific meeting room
+     *
+     * @param roomId target meeting room ID
+     * @param dateTime target date
+     * @return List of all reserved time ranges
+     */
+    List<TimeRangeDTO> getMeetingRoomReservedTime(UUID roomId, OffsetDateTime dateTime);
 }

@@ -1,6 +1,8 @@
 package com.escapsule.thalitera.controller.user;
 
 import com.escapsule.thalitera.dto.ReservationDTO;
+import com.escapsule.thalitera.dto.TimeRangeDTO;
+import com.escapsule.thalitera.dto.TimeRangeQueryDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.service.ReservationService;
@@ -60,6 +62,17 @@ public class ReservationController {
                         .map(MeetingRoomTransfer.INSTANCE::meetingRoom2MeetingRoomVO)
                         .toList()
         );
+    }
+
+    /**
+     * Get reserved time ranges for a specific meeting room
+     *
+     * @param dto The DTO object containing the parameters for the query of reserved time ranges.
+     * @return List of all reserved time ranges
+     */
+    @PostMapping("/reserved-time-ranges")
+    public ApiResult<List<TimeRangeDTO>> getMeetingRoomUnavailableTime(@RequestBody TimeRangeQueryDTO dto) {
+        return ApiResult.success(reservationService.getMeetingRoomReservedTime(dto.getRoomId(), dto.getDateTime()));
     }
 
     /**

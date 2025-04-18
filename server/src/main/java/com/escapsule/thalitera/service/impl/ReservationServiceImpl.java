@@ -2,6 +2,7 @@ package com.escapsule.thalitera.service.impl;
 
 import com.escapsule.thalitera.constant.ReservationStatusConstant;
 import com.escapsule.thalitera.dto.ReservationDTO;
+import com.escapsule.thalitera.dto.TimeRangeDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -255,6 +258,42 @@ public class ReservationServiceImpl implements ReservationService {
     public List<ReservationVO> getMyReservations(UUID userId) {
         List<Reservation> reservations = reservationMapper.getUserRelatedReservationByUserId(userId);
         return ReservationTransfer.INSTANCE.mapReservation2ReservationVO(reservations, meetingRoomMapper, userMapper);
+    }
+
+    /**
+     * Fetch all reservations related to a specific meeting room
+     *
+     * @param roomId target meeting room ID
+     * @param dateTime target date
+     * @return List of all reserved time ranges
+     */
+    @Override
+    public List<TimeRangeDTO> getMeetingRoomReservedTime(UUID roomId, OffsetDateTime dateTime) {
+        // specify the date
+        OffsetDateTime startOfDay = dateTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        OffsetDateTime endOfDay = dateTime.withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(roomId);
+        if (reservations == null || reservations.isEmpty()) {
+            return List.of();
+        }
+        List<TimeRangeDTO> timeRanges = new ArrayList<>();
+        for (Reservation r : reservations) {
+            // Check if the reservation is within the specified date
+            if (
+                    (r.getStartTime().isAfter(startOfDay) || r.getStartTime().isEqual(startOfDay)) &&
+                    (r.getEndTime().isBefore(endOfDay) || r.getEndTime().isEqual(endOfDay))
+            ) {
+                timeRanges.add(
+                        TimeRangeDTO.builder()
+                                .startTime(r.getStartTime())
+                                .endTime(r.getEndTime())
+                                .build()
+                );
+            }
+        }
+        // Sort the time ranges by start time
+        timeRanges.sort(Comparator.comparing(TimeRangeDTO::getStartTime));
+        return timeRanges;
     }
 
     /**
