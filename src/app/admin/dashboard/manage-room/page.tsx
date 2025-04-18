@@ -41,8 +41,13 @@ interface MeetingRoom {
     coffee_break: boolean
     special_notes: string[]
   }
-  image?: string
+  created_by?: ''
 }
+
+const getBackendUrl = () => {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+  return `http://${backendUrl}`;
+};
 
 // Status mapping
 const statusMap = {
@@ -86,54 +91,6 @@ const mockRooms: MeetingRoom[] = [
       coffee_break: false,
       special_notes: ["Suitable for small group discussions"]
     }
-  },
-  {
-    room_id: "room-003",
-    name: "Training Room",
-    capacity_min: 15,
-    capacity_max: 40,
-    building: "Headquarters",
-    floor: 5,
-    status: "using",
-    facilities: {
-      projector: true,
-      whiteboard: 3,
-      power_sockets: 20,
-      coffee_break: true,
-      special_notes: ["Sound System", "Can accommodate 40 people for training"]
-    }
-  },
-  {
-    room_id: "room-004",
-    name: "VIP Meeting Room",
-    capacity_min: 5,
-    capacity_max: 15,
-    building: "Executive Building",
-    floor: 8,
-    status: "active",
-    facilities: {
-      projector: true,
-      whiteboard: 1,
-      power_sockets: 10,
-      coffee_break: true,
-      special_notes: ["Luxury decoration", "High-end meeting equipment"]
-    }
-  },
-  {
-    room_id: "room-005",
-    name: "Remote Conference Room",
-    capacity_min: 4,
-    capacity_max: 12,
-    building: "R&D Center",
-    floor: 4,
-    status: "active",
-    facilities: {
-      projector: true,
-      whiteboard: 1,
-      power_sockets: 8,
-      coffee_break: false,
-      special_notes: ["Video conferencing system", "High-speed network connection"]
-    }
   }
 ];
 
@@ -143,10 +100,12 @@ const ManageRoomPage = () => {
   const [loading, setLoading] = useState(false) // Set to false because loading is not needed
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // 将 isEditDialogOpen 改为 isModifyDialogOpen
+  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false)
+  
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
-  
+
   // Add filtering states
   const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>(mockRooms)
   const [filters, setFilters] = useState({
@@ -159,7 +118,7 @@ const ManageRoomPage = () => {
     minWhiteboard: '',
     minPowerSockets: '',
   })
-  
+
   // New meeting room form state
   const [newRoom, setNewRoom] = useState<Partial<MeetingRoom>>({
     name: '',
@@ -179,20 +138,19 @@ const ManageRoomPage = () => {
 
   // Get meeting room list - modified to use mock data
   const fetchRooms = async () => {
-    // Use mock data during development, comment out network request code
-    /*
     setLoading(true)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'k1ng.tech:8080';
     try {
-      const response = await fetch(`https://${backendUrl}/meetingroom/all`, {
+      console.log(`${localStorage.getItem('cookie')}`, `${localStorage.getItem('token')}`)
+      const response = await fetch(`${getBackendUrl()}/admin/meetingroom/all`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
       });
+      
       const data = await response.json()
+      console.log(data)
       if (data.code === 200) {
         setRooms(data.data || [])
+        console.log("get room list successfully!")
       } else {
         console.error(data.message || 'Failed to get meeting room list')
       }
@@ -201,99 +159,176 @@ const ManageRoomPage = () => {
     } finally {
       setLoading(false)
     }
-    */
-    
-    // Directly use mock data
-    setRooms(mockRooms);
-    setLoading(false);
   }
 
-  // Add meeting room - modified to use local data
-  // Validate room data before saving
+  const addRoom = async (roomData: Partial<MeetingRoom>) => {
+    setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+    try {
+      const response = await fetch(`http://${backendUrl}/admin/meetingroom/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(roomData),
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        fetchRooms();
+        return true;
+      } else {
+        console.error(data.message || 'Failed to add meeting room');
+        alert(data.message || 'Failed to add meeting room');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to add meeting room', error);
+      alert('Failed to add meeting room, please check your network connection');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const validateRoomData = (room: Partial<MeetingRoom>) => {
     if (!room.name || !room.building || !room.capacity_min || !room.capacity_max) {
       alert('Please fill in all required information');
       return false;
     }
-    
+
     if (room.capacity_min! > room.capacity_max!) {
       alert('Minimum capacity cannot be greater than maximum capacity');
       return false;
     }
+
+
+    if (room.name.length > 16) {
+      alert('Room name cannot exceed 16 characters');
+      return false;
+    }
+    const isDuplicate = rooms.some(existingRoom => 
+      existingRoom.name === room.name && existingRoom.room_id !== room.room_id
+    );
     
+    if (isDuplicate) {
+      alert('Room name already exists. Please choose a different name');
+      return false;
+    }
+
     return true;
   }
 
-  // Modified handleAddRoom function to use validation
   const handleAddRoom = async () => {
     try {
-      // Form validation
       if (!validateRoomData(newRoom)) {
         return;
       }
 
-      // Locally add meeting room
-      const newRoomWithId = {
+      const roomToAdd = {
         ...newRoom,
-        room_id: `room-${Date.now()}`, // Generate temporary ID
-      } as MeetingRoom;
-      
-      setRooms([...rooms, newRoomWithId]);
-      alert('Meeting room added successfully');
-      setIsAddDialogOpen(false);
-      
-      // Reset form
-      setNewRoom({
-        name: '',
-        building: '',
-        floor: 1,
-        capacity_min: 1,
-        capacity_max: 10,
-        status: 'active',
-        facilities: {
-          projector: false,
-          whiteboard: 0,
-          power_sockets: 0,
-          coffee_break: false,
-          special_notes: []
-        }
-      });
+        // created_by: "admin"
+      };
+
+      const success = await addRoom(roomToAdd);
+
+      if (success) {
+        alert('Meeting room modified successfully');
+        setIsAddDialogOpen(false);
+
+        setNewRoom({
+          name: '',
+          building: '',
+          floor: 1,
+          capacity_min: 1,
+          capacity_max: 10,
+          status: 'active',
+          facilities: {
+            projector: false,
+            whiteboard: 0,
+            power_sockets: 0,
+            coffee_break: false,
+            special_notes: []
+          }
+        });
+      }
     } catch (error) {
-      alert('Failed to add meeting room');
-      console.error(error)
+      alert('Failed to modify meeting room');
+      console.error(error);
     }
   }
 
-  // Add handleEditRoom function
-  const handleEditRoom = async () => {
-    if (!selectedRoom) return;
-    
+  const modifyRoom = async (roomData: MeetingRoom) => {
+    setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
     try {
-      // Form validation
+      const response = await fetch(`http://${backendUrl}/admin/meetingroom/modify`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          room_id: roomData.room_id,
+          name: roomData.name,
+          capacity_min: roomData.capacity_min,
+          capacity_max: roomData.capacity_max,
+          building: roomData.building,
+          floor: roomData.floor,
+          status: roomData.status,
+          facilities: {
+            projector: roomData.facilities.projector,
+            whiteboard: roomData.facilities.whiteboard,
+            power_sockets: roomData.facilities.power_sockets,
+            coffee_break: roomData.facilities.coffee_break,
+            special_notes: roomData.facilities.special_notes,
+          },
+        }),
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        fetchRooms();
+        return true;
+      } else {
+        console.error(data.message || 'Failed to modify meeting room');
+        alert(data.message || 'Failed to modify meeting room');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to modify meeting room', error);
+      alert('Failed to modify meeting room, please check your network connection');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleModifyRoom = async () => {
+    if (!selectedRoom) return;
+
+    try {
       if (!validateRoomData(selectedRoom)) {
         return;
       }
 
-      // Update room in local state
-      const updatedRooms = rooms.map(room => 
-        room.room_id === selectedRoom.room_id ? selectedRoom : room
-      );
-      
-      setRooms(updatedRooms);
-      setIsEditDialogOpen(false);
-      alert('Meeting room updated successfully');
+      const success = await modifyRoom(selectedRoom);
+
+      if (success) {
+        setIsModifyDialogOpen(false);
+        setTimeout(() => {
+          alert('Meeting room modified successfully');
+        }, 100);
+      }
     } catch (error) {
-      alert('Failed to update meeting room');
+      alert('Failed to modify meeting room');
       console.error(error)
     }
   }
 
-  // Delete meeting room - modified to use local data
   const handleDeleteRoom = async () => {
     if (!selectedRoom) return
-    
+
     try {
-      // Locally delete meeting room
       setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
       alert('Deleted successfully');
       setIsDeleteDialogOpen(false);
@@ -307,60 +342,60 @@ const ManageRoomPage = () => {
   // Apply filters function
   const applyFilters = () => {
     let result = [...rooms];
-    
+
     // Filter by name
     if (filters.name) {
-      result = result.filter(room => 
+      result = result.filter(room =>
         room.name.toLowerCase().includes(filters.name.toLowerCase())
       );
     }
-    
+
     // Filter by building
     if (filters.building) {
-      result = result.filter(room => 
+      result = result.filter(room =>
         room.building.toLowerCase().includes(filters.building.toLowerCase())
       );
     }
-    
+
     // Filter by status
     if (filters.status && filters.status !== 'all') {
       result = result.filter(room => room.status === filters.status);
     }
-    
+
     // Filter by capacity - using single capacity field
     // This finds rooms that can accommodate the specified number of people
     if (filters.capacity) {
       const capacity = parseInt(filters.capacity);
-      result = result.filter(room => 
+      result = result.filter(room =>
         room.capacity_min <= capacity && room.capacity_max >= capacity
       );
     }
-    
+
     // Filter by projector availability
     if (filters.hasProjector) {
       result = result.filter(room => room.facilities.projector);
     }
-    
+
     // Filter by coffee break service
     if (filters.hasCoffeeBreak) {
       result = result.filter(room => room.facilities.coffee_break);
     }
-    
+
     // Filter by minimum whiteboard count
     if (filters.minWhiteboard) {
       const minWhiteboard = parseInt(filters.minWhiteboard);
       result = result.filter(room => room.facilities.whiteboard >= minWhiteboard);
     }
-    
+
     // Filter by minimum power sockets count
     if (filters.minPowerSockets) {
       const minPowerSockets = parseInt(filters.minPowerSockets);
       result = result.filter(room => room.facilities.power_sockets >= minPowerSockets);
     }
-    
+
     setFilteredRooms(result);
   }
-  
+
   // Reset all filters
   const resetFilters = () => {
     setFilters({
@@ -375,7 +410,7 @@ const ManageRoomPage = () => {
     });
     setFilteredRooms(rooms);
   }
-  
+
   // Handle filter change
   const handleFilterChange = (field: string, value: string | boolean) => {
     setFilters(prev => ({
@@ -388,7 +423,7 @@ const ManageRoomPage = () => {
   useEffect(() => {
     fetchRooms()
   }, [])
-  
+
   // Update filtered results when rooms data changes
   useEffect(() => {
     setFilteredRooms(rooms);
@@ -396,7 +431,7 @@ const ManageRoomPage = () => {
 
   return (
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
-      
+
       <div className="flex flex-1 justify-center">
         <main className="flex-1 p-4 md:p-6 min-w-[80vw]">
           <div className="space-y-6">
@@ -429,7 +464,7 @@ const ManageRoomPage = () => {
                   Reset Filters
                 </Button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="filter-name">Room Name</Label>
@@ -440,7 +475,7 @@ const ManageRoomPage = () => {
                     onChange={(e) => handleFilterChange('name', e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-building">Building</Label>
                   <Input
@@ -450,11 +485,11 @@ const ManageRoomPage = () => {
                     onChange={(e) => handleFilterChange('building', e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-status">Status</Label>
-                  <Select 
-                    value={filters.status} 
+                  <Select
+                    value={filters.status}
                     onValueChange={(value) => handleFilterChange('status', value)}
                   >
                     <SelectTrigger>
@@ -469,7 +504,7 @@ const ManageRoomPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-capacity">Capacity</Label>
                   <Input
@@ -480,27 +515,27 @@ const ManageRoomPage = () => {
                     onChange={(e) => handleFilterChange('capacity', e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex items-center space-x-4 pt-6">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-projector" 
+                    <Checkbox
+                      id="filter-projector"
                       checked={filters.hasProjector}
                       onCheckedChange={(checked) => handleFilterChange('hasProjector', !!checked)}
                     />
                     <Label htmlFor="filter-projector">Has Projector</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-coffee-break" 
+                    <Checkbox
+                      id="filter-coffee-break"
                       checked={filters.hasCoffeeBreak}
                       onCheckedChange={(checked) => handleFilterChange('hasCoffeeBreak', !!checked)}
                     />
                     <Label htmlFor="filter-coffee-break">Has Coffee Break</Label>
                   </div>
                 </div>
-                
+
                 <div className="flex items-end gap-4 col-span-3">
                   <div className="space-y-2 w-full md:w-1/3">
                     <Label htmlFor="filter-whiteboard">Min Whiteboards</Label>
@@ -514,7 +549,7 @@ const ManageRoomPage = () => {
                       onChange={(e) => handleFilterChange('minWhiteboard', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2 w-full md:w-1/3">
                     <Label htmlFor="filter-power-sockets">Min Power Sockets</Label>
                     <Input
@@ -527,7 +562,7 @@ const ManageRoomPage = () => {
                       onChange={(e) => handleFilterChange('minPowerSockets', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="flex items-end justify-end w-full md:w-1/3">
                     <Button onClick={applyFilters} className="h-10">Apply Filters</Button>
                   </div>
@@ -602,7 +637,7 @@ const ManageRoomPage = () => {
                                   className="h-8 w-8 p-0"
                                   onClick={() => {
                                     setSelectedRoom(room)
-                                    setIsEditDialogOpen(true)
+                                    setIsModifyDialogOpen(true)
                                   }}
                                 >
                                   <Edit className="h-4 w-4" />
@@ -663,12 +698,22 @@ const ManageRoomPage = () => {
       </Dialog>
 
       {/* Edit meeting room dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Meeting Room</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-room_id">Room ID</Label>
+              <Input
+                id="edit-room_id"
+                value={selectedRoom?.room_id || ''}
+                disabled
+                className="bg-gray-100"
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Room Name</Label>
@@ -689,7 +734,7 @@ const ManageRoomPage = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-floor">Floor</Label>
@@ -702,9 +747,9 @@ const ManageRoomPage = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select 
-                  value={selectedRoom?.status} 
-                  onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') => 
+                <Select
+                  value={selectedRoom?.status}
+                  onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') =>
                     setSelectedRoom(selectedRoom ? { ...selectedRoom, status: value } : null)
                   }
                 >
@@ -720,7 +765,7 @@ const ManageRoomPage = () => {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-capacity_min">Minimum Capacity</Label>
@@ -741,18 +786,18 @@ const ManageRoomPage = () => {
                 />
               </div>
             </div>
-            
+
             <div className="mt-4">
               <div className="flex flex-col gap-4">
                 <div className="border-t border-gray-200 my-2"></div>
-                
+
                 {/* Projector and Coffee break options */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-projector" 
+                    <Checkbox
+                      id="edit-projector"
                       checked={selectedRoom?.facilities?.projector}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         setSelectedRoom(selectedRoom ? {
                           ...selectedRoom,
                           facilities: {
@@ -764,12 +809,12 @@ const ManageRoomPage = () => {
                     />
                     <Label htmlFor="edit-projector">Projector</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-coffee_break" 
+                    <Checkbox
+                      id="edit-coffee_break"
                       checked={selectedRoom?.facilities?.coffee_break}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         setSelectedRoom(selectedRoom ? {
                           ...selectedRoom,
                           facilities: {
@@ -782,10 +827,10 @@ const ManageRoomPage = () => {
                     <Label htmlFor="edit-coffee_break">Coffee Break Service</Label>
                   </div>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="border-t border-gray-200 my-2"></div>
-                
+
                 {/* Whiteboard and Power sockets counts */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
@@ -797,7 +842,7 @@ const ManageRoomPage = () => {
                       max="20"
                       className="w-20 h-8"
                       value={selectedRoom?.facilities?.whiteboard || 0}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         setSelectedRoom(selectedRoom ? {
                           ...selectedRoom,
                           facilities: {
@@ -808,7 +853,7 @@ const ManageRoomPage = () => {
                       }
                     />
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="edit-power_sockets" className="min-w-[100px]">Power Sockets:</Label>
                     <Input
@@ -818,7 +863,7 @@ const ManageRoomPage = () => {
                       max="20"
                       className="w-20 h-8"
                       value={selectedRoom?.facilities?.power_sockets || 0}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         setSelectedRoom(selectedRoom ? {
                           ...selectedRoom,
                           facilities: {
@@ -830,10 +875,10 @@ const ManageRoomPage = () => {
                     />
                   </div>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="border-t border-gray-200 my-2"></div>
-                
+
                 {/* Special notes */}
                 <div className="space-y-2">
                   <Label htmlFor="edit-special_notes">Special Notes</Label>
@@ -860,15 +905,12 @@ const ManageRoomPage = () => {
           <DialogFooter>
             <Button onClick={() => {
               if (!selectedRoom) return;
-              
+
               // Update room information
-              const updatedRooms = rooms.map(room => 
+              const updatedRooms = rooms.map(room =>
                 room.room_id === selectedRoom.room_id ? selectedRoom : room
               );
-              
-              setRooms(updatedRooms);
-              setIsEditDialogOpen(false);
-              alert('Meeting room updated successfully');
+              handleModifyRoom();
             }}>
               Confirm
             </Button>
