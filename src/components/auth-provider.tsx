@@ -24,6 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check authentication status on mount and route changes
   useEffect(() => {
     const verifyAuth = async () => {
+      // If it's an admin route, do nothing
+      if (pathname?.startsWith('/admin')) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         // Use the API to check auth status instead of checking cookies directly
@@ -35,8 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         const authenticated = data.code === 200;
         
-        console.log('Auth check response:', data.code, authenticated ? 'authenticated' : 'not authenticated');
-        
         setAuthenticated(authenticated);
         
         // Synchronize localStorage with auth state
@@ -46,31 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('thalitera_auth');
         }
         
-        // Redirect to login if not authenticated and trying to access protected routes
-        if (!authenticated && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin'))) {
-          console.log('No authentication found, redirecting to login from path:', pathname);
-          
-          // Check if we're coming from a login redirect loop
-          const fromLogin = sessionStorage.getItem('coming_from_login');
-          const now = Date.now();
-          const lastRedirect = parseInt(sessionStorage.getItem('last_redirect_time') || '0');
-          
-          // If we've redirected too recently, use the bypass to break potential loops
-          if (fromLogin === 'true' && (now - lastRedirect < 2000)) {
-            console.log('Detected potential redirect loop, adding forceBreak');
-            window.location.href = `/dashboard?forceBreak=true&ts=${now}`;
-            return;
-          }
-          
-          // Standard redirect to login
+        // Only check authentication for non-admin routes
+        if (!authenticated && pathname?.startsWith('/dashboard')) {
           router.push('/login');
         }
       } catch (error) {
         console.error('Auth verification error:', error);
         setAuthenticated(false);
         
-        // Redirect to login if error and trying to access protected routes
-        if (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')) {
+        // Only check authentication for non-admin routes
+        if (pathname?.startsWith('/dashboard')) {
           router.push('/login');
         }
       } finally {
