@@ -274,6 +274,9 @@ const DashboardPage = () => {
       const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       const data = await response.json();
@@ -352,6 +355,9 @@ const DashboardPage = () => {
       const response = await fetch(`${backendUrl}/admin/users`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       const data = await response.json();
