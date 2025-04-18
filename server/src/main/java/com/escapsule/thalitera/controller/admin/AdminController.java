@@ -40,7 +40,6 @@ public class AdminController {
      * @param userAgent    User-Agent header
      * @param fingerprint  THALITERA_FINGERPRINT header
      * @param httpRequest  HttpServletRequest object
-     * @param session      HttpSession object
      * @return ApiResult with success message
      */
     @PostMapping("/login")
@@ -56,12 +55,15 @@ public class AdminController {
     public ApiResult<?> login(@RequestBody UserLoginDTO dto,
                               @RequestHeader("User-Agent") String userAgent,
                               @RequestHeader("THALITERA_FINGERPRINT") String fingerprint,
-                              HttpServletRequest httpRequest,
-                              HttpSession session) {
+                              HttpServletRequest httpRequest) {
         log.info("Admin login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
+
         User user = adminService.login(dto, ip, userAgent, fingerprint);
+
+        HttpSession session = httpRequest.getSession(true);
         session.setAttribute("user", user);
+
         log.info("Admin login success: {}", dto.getEmail());
         return ApiResult.success();
     }

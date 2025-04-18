@@ -37,3 +37,6 @@ build/
 
 application-dev.yml
 application-prod.yml
+
+/server/src/test/
+/server/src/main/resources/ssl/
