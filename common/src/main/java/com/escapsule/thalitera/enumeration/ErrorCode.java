@@ -31,7 +31,6 @@ public enum ErrorCode {
     PERMISSION_DENIED(2016, "Permission denied."),
     USER_NOT_ADMIN(2017, "User is not admin."),
     USER_NOT_MFA(2018, "User is not MFA, please enable MFA."),
-    LOGIN_FAILED(2019, "Login failed."),
 
     // 2201 ~ 2399 meeting room related
     INVALID_TIME_RANGE(2201, "The start time should be before the end time."),

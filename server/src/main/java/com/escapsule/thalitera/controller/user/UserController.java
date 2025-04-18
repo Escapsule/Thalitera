@@ -67,19 +67,13 @@ public class UserController {
         log.info("User login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
 
-        try {
-            User user = userService.login(dto, ip, userAgent, fingerprint);
+        User user = userService.login(dto, ip, userAgent, fingerprint);
 
-            HttpSession session = httpRequest.getSession(true);
-            session.setAttribute("user", user);
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute("user", user);
 
-            log.info("User login success: {}", dto.getEmail());
-            return ApiResult.success();
-        } catch (BaseException e) {
-            log.warn("Login failed: {}", dto.getEmail());
-            return ApiResult.error(ErrorCode.LOGIN_FAILED.getCode(), e.getMessage());
-        }
-
+        log.info("User login success: {}", dto.getEmail());
+        return ApiResult.success();
     }
 
     /**

@@ -83,6 +83,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResult<?>> handleGlobalException(HttpRequestMethodNotSupportedException ex, WebRequest request) {
         ApiResult<?> response = ApiResult.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
                 HttpStatus.METHOD_NOT_ALLOWED.getReasonPhrase());
+        log.error("HTTP method not supported: {}", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.METHOD_NOT_ALLOWED);
     }
 
@@ -91,6 +92,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResult<?>> handleGlobalException(CannotCreateTransactionException ex, WebRequest request) {
         ApiResult<?> response = ApiResult.error(ErrorCode.DATABASE_CONNECTION_ERROR.getCode(),
                 ErrorCode.DATABASE_CONNECTION_ERROR.getMessage());
+        log.error("Database connection error: {}", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
