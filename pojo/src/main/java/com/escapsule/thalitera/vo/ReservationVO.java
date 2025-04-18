@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,9 +16,9 @@ import java.util.List;
 @AllArgsConstructor
 public class ReservationVO {
 
-    private String reservationId;
+    private UUID reservationId;
 
-    private String roomId;
+    private UUID roomId;
 
     private String roomName;
 
@@ -25,7 +26,7 @@ public class ReservationVO {
 
     private int floor;
 
-    private String userId;
+    private UUID userId;
 
     private String userName;
 

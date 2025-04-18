@@ -3,6 +3,7 @@ package com.escapsule.thalitera.mapper;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.handler.DFListTypeHandler;
+import com.escapsule.thalitera.handler.PGUUIDListTypeHandler;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import jakarta.validation.constraints.NotNull;
 import org.apache.ibatis.annotations.*;
@@ -52,6 +53,9 @@ public interface UserMapper {
     @Select("SELECT * FROM reservations " +
             "WHERE user_id = #{userId} " +
             "OR attendees @> jsonb_build_array(#{userId}::text)")
+    @Result(property = "attendees",
+            column = "attendees",
+            typeHandler = PGUUIDListTypeHandler.class)
     List<Reservation> getUserRelatedReservations(UUID userId);
 
     /**

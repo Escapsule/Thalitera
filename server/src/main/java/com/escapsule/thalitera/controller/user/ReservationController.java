@@ -5,6 +5,8 @@ import com.escapsule.thalitera.dto.TimeRangeDTO;
 import com.escapsule.thalitera.dto.TimeRangeQueryDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.User;
+import com.escapsule.thalitera.enumeration.ErrorCode;
+import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.service.ReservationService;
 import com.escapsule.thalitera.transfer.MeetingRoomTransfer;
 import com.escapsule.thalitera.response.ApiResult;
@@ -86,6 +88,9 @@ public class ReservationController {
     public ApiResult<String> makeReservation(@RequestBody @Valid ReservationDTO reservationDTO,
                                              HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        }
         boolean success = reservationService.makeReservation(reservationDTO, user.getUserId());
         if (success) {
             return ApiResult.success("Booking successful.");
@@ -105,6 +110,9 @@ public class ReservationController {
     public ApiResult<String> updateReservation(@RequestBody @Valid ReservationDTO reservationDTO,
                                                HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        }
         boolean success = reservationService.updateReservation(reservationDTO, user.getUserId());
         if (success) {
             return ApiResult.success("Update successful.");
@@ -124,6 +132,9 @@ public class ReservationController {
     public ApiResult<String> cancelReservation(@RequestBody UUID reservationId,
                                                HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        }
         boolean success = reservationService.cancelReservation(reservationId, user.getUserId());
         if (success) {
             return ApiResult.success("Cancel successful.");
@@ -141,6 +152,10 @@ public class ReservationController {
     @GetMapping("/reservations")
     public ApiResult<List<ReservationVO>> getMyReservations(HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        }
+        log.info("Get reservations for user: {}", user.getUserId());
         List<ReservationVO> myReservations = reservationService.getMyReservations(user.getUserId());
         return ApiResult.success(myReservations);
     }

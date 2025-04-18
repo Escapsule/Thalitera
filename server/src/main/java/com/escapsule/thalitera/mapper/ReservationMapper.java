@@ -2,6 +2,7 @@ package com.escapsule.thalitera.mapper;
 
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.handler.PGUUIDListTypeHandler;
+import com.escapsule.thalitera.vo.ReservationVO;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -50,12 +51,19 @@ public interface ReservationMapper {
 
     void updateReservation(Reservation newReservation);
 
+    /* useless for now
     @Select("SELECT * FROM reservations")
     @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
     List<Reservation> getAllReservations();
 
-    @Select("SELECT * FROM reservations WHERE user_id = #{userId} OR attendees @> jsonb_build_array(#{userId})")
+    @Select("(SELECT * FROM reservations WHERE user_id = #{userId}) " +
+            "UNION " +
+            "(SELECT * FROM reservations WHERE attendees @> jsonb_build_array(#{userId}))")
     @Result(property = "attendees", column = "attendees", typeHandler = PGUUIDListTypeHandler.class)
     List<Reservation> getUserRelatedReservationByUserId(UUID userId);
+     */
 
+    List<ReservationVO> getUserRelatedReservationDetailsByUserId(UUID userId);
+
+    List<ReservationVO> getAllReservationDetails();
 }

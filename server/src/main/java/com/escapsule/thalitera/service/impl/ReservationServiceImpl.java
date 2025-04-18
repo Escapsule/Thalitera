@@ -40,7 +40,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final MeetingRoomMapper meetingRoomMapper;
     private final UserMapper userMapper;
 
-    private final OffsetDateTime undefinedTime = OffsetDateTime.parse("1970-01-01T00:00:00Z");
+//    private final OffsetDateTime undefinedTime = OffsetDateTime.parse("1970-01-01T00:00:00Z");
 
     /**
      * Get all active meeting rooms.
@@ -244,8 +244,7 @@ public class ReservationServiceImpl implements ReservationService {
      */
     @Override
     public List<ReservationVO> getAllReservations() {
-        List<Reservation> reservations = reservationMapper.getAllReservations();
-        return ReservationTransfer.INSTANCE.mapReservation2ReservationVO(reservations, meetingRoomMapper, userMapper);
+        return reservationMapper.getAllReservationDetails();
     }
 
     /**
@@ -256,8 +255,7 @@ public class ReservationServiceImpl implements ReservationService {
      */
     @Override
     public List<ReservationVO> getMyReservations(UUID userId) {
-        List<Reservation> reservations = reservationMapper.getUserRelatedReservationByUserId(userId);
-        return ReservationTransfer.INSTANCE.mapReservation2ReservationVO(reservations, meetingRoomMapper, userMapper);
+        return reservationMapper.getUserRelatedReservationDetailsByUserId(userId);
     }
 
     /**
