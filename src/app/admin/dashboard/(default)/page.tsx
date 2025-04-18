@@ -270,8 +270,8 @@ const DashboardPage = () => {
   const fetchRoomStats = async () => {
     try {
       // Call API to retrieve conference room data
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-      const response = await fetch(`http://${backendUrl}/admin/meetingroom/all`, {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -348,8 +348,8 @@ const DashboardPage = () => {
   const fetchUserStats = async () => {
     try {
       // Call API to retrieve user data
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-      const response = await fetch(`http://${backendUrl}/admin/users`, {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/admin/users`, {
         method: 'GET',
         credentials: 'include',
       });

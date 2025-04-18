@@ -33,9 +33,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
       },
-      body: JSON.stringify({
-        reservationId: reservationId,
-      }),
+      body: JSON.stringify(reservationId),
       credentials: 'include',
     });
 

@@ -14,7 +14,8 @@ const THALITERA_SESSION_COOKIE_NAMES = [
   "THALITERA_SESSION_ID",
   "thalitera_session",
   "thalitera_auth",
-  "thalitera-session-id"
+  "thalitera-session-id",
+  "thalitera_session_marker"
 ];
 
 export function middleware(request: NextRequest) {

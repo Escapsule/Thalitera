@@ -26,36 +26,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        // Direct check for localStorage auth to avoid API calls
-        let authenticated = false;
+        // Use the API to check auth status instead of checking cookies directly
+        const response = await fetch('/api/user/check-auth', {
+          method: 'GET',
+          credentials: 'include', // Important: include cookies in the request
+        });
         
-        if (typeof window !== 'undefined') {
-          // First check localStorage for auth state
-          authenticated = localStorage.getItem('thalitera_auth') === 'true';
-          
-          // Then check for cookie if needed - only check THALITERA_SESSION_ID
-          if (!authenticated) {
-            const hasCookie = document.cookie.split(';')
-              .map(c => c.trim())
-              .some(cookie => cookie.startsWith('THALITERA_SESSION_ID='));
-            
-            authenticated = hasCookie;
-            
-            // Synchronize localStorage with cookies if needed
-            if (hasCookie && !localStorage.getItem('thalitera_auth')) {
-              localStorage.setItem('thalitera_auth', 'true');
-            }
-          } else {
-            // Create cookie for server-side checks if needed
-            const hasCookie = document.cookie.includes('THALITERA_SESSION_ID=');
-            if (!hasCookie) {
-              const tempSessionId = `authProvider_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-              document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
-            }
-          }
-        }
+        const data = await response.json();
+        const authenticated = data.code === 200;
+        
+        console.log('Auth check response:', data.code, authenticated ? 'authenticated' : 'not authenticated');
         
         setAuthenticated(authenticated);
+        
+        // Synchronize localStorage with auth state
+        if (authenticated) {
+          localStorage.setItem('thalitera_auth', 'true');
+        } else {
+          localStorage.removeItem('thalitera_auth');
+        }
         
         // Redirect to login if not authenticated and trying to access protected routes
         if (!authenticated && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin'))) {
@@ -90,6 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     verifyAuth();
+    
+    // Set up interval to check auth status periodically
+    const authCheckInterval = setInterval(() => {
+      verifyAuth();
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(authCheckInterval);
   }, [pathname, router, sessionStatus]);
 
   const value = {

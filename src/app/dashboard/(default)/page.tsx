@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
+import { toast } from "sonner"
 
 // Reservation type definition based on API response
 interface Attendee {
@@ -124,6 +125,47 @@ export default function Dashboard() {
       return "Invalid time"
     }
   }
+
+  // Cancel reservation handler with optimistic updates
+  const handleCancelReservation = async (reservationId: string) => {
+    try {
+      // Make the actual API call
+      const response = await fetch('/api/user/meetingroom/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reservationId: reservationId,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel reservation');
+      }
+      
+      // On success, update the UI
+      const updatedReservations = reservations.map(reservation => 
+        reservation.reservation_id === reservationId 
+          ? { ...reservation, status: 'canceled' } 
+          : reservation
+      );
+      
+      setReservations(updatedReservations);
+      
+      // If selected booking is being canceled, update it too
+      if (selectedBooking && selectedBooking.reservation_id === reservationId) {
+        setSelectedBooking({ ...selectedBooking, status: 'canceled' });
+      }
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error cancelling reservation:", error);
+      toast.error('Failed to cancel reservation. Please try again.');
+      return Promise.reject(error);
+    }
+  };
 
   return (
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
@@ -269,7 +311,8 @@ export default function Dashboard() {
       <ReservationDetail 
         reservation={selectedBooking} 
         isOpen={isDetailOpen} 
-        onClose={() => setIsDetailOpen(false)} 
+        onClose={() => setIsDetailOpen(false)}
+        onCancel={handleCancelReservation}
       />
     </div>
   )
