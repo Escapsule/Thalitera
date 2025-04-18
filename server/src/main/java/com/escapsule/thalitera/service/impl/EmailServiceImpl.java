@@ -42,7 +42,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage msg = mailSender.createMimeMessage();
 
             Session session = msg.getSession();
-            session.setDebug(true);
+            session.setDebug(false);
             session.getProperties().setProperty("mail.smtp.localhost", emailProperties.getHost());
 
             MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");

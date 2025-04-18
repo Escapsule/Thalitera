@@ -97,7 +97,7 @@ public class UserServiceImpl implements UserService {
                 )
         );
 
-        storeVerificationToken(dto.getEmail(), content.getToken());
+        storeVerificationToken(dto.getEmail().toLowerCase(), content.getToken());
         log.info("User registering, status pending: {}", user.getEmail());
     }
 
@@ -527,7 +527,7 @@ public class UserServiceImpl implements UserService {
      * @param token Validation Token
      */
     private void storeVerificationToken(String email, String token) {
-        redisTemplate.opsForValue().set(email + ":token", token, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(email + ":token", token, 30, TimeUnit.MINUTES);
     }
 
     /**
