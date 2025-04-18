@@ -25,6 +25,7 @@ import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.TotpUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.TrustDeviceVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import com.pig4cloud.captcha.GifCaptcha;
 import com.pig4cloud.captcha.base.Captcha;
@@ -41,10 +42,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.FontFormatException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -397,6 +397,91 @@ public class UserServiceImpl implements UserService {
 
         log.info("User MFA rollback to no MFA successfully: {}", email);
     }
+
+    /**
+     * Retrieves and converts trusted device information for a specified user.
+     * <p>
+     * This method performs the following operations:
+     * <ol>
+     *   <li>Fetches user entity from persistence layer using provided user ID</li>
+     *   <li>Handles potential null values using safe navigation patterns</li>
+     *   <li>Transforms device fingerprint entities to value objects</li>
+     *   <li>Enriches location data through IP information resolution</li>
+     * </ol>
+     *
+     * @param userId Universal Unique Identifier of the target user (RFC 4122)
+     * @return Immutable list of trusted device value objects. Returns empty list
+     *         when:
+     *         <ul>
+     *           <li>User entity not found</li>
+     *           <li>User has no trusted devices</li>
+     *           <li>Trusted devices collection exists but is empty</li>
+     *         </ul>
+     */
+    @Override
+    public List<TrustDeviceVO> getTrustDevice(UUID userId) {
+        return Optional.ofNullable(userMapper.getUserById(userId))
+                .map(User::getTrustedDevice)
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .map(this::buildTrustDeviceVO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Deletes a trusted device for a specific user.
+     *
+     * @param userId      The unique identifier of the user.
+     * @param fingerprint The fingerprint of the device to be deleted.
+     * @return The updated user entity after the device deletion.
+     * @throws BaseException If the user or device is not found.
+     */
+    @Override
+    public User deleteTrustDevice(UUID userId, String fingerprint) {
+        User user = Optional.ofNullable(userMapper.getUserById(userId))
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        List<DeviceFingerprint> devices = user.getTrustedDevice();
+
+        if (!(devices != null && devices.removeIf(d -> fingerprint.equals(d.getPrint())))) {
+            throw new BaseException(ErrorCode.DEVICE_NOT_FOUND);
+        }
+
+        userMapper.updateTrustedDevice(userId, devices);
+        log.info("User {} deleted trusted device {}", user.getEmail(), fingerprint);
+        return user;
+    }
+
+
+    /**
+     * Constructs TrustDevice Value Object from DeviceFingerprint entity.
+     * <p>
+     * Augments device fingerprint data with geographical information resolved
+     * through IP address lookup. Implements graceful degradation pattern for
+     * IP information resolution failures.
+     *
+     * @param deviceFingerprint Device authentication fingerprint entity containing
+     *        technical identification parameters. Must not be null.
+     * @return Fully populated value object with combined technical and
+     *         geographical data. Guaranteed non-null.
+     */
+    private TrustDeviceVO buildTrustDeviceVO(DeviceFingerprint deviceFingerprint) {
+        String location = Optional.ofNullable(IPInfoUtils.getIpInfo(deviceFingerprint.getIp()))
+                .map(ipInfo -> String.join(" ",
+                        ipInfo.getCountry(),
+                        ipInfo.getProvince(),
+                        ipInfo.getAddress()))
+                .orElse("");
+
+        return TrustDeviceVO.builder()
+                .browser(deviceFingerprint.getBrowser())
+                .os(deviceFingerprint.getOs())
+                .ip(deviceFingerprint.getIp())
+                .fingerprint(deviceFingerprint.getPrint())
+                .location(location)
+                .build();
+    }
+
 
     /**
      * Verify MFA or recovery code

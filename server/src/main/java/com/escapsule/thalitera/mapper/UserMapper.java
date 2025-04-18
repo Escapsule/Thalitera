@@ -78,6 +78,9 @@ public interface UserMapper {
      * @return User entity
      */
     @Select("SELECT * FROM users WHERE user_id = #{userId}")
+    @Results({
+            @Result(property = "trustedDevice", column = "trusted_devices", typeHandler = DFListTypeHandler.class)
+    })
     User getUserById(@NotNull UUID userId);
 
     /**

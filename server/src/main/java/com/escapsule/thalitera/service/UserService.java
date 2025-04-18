@@ -3,6 +3,7 @@ package com.escapsule.thalitera.service;
 import com.escapsule.thalitera.dto.*;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.TrustDeviceVO;
 
 import java.util.List;
 import java.util.UUID;
@@ -84,5 +85,28 @@ public interface UserService {
      */
     void enableMfa(String email, String totpCode, String userAgent, String fingerprint, String ip);
 
+    /**
+     * TODO: Prod need to delete
+     * Rollback user mfa
+     *
+     * @param email user email
+     */
     void rollbackToNoMfa(String email);
+
+    /**
+     * Get user trust device
+     *
+     * @param userId user id
+     * @return List of TrustDeviceVO
+     */
+    List<TrustDeviceVO> getTrustDevice(UUID userId);
+
+    /**
+     * Delete user trust device
+     *
+     * @param userId user id
+     * @param fingerprint user fingerprint
+     * @return User
+     */
+    User deleteTrustDevice(UUID userId, String fingerprint);
 }

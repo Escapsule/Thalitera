@@ -8,6 +8,7 @@ import com.escapsule.thalitera.response.ApiResult;
 import com.escapsule.thalitera.service.UserService;
 import com.escapsule.thalitera.utils.IpUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
+import com.escapsule.thalitera.vo.TrustDeviceVO;
 import com.escapsule.thalitera.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * UserController is a REST controller responsible for handling user-related operations.
@@ -211,7 +213,7 @@ public class UserController {
             @ApiResponse(responseCode = "2011", description = "User not login"),
     })
     @GetMapping("/info")
-    public ApiResult<?> getUserInfo(HttpSession session) {
+    public ApiResult<UserVO> getUserInfo(HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         UserVO vo = UserVO.builder()
@@ -225,6 +227,55 @@ public class UserController {
                 .build();
         log.info("User check info: {}", vo.getEmail());
         return ApiResult.success(vo);
+    }
+
+    /**
+     * Get user trust device
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @return Returns the result of the user's trust device.
+     */
+    @Operation(summary = "User trust device",
+            description = "Get user trust device.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User trust device"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+    })
+    @GetMapping("/trust-device")
+    public ApiResult<List<TrustDeviceVO>> getTrustDevice(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        return ApiResult.success(userService.getTrustDevice(user.getUserId()));
+    }
+
+    /**
+     * Delete user trust device
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @return Returns the result of the user's trust device.
+     */
+    @Operation(summary = "User delete trust device",
+            description = "Get user trust device.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User trust device"),
+            @ApiResponse(responseCode = "2001", description = "User does not exist."),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+            @ApiResponse(responseCode = "2019", description = "Device not found"),
+    })
+    @GetMapping("/trust-device/delete")
+    public ApiResult<?> deleteTrustDevice(HttpSession session,
+                                          @RequestHeader("THALITERA_FINGERPRINT") String currentFingerprint,
+                                          String fingerprint) {
+        User sessionUser  = Optional.ofNullable((User) session.getAttribute("user"))
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
+
+        session.setAttribute("user", userService.deleteTrustDevice(sessionUser.getUserId(), fingerprint));
+
+        if (currentFingerprint.equals(fingerprint)) {
+            logout(session);
+        }
+
+        return ApiResult.success();
     }
 
     /**
