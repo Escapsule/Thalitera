@@ -8,43 +8,32 @@ import UserDetail from "@/components/admin/user_detail"
 
 // Define types for room data
 type Room = {
-  id: number
+  room_id: string
+  image: string
   name: string
-  capacity: number
-  location: string
-  description: string
-  amenities: string[]
-  status: 'available' | 'booked' | 'in_use' | 'maintenance'
-  utilizationRate: number
-  currentBookings: {
-    id: number
-    startTime: string
-    endTime: string
-    userName: string
-    purpose: string
-  }[]
-  weeklyStats: {
-    totalHours: number
-    averageUtilization: number
-    peakHours: string[]
+  status: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted'
+  capacity_min: number
+  capacity_max: number
+  building: string
+  floor: string
+  facilities: {
+    projector: boolean | null
+    whiteboard: number | null
+    power_sockets: number | null
+    coffee_break: boolean | null
+    special_notes: string[] | null
   }
 }
 
 // Define types for user data
 type User = {
-  id: number
-  name: string
+  user_id: string
+  avatar?: string
+  username: string
   email: string
-  status: 'online' | 'offline'
-  lastLogin: string
-  totalBookings: number
-  currentBookings: {
-    id: number
-    roomName: string
-    startTime: string
-    endTime: string
-    purpose: string
-  }[]
+  status: string // active, locked, disabled, admin, pending
+  created_at?: string
+  update_at?: string
 }
 
 // Pagination props
@@ -74,8 +63,8 @@ interface CardProps {
 }
 
 const Card = ({ children, title }: CardProps) => (
-  <div className="bg-white rounded-xl shadow-lg p-6 h-full flex flex-col border border-gray-100">
-    <h2 className="text-xl font-semibold mb-4 text-gray-800">{title}</h2>
+  <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
+    <h2 className="text-xl font-semibold mb-4">{title}</h2>
     <div className="flex-1 flex flex-col min-h-0">
       {children}
     </div>
@@ -83,13 +72,13 @@ const Card = ({ children, title }: CardProps) => (
 )
 
 const StatCard = ({ title, value, suffix = '', icon, className }: StatCardProps) => (
-  <div className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-xl shadow-md h-full border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-    <div className="flex items-start justify-between mb-2 h-[32px]">
-      <h3 className={`text-gray-600 font-medium ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
-      {icon && <span className="text-primary flex-shrink-0 bg-primary/10 p-2 rounded-full">{icon}</span>}
+  <div className="bg-white p-3 rounded-lg shadow-md h-full">
+    <div className="flex items-start justify-between mb-1 h-[32px]">
+      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
+      {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
     </div>
     <div className="h-[32px] flex items-center">
-      <p className="text-lg sm:text-2xl font-bold text-gray-800">
+      <p className="text-lg sm:text-xl font-semibold break-all">
         {value.toLocaleString()}{suffix}
       </p>
     </div>
@@ -133,44 +122,81 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
   }
 
   return (
-    <div className="flex justify-center items-center gap-2 text-sm">
+    <div className="flex justify-center items-center gap-1 text-sm">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-3 py-1 text-xs rounded-md border border-gray-200 disabled:opacity-50 hover:bg-gray-50 transition-colors duration-200 font-medium"
+        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        Previous
+        previous page
       </button>
       <div className="flex items-center gap-1">
-        <span className="text-xs font-medium text-gray-600">Page</span>
+        <span className="text-xs">page</span>
         <input
-          title="Page number"
           type="text"
           value={inputPage}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           onBlur={handleInputSubmit}
-          className="w-10 px-2 py-1 text-xs text-center border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="w-8 px-1 py-0.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <span className="text-xs text-gray-500">of {totalPages}</span>
+        <span className="text-xs">, total {totalPages} pages</span>
       </div>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-1 text-xs rounded-md border border-gray-200 disabled:opacity-50 hover:bg-gray-50 transition-colors duration-200 font-medium"
+        className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        Next
+        next page
       </button>
     </div>
   )
 }
 
-// 首先定义用户统计数据的类型
+// Define the types of user statistical data
 type UserStats = {
   totalUsers: number
   activeUsers: number
   bookingsToday: number
 }
+
+// Get the color and text of the meeting room status
+const getRoomStatusInfo = (status: string) => {
+  switch (status) {
+    case 'active':
+      return { color: 'bg-green-100 text-green-800', text: 'Available' }
+    case 'maintenance':
+      return { color: 'bg-yellow-100 text-yellow-800', text: 'Maintenance' }
+    case 'using':
+      return { color: 'bg-blue-100 text-blue-800', text: 'In Use' }
+    case 'booked':
+      return { color: 'bg-purple-100 text-purple-800', text: 'Booked' }
+    case 'deleted':
+      return { color: 'bg-red-100 text-red-800', text: 'Deleted' }
+    default:
+      return { color: 'bg-gray-100 text-gray-800', text: 'Unknown' }
+  }
+}
+
+// Helper function to format dates
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Unknown";
+    }
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return "Unknown";
+  }
+};
 
 /**
  * Admin dashboard page component
@@ -193,7 +219,7 @@ const DashboardPage = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Conference room pagination status
+  // Meeting room pagination status
   const [roomCurrentPage, setRoomCurrentPage] = useState(1)
 
   // User status
@@ -208,7 +234,7 @@ const DashboardPage = () => {
   const roomItemsPerPage = 4;
   const userItemsPerPage = 5; 
 
-  // Conference room pagination calculation
+  // Meeting room pagination calculation
   const filteredRooms = rooms.filter(room => 
     room.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
   )
@@ -220,8 +246,7 @@ const DashboardPage = () => {
 
   // User pagination calculation
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || 
-    user.id.toString().includes(userSearchQuery)
+    user.username.toLowerCase().includes(userSearchQuery.toLowerCase())
   )
   const userTotalPages = Math.ceil(filteredUsers.length / userItemsPerPage);
   const currentUsers = filteredUsers.slice(
@@ -229,7 +254,7 @@ const DashboardPage = () => {
     userCurrentPage * userItemsPerPage
   );
 
-  // Conference room pagination handling function
+  // Meeting room pagination handling function
   const handleRoomPageChange = (page: number) => {
     setRoomCurrentPage(page)
   }
@@ -244,158 +269,150 @@ const DashboardPage = () => {
    */
   const fetchRoomStats = async () => {
     try {
-      // Import mock data
-      const { rooms: mockRooms } = await import('@/lib/admin/mock_data')
-      
-      // Format room data
-      const formattedRooms = mockRooms.map((room) => ({
-        id: room.id,
-        name: room.name,
-        capacity: room.capacity,
-        location: room.location,
-        description: room.description,
-        amenities: room.amenities,
-        status: room.status as 'available' | 'booked' | 'in_use' | 'maintenance',
-        utilizationRate: room.utilizationRate,
-        currentBookings: room.currentBookings || [],
-        weeklyStats: room.weeklyStats
-      }))
-      
-      console.log('Formatted rooms:', formattedRooms)
-      setRooms(formattedRooms)
-      setRoomStats({
-        totalRooms: formattedRooms.length,
-        activeBookings: formattedRooms.filter((room: Room) => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length,
-        utilizationRate: (formattedRooms.filter((room: Room) => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length / formattedRooms.length) * 100
-      })
-    } catch (error) {
-      console.error('Failed to get meeting room statistics:', error)
-      // If import fails, use hardcoded mock data
-      const fallbackRooms: Room[] = [
-        {
-          id: 1,
-          name: "Conference Room A",
-          capacity: 12,
-          location: "Building A, Floor 2",
-          description: "Large conference room with projector",
-          amenities: ["Projector", "Whiteboard"],
-          status: "available",
-          utilizationRate: 60,
-          currentBookings: [],
-          weeklyStats: {
-            totalHours: 40,
-            averageUtilization: 65,
-            peakHours: ["09:00-10:00", "14:00-15:00"]
-          }
-        },
-        {
-          id: 2,
-          name: "Meeting Room B",
-          capacity: 6,
-          location: "Building A, Floor 1",
-          description: "Medium-sized meeting room",
-          amenities: ["TV Screen", "Whiteboard"],
-          status: "in_use",
-          utilizationRate: 80,
-          currentBookings: [{
-            id: 1,
-            startTime: "09:00",
-            endTime: "10:00",
-            userName: "John",
-            purpose: "Team Meeting"
-          }],
-          weeklyStats: {
-            totalHours: 35,
-            averageUtilization: 70,
-            peakHours: ["10:00-11:00", "15:00-16:00"]
-          }
+      // Call API to retrieve conference room data
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      ]
-      setRooms(fallbackRooms)
-      setRoomStats({
-        totalRooms: fallbackRooms.length,
-        activeBookings: fallbackRooms.filter(room => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length,
-        utilizationRate: (fallbackRooms.filter(room => 
-          room.status === 'booked' || room.status === 'in_use'
-        ).length / fallbackRooms.length) * 100
-      })
+      });
+      
+      const data = await response.json();
+      
+      if (data.code === 200) {
+        // Use the data returned by the API directly
+        const rooms = data.data;
+        setRooms(rooms);
+        setRoomStats({
+          totalRooms: rooms.length,
+          activeBookings: 0, // Not provided in API, temporarily using 0
+          utilizationRate: 0 // Not provided in API, temporarily using 0
+        });
+      } else {
+        console.error(data.message || 'Failed to retrieve conference room list');
+        // If the API call fails, use the fallback data
+        useFallbackData();
+      }
+    } catch (error) {
+      console.error('Failed to retrieve conference room statistics:', error);
+      // If the API call fails, use the fallback data
+      useFallbackData();
     }
+  }
+
+  // Function to use fallback data
+  const useFallbackData = () => {
+    const fallbackRooms: Room[] = [
+      {
+        room_id: "room-1",
+        name: "Conference Room A",
+        image: "",
+        status: "active",
+        capacity_min: 4,
+        capacity_max: 12,
+        building: "Building A",
+        floor: "2",
+        facilities: {
+          projector: true,
+          whiteboard: 2,
+          power_sockets: 8,
+          coffee_break: true,
+          special_notes: ["Large conference room with projector"]
+        }
+      },
+      {
+        room_id: "room-2",
+        name: "Meeting Room B",
+        image: "",
+        status: "maintenance",
+        capacity_min: 2,
+        capacity_max: 6,
+        building: "Building A",
+        floor: "1",
+        facilities: {
+          projector: false,
+          whiteboard: 1,
+          power_sockets: 4,
+          coffee_break: false,
+          special_notes: ["Medium-sized meeting room"]
+        }
+      }
+    ];
+    setRooms(fallbackRooms);
+    setRoomStats({
+      totalRooms: fallbackRooms.length,
+      activeBookings: 0,
+      utilizationRate: 0
+    });
   }
 
   const fetchUserStats = async () => {
     try {
-      // Import mock data
-      const { users: mockUsers } = await import('@/lib/admin/userMock_data')
-      
-      // Format user data
-      const formattedUsers = mockUsers.map((user) => ({
-        id: user.id,
-        name: user.name.trim(),
-        email: user.email,
-        status: user.status as 'online' | 'offline',
-        lastLogin: user.lastLogin,
-        totalBookings: user.totalBookings,
-        currentBookings: user.currentBookings || []
-      }))
-      
-      // Get today's date
-      const today = new Date()
-      
-      setUsers(formattedUsers)
-      setUserStats({
-        totalUsers: formattedUsers.length,
-        activeUsers: formattedUsers.filter(user => {
-          // Check if user has bookings today
-          const hasBookingsToday = user.currentBookings?.some(booking => {
-            // Process time format
-            const [hours, minutes] = booking.startTime.split(':')
-            const bookingDate = new Date()
-            bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-            return bookingDate.toDateString() === today.toDateString()
-          }) || false
-
-          // Check user last login time
-          try {
-            const lastLoginDate = new Date(user.lastLogin)
-            const isLoginToday = lastLoginDate.toDateString() === today.toDateString()
-            return hasBookingsToday || isLoginToday
-          } catch {
-            return false
-          }
-        }).length,
-        bookingsToday: formattedUsers.reduce((sum, user) => 
-          sum + (user.currentBookings?.length || 0), 0
-        )
-      })
-
-      console.log('Formatted users:', formattedUsers) // Add log
-    } catch (error) {
-      console.error('Failed to get user statistics:', error)
-      // If import fails, use hardcoded mock data
-      const fallbackUsers = [
-        {
-          id: 1,
-          name: "John",
-          email: "john@example.com",
-          status: "online",
-          lastLogin: "2024-03-07 09:30",
-          totalBookings: 0,
-          currentBookings: []
+      // Call API to retrieve user data
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/admin/users`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      ]
-      setUsers(fallbackUsers as User[])
-      setUserStats({
-        totalUsers: fallbackUsers.length,
-        activeUsers: 0,
-        bookingsToday: 0
-      })
+      });
+      
+      const data = await response.json();
+      
+      if (data.code === 200) {
+        // Use the data returned by the API directly
+        const formattedUsers = data.data.map((user: any) => ({
+          user_id: user.user_id,
+          avatar: user.avatar || "",
+          username: user.username,
+          email: user.email,
+          status: user.status,
+          created_at: user.created_at,
+          update_at: user.update_at
+        }));
+        
+        setUsers(formattedUsers);
+        setUserStats({
+          totalUsers: formattedUsers.length,
+          activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
+          bookingsToday: 0 // Not provided in API, temporarily using default value
+        });
+        
+        console.log('Formatted users:', formattedUsers);
+      } else {
+        console.error(data.message || 'Failed to retrieve user list');
+        // If the API call fails, use the fallback data
+        useFallbackUserData();
+      }
+    } catch (error) {
+      console.error('Failed to retrieve user statistics:', error);
+      // If the API call fails, use the fallback data
+      useFallbackUserData();
     }
+  }
+
+  // Function to use fallback user data
+  const useFallbackUserData = () => {
+    const fallbackUsers = [
+      {
+        user_id: "1",
+        username: "John",
+        email: "john@example.com",
+        status: "active",
+        avatar: "",
+        created_at: new Date().toISOString(),
+        update_at: new Date().toISOString()
+      }
+    ];
+    setUsers(fallbackUsers as User[]);
+    setUserStats({
+      totalUsers: fallbackUsers.length,
+      activeUsers: 0,
+      bookingsToday: 0
+    });
   }
 
   // When the component is loaded, get the data
@@ -423,21 +440,20 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="flex min-h-[95cvh] flex-col py-6 ml-12 bg-gray-50">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+    <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="ml-auto flex items-center gap-4">
-          <Avatar className="border-2 border-primary/20">
+          <Avatar>
             <AvatarImage src="/placeholder-user.jpg" alt="User" />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">TH</AvatarFallback>
+            <AvatarFallback>TH</AvatarFallback>
           </Avatar>
         </div>
       </header>
       
       <div className="flex flex-1 justify-center">
-        <main className="flex-1 p-6 md:p-8 min-w-[80vw] max-w-[80vw] mx-auto">
-          <div className="space-y-8">
-            <div className="grid gap-6 md:grid-cols-2">
+        <main className="flex-1 p-4 md:p-6 min-w-[80vw] max-w-[80vw] mx-auto">
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="w-full min-w-0">
                 <Card title="Meeting Room Usage">
                   <div className="flex flex-col h-full">
@@ -465,69 +481,54 @@ const DashboardPage = () => {
 
                     <div className="flex-1 flex flex-col min-h-0">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                        <h3 className="text-lg font-medium text-gray-800">Meeting Rooms</h3>
+                        <h3 className="text-lg font-medium">Meeting Rooms</h3>
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
-                            placeholder="Search Rooms..."
+                            placeholder="Search Room..."
                             value={roomSearchQuery}
                             onChange={(e) => {
                               setRoomSearchQuery(e.target.value)
                               setRoomCurrentPage(1)
                             }}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 pr-8 shadow-sm"
+                            className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
                             <Search className="h-4 w-4" />
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto mb-4 pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                      <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
                           {currentRooms.map((room) => (
                             <div 
-                              key={room.id}
-                              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-md"
+                              key={room.room_id}
+                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                               onClick={() => handleViewRoom(room)}
                             >
-                              <div className="flex justify-between items-start mb-3">
+                              <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <h4 className="font-medium text-gray-800">{room.name}</h4>
-                                  <p className="text-sm text-gray-500">{room.location}</p>
+                                  <h4 className="font-medium">{room.name}</h4>
+                                  <p className="text-sm text-gray-500">{room.building}, Floor {room.floor}</p>
                                 </div>
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                  room.status === 'available' ? 'bg-green-100 text-green-800' :
-                                  room.status === 'booked' ? 'bg-amber-100 text-amber-800' :
-                                  room.status === 'in_use' ? 'bg-rose-100 text-rose-800' :
-                                  'bg-gray-100 text-gray-800'
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  getRoomStatusInfo(room.status).color
                                 }`}>
-                                  {room.status === 'available' ? 'Available' :
-                                   room.status === 'booked' ? 'Booked' :
-                                   room.status === 'in_use' ? 'In Use' :
-                                   'Maintenance'}
+                                  {getRoomStatusInfo(room.status).text}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-primary/70" />
-                                  <span className="text-gray-700">{room.capacity} people</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <BarChart2 className="h-4 w-4 text-primary/70" />
-                                  <span className="text-gray-700">Utilization: {room.utilizationRate}%</span>
+                                  <Users className="h-4 w-4 text-gray-400" />
+                                  <span>Capacity: {room.capacity_min} - {room.capacity_max} people</span>
                                 </div>
                               </div>
-                              {room.currentBookings && room.currentBookings.length > 0 && (
-                                <div className="mt-3 text-sm bg-gray-50 p-2 rounded-md border border-gray-100">
-                                  <span className="text-gray-700">Current: <span className="font-medium">{room.currentBookings[0].userName}</span> ({room.currentBookings[0].startTime} - {room.currentBookings[0].endTime})</span>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-lg">
-                        <div className="py-2">
+                      <div className="sticky bottom-0 bg-white border-t">
+                        <div className="py-1">
                           <Pagination
                             currentPage={roomCurrentPage}
                             totalPages={roomTotalPages}
@@ -552,7 +553,7 @@ const DashboardPage = () => {
                         className="text-xs"
                       />
                       <StatCard
-                        title="Active Users Today"
+                        title="Active Users"
                         value={userStats.activeUsers}
                         icon={<UserRound className="w-4 h-4 sm:w-5 sm:h-5" />}
                         className="text-xs"
@@ -567,72 +568,82 @@ const DashboardPage = () => {
 
                     <div className="flex-1 flex flex-col min-h-0">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                        <h3 className="text-lg font-medium text-gray-800">Users</h3>
+                        <h3 className="text-lg font-medium">Users</h3>
                         <div className="relative w-full sm:w-64">
                           <input
                             type="text"
-                            placeholder="Search User Name/ID..."
+                            placeholder="Search User Name..."
                             value={userSearchQuery}
                             onChange={(e) => {
                               setUserSearchQuery(e.target.value)
                               setUserCurrentPage(1)
                             }}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 pr-8 shadow-sm"
+                            className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
                             <Search className="h-4 w-4" />
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto mb-4 pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                      <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
                           {currentUsers.map((user) => (
                             <div
-                              key={user.id}
-                              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-md"
+                              key={user.user_id}
+                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                               onClick={() => handleViewUser(user)}
                             >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-2">
                                   <div className="relative">
-                                    <Avatar className="h-10 w-10 border-2 border-gray-100">
-                                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                                        {user.name.charAt(0).toUpperCase()}
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback className="bg-primary text-primary-foreground">
+                                        {user.username.charAt(0).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <span className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                                      user.status === 'online' 
+                                    <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
+                                      user.status === 'active' 
                                         ? 'bg-green-500' 
-                                        : 'bg-gray-400'
+                                        : user.status === 'locked'
+                                        ? 'bg-red-500'
+                                        : user.status === 'disabled'
+                                        ? 'bg-gray-500'
+                                        : user.status === 'admin'
+                                        ? 'bg-blue-500'
+                                        : user.status === 'pending'
+                                        ? 'bg-yellow-500'
+                                        : 'bg-gray-500'
                                     }`} />
                                   </div>
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-800">{user.name}</span>
-                                      <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">ID: {user.id}</span>
+                                      <span className="font-medium">{user.username}</span>
                                     </div>
-                                    <span className="text-xs text-gray-500">Last Login: {user.lastLogin}</span>
+                                    <span className="text-xs text-gray-500">Last Active: {user.update_at ? formatDate(user.update_at) : "Unknown"}</span>
                                   </div>
                                 </div>
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                  user.status === 'online'
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  user.status === 'active'
                                     ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-600'
+                                    : user.status === 'locked'
+                                    ? 'bg-red-100 text-red-800'
+                                    : user.status === 'disabled'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : user.status === 'admin'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : user.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {user.status === 'online' ? 'Online' : 'Offline'}
+                                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                 </span>
                               </div>
-                              {user.currentBookings && user.currentBookings.length > 0 && (
-                                <div className="mt-3 text-sm bg-gray-50 p-2 rounded-md border border-gray-100">
-                                  <span className="text-gray-700">Current Booking: <span className="font-medium">{user.currentBookings[0].roomName}</span> ({user.currentBookings[0].startTime} - {user.currentBookings[0].endTime})</span>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-lg">
-                        <div className="py-2">
+                      <div className="sticky bottom-0 bg-white border-t">
+                        <div className="py-1">
                           <Pagination
                             currentPage={userCurrentPage}
                             totalPages={userTotalPages}
@@ -649,7 +660,7 @@ const DashboardPage = () => {
             {/* Statistics Chart Area */}
             <div className="w-full min-w-0">
               <Card title="Meeting Room Booking Preference Analysis">
-                <div className="w-full overflow-x-auto p-2">
+                <div className="w-full overflow-x-auto">
                   <RoomCharts rooms={rooms} />
                 </div>
               </Card>
@@ -661,18 +672,7 @@ const DashboardPage = () => {
       {/* Room Detail Dialog */}
       {selectedRoom && (
         <RoomDetail
-          booking={{
-            id: selectedRoom.id,
-            roomName: selectedRoom.name,
-            roomId: selectedRoom.id,
-            date: new Date(),
-            startTime: selectedRoom.currentBookings?.[0]?.startTime || "00:00",
-            endTime: selectedRoom.currentBookings?.[0]?.endTime || "00:00",
-            status: selectedRoom.status,
-            utilizationRate: selectedRoom.utilizationRate,
-            currentBookings: selectedRoom.currentBookings,
-            weeklyStats: selectedRoom.weeklyStats
-          }}
+          room={selectedRoom}
           isOpen={isDetailOpen}
           onClose={() => setIsDetailOpen(false)}
         />

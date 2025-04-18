@@ -1,212 +1,340 @@
-import { 
-  PieChart, Pie, Tooltip, Legend, Cell,
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid
-} from 'recharts';
+import React from 'react';
+import ReactECharts from 'echarts-for-react';
 
 // Import Room Type
 type Room = {
-  id: number
+  room_id: string
+  image: string
   name: string
-  capacity: number
-  location: string
-  description: string
-  amenities: string[]
-  status: 'available' | 'booked' | 'in_use' | 'maintenance'
-  utilizationRate: number
-  currentBookings: {
-    id: number
-    startTime: string
-    endTime: string
-    userName: string
-    purpose: string
-  }[]
-  weeklyStats: {
-    totalHours: number
-    averageUtilization: number
-    peakHours: string[]
+  capacity_min: number
+  capacity_max: number
+  building: string
+  floor: string
+  facilities: {
+    projector: boolean | null
+    whiteboard: number | null
+    power_sockets: number | null
+    coffee_break: boolean | null
+    special_notes: string[] | null
   }
+  booking_count?: number
+  hourly_bookings?: number[]
 }
 
 interface RoomChartsProps {
   rooms: Room[];
 }
 
-
+/**
+ * Meeting Room Booking Preference Statistics Chart Component
+ * @param {RoomChartsProps} props - Component properties
+ * @returns {JSX.Element} Chart component
+ */
 const RoomCharts = ({ rooms }: RoomChartsProps) => {
   // 1. Building Preference Statistics
   const buildingPreference = rooms.reduce((acc, room) => {
-    const building = room.location.split(',')[0].trim();
-    const bookingCount = room.currentBookings?.length || 0;
+    const building = room.building;
+    // Assuming that each conference room has a booking frequency attribute
+    const bookingCount = room.booking_count || 0;
     acc[building] = (acc[building] || 0) + bookingCount;
     return acc;
   }, {} as Record<string, number>);
 
-  const totalBookings = rooms.reduce((total, room) => 
-    total + (room.currentBookings?.length || 0), 0
-  );
+  // 2. Capacity Preference
+  const capacityDistribution = rooms.reduce((acc, room) => {
+    const range = `${room.capacity_min}-${room.capacity_max}`;
+    const bookingCount = room.booking_count || 0;
+    acc[range] = (acc[range] || 0) + bookingCount;
+    return acc;
+  }, {} as Record<string, number>);
 
+  // 3. Facilities Usage
+  const facilitiesUsage = rooms.reduce((acc, room) => {
+    const bookingCount = room.booking_count || 0;
+    if (room.facilities.projector) acc.projector = (acc.projector || 0) + bookingCount;
+    if (room.facilities.whiteboard) acc.whiteboard = (acc.whiteboard || 0) + bookingCount;
+    if (room.facilities.power_sockets) acc.power_sockets = (acc.power_sockets || 0) + bookingCount;
+    if (room.facilities.coffee_break) acc.coffee_break = (acc.coffee_break || 0) + bookingCount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Calculate the total number of bookings
+  const totalBookings = rooms.reduce((acc, room) => acc + (room.booking_count || 0), 0);
+
+  // 1. Building Preference Statistics
   const buildingData = Object.entries(buildingPreference)
-    .map(([name, bookings]) => ({
+    .map(([name, count]) => ({
       name,
-      value: totalBookings > 0 
-        ? Math.round((bookings / totalBookings) * 100) 
-        : 0 
+      value: count,
+      percentage: ((count / totalBookings) * 100).toFixed(1)
     }))
     .sort((a, b) => b.value - a.value);
 
   // 2. Meeting Room Capacity Preference Statistics
-  const capacityPreference = rooms.reduce((acc, room) => {
-    let size = 'Small (1-4 people)';
-    if (room.capacity > 10) size = 'Large (10+ people)';
-    else if (room.capacity > 4) size = 'Medium (5-10 people)';
-    
-    const bookingCount = room.currentBookings?.length || 0;
-    acc[size] = (acc[size] || 0) + bookingCount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const capacityData = Object.entries(capacityPreference)
-    .map(([name, bookings]) => ({
+  const capacityData = Object.entries(capacityDistribution)
+    .map(([name, count]) => ({
       name,
-      value: totalBookings > 0 
-        ? Math.round((bookings / totalBookings) * 100)
-        : 0
+      value: count,
+      percentage: ((count / totalBookings) * 100).toFixed(1)
     }))
     .sort((a, b) => {
-      const order = ['Small (1-4 people)', 'Medium (5-10 people)', 'Large (10+ people)'];
-      return order.indexOf(a.name) - order.indexOf(b.name);
+      const [minA, maxA] = a.name.split('-').map(Number);
+      const [minB, maxB] = b.name.split('-').map(Number);
+      return minA - minB || maxA - maxB;
     });
 
   // 3. Facility Preference Statistics
-  const amenityPreference = rooms.reduce((acc, room) => {
-    const bookingCount = room.currentBookings?.length || 0;
-    
-    room.amenities.forEach(amenity => {
-      acc[amenity] = (acc[amenity] || 0) + bookingCount;
-    });
-    return acc;
-  }, {} as Record<string, number>);
-
-  const amenityData = Object.entries(amenityPreference)
-    .map(([name, bookings]) => ({
+  const amenityData = Object.entries(facilitiesUsage)
+    .map(([name, count]) => ({
       name,
-      utilization: totalBookings > 0 
-        ? Math.round((bookings / totalBookings) * 100)
-        : 0
+      value: count,
+      percentage: ((count / totalBookings) * 100).toFixed(1)
     }))
-    .sort((a, b) => b.utilization - a.utilization);
+    .sort((a, b) => {
+      const order = ['projector', 'whiteboard', 'power_sockets', 'coffee_break'];
+      return order.indexOf(a.name) - order.indexOf(b.name);
+    });
 
   // Color Configuration
   const COLORS = [
-    '#D8A6A6', '#9BADBC', '#9E8FA1', '#B8A8A8', '#8E8E8E',
-    '#8A9AAD', '#6D8B9E', '#7A8D9C', '#A89CAC', '#7D7D6D',
-    '#6E7E6B', '#A99F8E', '#B8A692', '#B2A5B8'
+    '#B2A5B8',
+    '#D8A6A6',
+    '#9BADBC',
+    '#A9B0B8',
+    '#B8A8A8',
+    '#9E8FA1',
+    '#E6D5C7',
+    '#D8C3A5',
+    '#C4B5A3',
+    '#A8B8A8'
   ];
 
-  const renderPieChart = (data: any[], title: string) => (
-    <div className="bg-white p-4 rounded-lg shadow h-full min-w-[400px]">
-      <h3 className="text-lg font-medium mb-4">{title}</h3>
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              fill="#8884d8"
-              paddingAngle={5}
-              dataKey="value"
-              label={({name, value}) => `${name}: ${value}%`}
-              labelLine={{
-                strokeWidth: 1,
-                stroke: '#999999'
-              }}
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={entry.name} 
-                  fill={COLORS[index % COLORS.length]} 
-                />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => `${value}%`} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-
-  const renderBarChart = (data: any[], title: string) => (
-    <div className="bg-white p-4 rounded-lg shadow h-full min-w-[600px]">
-      <h3 className="text-lg font-medium mb-4">{title}</h3>
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{
-              top: 20,
-              right: 30,
-              left: 150,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} unit="%" />
-            <YAxis 
-              type="category" 
-              dataKey="name" 
-              width={140}
-              tick={{ 
-                fontSize: 12,
-                width: 140,
-              }}
-              style={{
-                fontSize: '12px'
-              }}
-            />
-            <Tooltip 
-              formatter={(value) => `${value}%`}
-              labelStyle={{ fontSize: '12px' }}
-              wrapperStyle={{ width: 200 }}
-            />
-            <Legend />
-            <Bar 
-              dataKey="utilization" 
-              name="Utilization Rate"
-              fill="#8884d8"
-              radius={[0, 4, 4, 0]}
-              barSize={20}
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={entry.name} 
-                  fill={COLORS[index % COLORS.length]} 
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
+  // 4. Peak Hours Statistics
+  const peakHoursData = Array.from({ length: 24 }, (_, i) => ({
+    hour: i,
+    value: rooms.reduce((acc, room) => {
+      const hourlyBookings = room.hourly_bookings || Array(24).fill(0);
+      return acc + hourlyBookings[i];
+    }, 0)
+  }));
 
   return (
-    <div className="mt-6 space-y-6 h-full">
-      <div className="flex overflow-x-auto gap-6 pb-4">
-        <div className="flex-1 min-w-[400px]">
-          {renderPieChart(buildingData, 'Building Preference Statistics')}
+    <div className="grid grid-cols-1 gap-6">
+      {/* Building Preference Chart */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Building Preference</h3>
+          <ReactECharts
+            option={{
+              tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {d}%'
+              },
+              legend: {
+                orient: 'vertical',
+                left: 'left',
+                data: buildingData.map(item => item.name)
+              },
+              series: [
+                {
+                  type: 'pie',
+                  radius: '50%',
+                  data: buildingData.map((item, index) => ({
+                    ...item,
+                    itemStyle: { color: COLORS[index % COLORS.length] }
+                  })),
+                  emphasis: {
+                    itemStyle: {
+                      shadowBlur: 10,
+                      shadowOffsetX: 0,
+                      shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                  },
+                  label: {
+                    show: true,
+                    formatter: '{b}: {d}%'
+                  }
+                }
+              ]
+            }}
+            style={{ height: '300px' }}
+          />
         </div>
-        <div className="flex-1 min-w-[400px]">
-          {renderPieChart(capacityData, 'Meeting Room Capacity Preference Statistics')}
+
+        {/* Capacity Distribution Chart */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Capacity Preference</h3>
+          <ReactECharts
+            option={{
+              tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {d}%'
+              },
+              legend: {
+                orient: 'vertical',
+                left: 'left',
+                data: capacityData.map(item => item.name)
+              },
+              series: [
+                {
+                  type: 'pie',
+                  radius: '50%',
+                  data: capacityData.map((item, index) => ({
+                    ...item,
+                    itemStyle: { color: COLORS[index % COLORS.length] }
+                  })),
+                  emphasis: {
+                    itemStyle: {
+                      shadowBlur: 10,
+                      shadowOffsetX: 0,
+                      shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                  },
+                  label: {
+                    show: true,
+                    formatter: '{b}: {d}%'
+                  }
+                }
+              ]
+            }}
+            style={{ height: '300px' }}
+          />
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto">
-        {renderBarChart(amenityData, 'Meeting Room Amenities Preference Statistics')}
+      {/* Facilities Usage Chart */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">Facilities Preference</h3>
+        <ReactECharts
+          option={{
+            tooltip: {
+              trigger: 'axis',
+              axisPointer: {
+                type: 'shadow'
+              },
+              formatter: '{b}: {d}%'
+            },
+            grid: {
+              left: '15%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+            },
+            xAxis: {
+              type: 'value',
+              axisLabel: {
+                formatter: '{value}%'
+              }
+            },
+            yAxis: {
+              type: 'category',
+              data: amenityData.map(item => item.name),
+              axisLabel: {
+                interval: 0,
+                formatter: function(value: string) {
+                  return value.length > 20 ? value.slice(0, 20) + '...' : value;
+                }
+              }
+            },
+            series: [
+              {
+                name: 'Booking Count',
+                type: 'bar',
+                data: amenityData.map((item, index) => ({
+                  value: parseFloat(item.percentage),
+                  itemStyle: { 
+                    color: item.name === 'projector' ? '#9E8FA1' :
+                           item.name === 'whiteboard' ? '#9BADBC' :
+                           item.name === 'power_sockets' ? '#D8A6A6' :
+                           item.name === 'coffee_break' ? '#B8A8A8' :
+                           COLORS[index % COLORS.length]
+                  }
+                })),
+                label: {
+                  show: true,
+                  position: 'right',
+                  formatter: '{c}%'
+                }
+              }
+            ]
+          }}
+          style={{ height: '300px' }}
+        />
+      </div>
+
+      {/* Peak Hours Chart */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">Peak Hours Distribution</h3>
+        <ReactECharts
+          option={{
+            tooltip: {
+              trigger: 'axis',
+              formatter: '{b}:00 - {c} time(s)'
+            },
+            grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+            },
+            xAxis: {
+              type: 'category',
+              data: peakHoursData.map(item => `${item.hour}:00`),
+              axisLabel: {
+                interval: 2,
+                formatter: function(value: string) {
+                  return value;
+                }
+              }
+            },
+            yAxis: {
+              type: 'value',
+              name: 'Booking Counts',
+              nameLocation: 'middle',
+              nameGap: 30
+            },
+            series: [
+              {
+                name: 'Booking Count',
+                type: 'line',
+                smooth: true,
+                data: peakHoursData.map(item => item.value),
+                itemStyle: {
+                  color: '#B2A5B8'
+                },
+                areaStyle: {
+                  color: {
+                    type: 'linear',
+                    x: 0,
+                    y: 0,
+                    x2: 0,
+                    y2: 1,
+                    colorStops: [{
+                      offset: 0,
+                      color: 'rgba(178, 165, 184, 0.3)'
+                    }, {
+                      offset: 1,
+                      color: 'rgba(178, 165, 184, 0.1)'
+                    }]
+                  }
+                },
+                markLine: {
+                  silent: true,
+                  data: [
+                    {
+                      name: 'Average',
+                      type: 'average',
+                      lineStyle: {
+                        color: '#9E8FA1'
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }}
+          style={{ height: '300px' }}
+        />
       </div>
     </div>
   );

@@ -32,6 +32,11 @@ const items = [
     title: "Manage User",
     url: "/admin/dashboard/manage-user",
     icon: Users,
+  },
+  {
+    title: "Manage Booking",
+    url: "/admin/dashboard/manage-booking",
+    icon: Calendar,
   }
 ]
 
