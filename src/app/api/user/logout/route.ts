@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/user/logout`, {
-      method: 'POST',
+      method: 'GET',
       headers,
       credentials: 'include',
     });
@@ -35,10 +35,25 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Add clear cookie headers to ensure all session cookies are removed
+    const clearCookies = [
+      'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+      'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'THALITERA_SESSION_ID=; Path=/; Domain=localhost; Max-Age=0',
+      'thalitera_session=; Path=/; Max-Age=0',
+      'thalitera_auth=; Path=/; Max-Age=0',
+      'thalitera_session_marker=; Path=/; Max-Age=0'
+    ];
+    
+    clearCookies.forEach(cookie => {
+      nextResponse.headers.append('Set-Cookie', cookie);
+    });
+
     return nextResponse;
   } catch (error) {
     console.error('API route error:', error);
-    return NextResponse.json(
+    
+    const errorResponse = NextResponse.json(
       {
         code: 500,
         message: 'An error occurred during logout',
@@ -47,6 +62,22 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+    
+    // Clear cookies even on error
+    const clearCookies = [
+      'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+      'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'THALITERA_SESSION_ID=; Path=/; Domain=localhost; Max-Age=0',
+      'thalitera_session=; Path=/; Max-Age=0',
+      'thalitera_auth=; Path=/; Max-Age=0',
+      'thalitera_session_marker=; Path=/; Max-Age=0'
+    ];
+    
+    clearCookies.forEach(cookie => {
+      errorResponse.headers.append('Set-Cookie', cookie);
+    });
+    
+    return errorResponse;
   }
 }
 
@@ -56,7 +87,7 @@ export async function OPTIONS() {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     },

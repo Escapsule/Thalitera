@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Eye, EyeOff, Monitor, Smartphone, Laptop, User, Lock, Tablet, Shield } from 'lucide-react'
+import { Eye, EyeOff, Monitor, Smartphone, Laptop, User, Lock, Tablet, Shield, LogOut } from 'lucide-react'
 import useDeviceInfo from '@/hooks/use-device-info'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from '@/hooks/useAuth'
 
 interface UserProfile {
   user_id: string;
@@ -26,6 +27,9 @@ const Page = () => {
     email: '',
     avatar: ''
   });
+  
+  // Auth hook for logout functionality
+  const { logout } = useAuth();
   
   // Get device info from hook
   const deviceInfo = useDeviceInfo();
@@ -308,6 +312,22 @@ const Page = () => {
       }));
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      setStatus(prev => ({ ...prev, loading: true }));
+      await logout();
+      // Redirect will be handled by the logout function in useAuth
+    } catch (error) {
+      console.error('Logout error:', error);
+      setStatus(prev => ({ 
+        ...prev, 
+        loading: false,
+        error: 'Logout failed. Please try again.',
+      }));
     }
   };
 
@@ -695,6 +715,20 @@ const Page = () => {
           >
             <Tablet className="h-4 w-4" />
             <span className="font-medium text-sm">Device Info</span>
+          </div>
+          
+          {/* Logout button */}
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full flex items-center gap-2 bg-[lch(0_0_0)] text-white hover:bg-[lch(10_0_0)] hover:text-white border-0" 
+              onClick={handleLogout}
+              disabled={status.loading}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="text-xs">Logout</span>
+            </Button>
           </div>
         </div>
 

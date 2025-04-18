@@ -282,13 +282,14 @@ export function getSessionCookie(): string | null {
 export async function logout(): Promise<ApiResponse> {
   try {
     const response = await fetch(`${getApiUrl()}/user/logout`, {
-      method: 'POST',
+      method: 'GET',
       credentials: 'include',
     });
     
     // Clear all session cookies and localStorage
     clearAllSessionCookies();
     localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('is_admin');
     
     console.log('All auth cookies and localStorage cleared during logout');
     
@@ -299,6 +300,7 @@ export async function logout(): Promise<ApiResponse> {
     // Even if the API call fails, still clear cookies and localStorage
     clearAllSessionCookies();
     localStorage.removeItem('thalitera_auth');
+    localStorage.removeItem('is_admin');
     
     return {
       code: 500,

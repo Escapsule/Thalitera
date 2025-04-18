@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, DoorOpen, Users} from "lucide-react"
+import { LayoutDashboard, DoorOpen, Users } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -37,7 +37,7 @@ const items = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -69,6 +69,7 @@ export function AdminSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+              
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
