@@ -11,6 +11,14 @@ import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
 import { toast } from "sonner"
 
+// API response interface based on documentation
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T | null;
+  timestamp: string;
+}
+
 // Reservation type definition based on API response
 interface Attendee {
   user_id: string;
@@ -27,6 +35,8 @@ interface Reservation {
   room_id: string;
   room_name: string;
   user_id: string;
+  building: string;
+  floor: string;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -49,21 +59,37 @@ export default function Dashboard() {
       try {
         setLoading(true)
         const response = await fetch('/api/user/calendar')
-        if (!response.ok) {
-          throw new Error('Failed to fetch calendar')
+        
+        const data = await response.json() as ApiResponse<Reservation[]>
+        
+        if (data.code !== 200) {
+          // Handle specific error codes based on API documentation
+          switch (data.code) {
+            case 2001:
+              toast.error('User not found. Please log in again.');
+              break;
+            case 2011:
+              toast.error('You are not logged in. Please log in first.');
+              break;
+            case 2203:
+              toast.warning('No reservation records found.');
+              break;
+            default:
+              toast.error(data.message || 'Failed to fetch your reservations');
+          }
+          setReservations([]);
+          return;
         }
-        const data = await response.json()
         
         // Check if data is in the expected format
         if (data && data.data && Array.isArray(data.data)) {
-          console.log('获取到的预订数据:', data.data.length, '条');
-          console.log('预订数据示例:', data.data[0]);
           setReservations(data.data)
         } else {
           setReservations([])
         }
       } catch (error) {
         console.error('Error fetching calendar:', error)
+        toast.error('Failed to load your reservations. Please try again later.')
         setReservations([])
       } finally {
         setLoading(false)
@@ -80,7 +106,7 @@ export default function Dashboard() {
   const futureReservations = reservations.filter((reservation) => {
     try {
       const startTime = new Date(reservation.start_time)
-      return startTime >= today && reservation.status !== 'canceled'
+      return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
     } catch (error) {
       console.error(`Invalid date format for future filtering: ${reservation.start_time}`, error);
       return false
@@ -92,7 +118,7 @@ export default function Dashboard() {
     ? reservations.filter((reservation) => {
         try {
           const startTime = new Date(reservation.start_time)
-          return startTime >= today && reservation.status !== 'canceled'
+          return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
         } catch (error) {
           console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
           return false
@@ -102,7 +128,7 @@ export default function Dashboard() {
         if (!date) return false
         try {
           const startTime = new Date(reservation.start_time)
-          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled' && reservation.status !== 'completed'
         } catch (error) {
           console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
           return false
@@ -129,23 +155,7 @@ export default function Dashboard() {
   // Cancel reservation handler with optimistic updates
   const handleCancelReservation = async (reservationId: string) => {
     try {
-      // Make the actual API call
-      const response = await fetch('/api/user/meetingroom/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reservationId: reservationId,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to cancel reservation');
-      }
-      
-      // On success, update the UI
+      // Optimistic UI update first for better UX
       const updatedReservations = reservations.map(reservation => 
         reservation.reservation_id === reservationId 
           ? { ...reservation, status: 'canceled' } 
@@ -159,9 +169,57 @@ export default function Dashboard() {
         setSelectedBooking({ ...selectedBooking, status: 'canceled' });
       }
       
+      // Make the actual API call
+      const response = await fetch('/api/user/meetingroom/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationId),
+      });
+      
+      const data = await response.json() as ApiResponse<string>;
+      
+      if (data.code !== 200) {
+        // Revert optimistic update if API call fails
+        const originalReservations = [...reservations];
+        setReservations(originalReservations);
+        
+        if (selectedBooking) {
+          setSelectedBooking({ ...selectedBooking });
+        }
+        
+        // Handle specific error codes
+        switch (data.code) {
+          case 2011:
+            toast.error('You are not logged in. Please log in first.');
+            break;
+          case 2203:
+            toast.error('Reservation not found. It may have been deleted.');
+            break;
+          case 2207:
+            toast.error('Missing reservation ID. Please try again.');
+            break;
+          default:
+            toast.error(data.message || 'Failed to cancel reservation');
+        }
+        
+        return Promise.reject(new Error(data.message || 'Failed to cancel reservation'));
+      }
+      
+      toast.success('Reservation successfully canceled');
       return Promise.resolve();
     } catch (error) {
       console.error("Error cancelling reservation:", error);
+      
+      // Revert optimistic update if there's an exception
+      const originalReservations = [...reservations];
+      setReservations(originalReservations);
+      
+      if (selectedBooking) {
+        setSelectedBooking({ ...selectedBooking });
+      }
+      
       toast.error('Failed to cancel reservation. Please try again.');
       return Promise.reject(error);
     }
@@ -211,14 +269,30 @@ export default function Dashboard() {
                       >
                         <div className="space-y-1">
                           <h3 className="font-medium">{reservation.room_name}</h3>
+                          <div className="text-xs text-muted-foreground">
+                            {reservation.building}, Floor {reservation.floor}
+                          </div>
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Clock className="mr-1 h-4 w-4" />
                             {formatTimeString(reservation.start_time)} - {formatTimeString(reservation.end_time)}
                           </div>
                         </div>
-                        <Badge variant="outline" className="ml-auto">
-                          {format(new Date(reservation.start_time), "MMM d")}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge variant="outline" className="ml-auto">
+                            {format(new Date(reservation.start_time), "MMM d")}
+                          </Badge>
+                          <Badge 
+                            variant={
+                              reservation.status === 'canceled' ? 'destructive' : 
+                              reservation.status === 'completed' ? 'secondary' : 
+                              reservation.status === 'pending' ? 'outline' :
+                              'default'
+                            }
+                            className="text-xs"
+                          >
+                            {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                          </Badge>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -280,7 +354,9 @@ export default function Dashboard() {
                         const hasBooking = reservations.some((reservation) => {
                           try {
                             const startTime = new Date(reservation.start_time)
-                            return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled'
+                            return startTime.toDateString() === date.toDateString() && 
+                                  reservation.status !== 'canceled' && 
+                                  reservation.status !== 'completed'
                           } catch (error) {
                             console.error(`Invalid date in calendar: ${reservation.start_time}`, error);
                             return false

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 // Types for auth steps - streamlined for combined login
 type AuthStep = 'login' | 'register';
@@ -29,10 +30,18 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [showMfaInput, setShowMfaInput] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   const { login, register, error, isAuthenticated } = useAuth();
   const deviceInfo = useDeviceInfo();
   const router = useRouter();
+
+  // Get browser fingerprint
+  const getFingerprint = async (): Promise<string> => {
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+    return result.visitorId;
+  };
 
   // Check if already authenticated
   useEffect(() => {
@@ -75,38 +84,104 @@ export default function LoginPage() {
     if (!email || !password) return;
     
     setIsSubmitting(true);
+    setLoginError(null);
     
     try {
       // Check if attempting admin login
-      const isAdminLogin = email === 'admin@xjtlu.edu.cn';
+      const isAdminLogin = email.endsWith('@xjtlu.edu.cn') || email === 'admin@thalitera.com';
       
-      // Use the TOTP code or recovery code if provided - but not for admin
-      const mfaCode = !isAdminLogin && showMfaInput && mfaMethod === 'totp' ? totpCode : undefined;
-      const recovery = !isAdminLogin && showMfaInput && mfaMethod === 'recovery' ? recoveryCode : undefined;
-      
-      console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none', isAdmin: isAdminLogin });
-      
-      const result = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
-      
-      // Handle different status codes
-      if (result.success) {
-        console.log('Login successful, redirecting to dashboard');
-        // Check if admin login was successful
-        if (isAdminLogin && typeof window !== 'undefined' && localStorage.getItem('is_admin') === 'true') {
+      if (isAdminLogin) {
+        // Handle admin login directly
+        const fingerprint = await getFingerprint();
+        
+        // Send admin login request
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'THALITERA_FINGERPRINT': fingerprint
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          }),
+          credentials: 'include'
+        });
+
+        const responseText = await response.text();
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (_unused) {
+          console.error('JSON parsing error:', responseText);
+          throw new Error('The data format returned by the server is incorrect');
+        }
+
+        if (!response.ok) {
+          if (data && data.message) {
+            setIsSubmitting(false);
+            setSuccessMessage('');
+            switch (data.message) {
+              case 'User does not exist.':
+                throw new Error('User does not exist. Please check if the email is correct');
+              case 'Invalid password.':
+                throw new Error('Invalid password. Please re-enter');
+              default:
+                throw new Error(data.message);
+            }
+          }
+          throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+        }
+        
+        if (data.code === 200) {
+          // Save admin login status to cookies
+          document.cookie = `admin_auth=true; path=/; max-age=86400; SameSite=Lax`; // 24 hours expiration
+          document.cookie = `admin_email=${email}; path=/; max-age=86400; SameSite=Lax`;
+          
+          localStorage.setItem('is_admin', 'true');
+          
+          setSuccessMessage('Admin login successful. Redirecting...');
+          // Login successful, redirect to admin dashboard
           router.push('/admin/dashboard');
         } else {
-          router.push('/dashboard');
+          throw new Error(data.message || 'Admin login failed');
         }
-      } else if (!isAdminLogin && (result.code === 2018 || result.code === 2019)) {
-        // MFA not enabled but required - redirect to MFA setup (skip for admin)
-        console.log('MFA required but not set up, redirecting to setup page');
-        localStorage.setItem('user_email', email);
-        sessionStorage.setItem('temp_password', password);
-        router.push('/login/mfa-setup');
-      } else if (!isAdminLogin && result.code === 2608) {
-        // New device requires MFA - show MFA input (skip for admin)
-        console.log('New device detected, MFA required, showing MFA input');
-        setShowMfaInput(true);
+      } else {
+        // Use the TOTP code or recovery code if provided
+        const mfaCode = showMfaInput && mfaMethod === 'totp' ? totpCode : undefined;
+        const recovery = showMfaInput && mfaMethod === 'recovery' ? recoveryCode : undefined;
+        
+        console.log('Attempting login with:', { email, mfaCode: mfaCode || 'none', recovery: recovery || 'none' });
+        
+        const result = await login(email, password, deviceInfo?.fingerprint, mfaCode, recovery);
+        
+        // Handle different status codes
+        if (result.success) {
+          console.log('Login successful, redirecting to dashboard');
+          router.push('/dashboard');
+        } else if (result.code === 2018 || result.code === 2019) {
+          // MFA not enabled but required - redirect to MFA setup
+          console.log('MFA required but not set up, redirecting to setup page');
+          localStorage.setItem('user_email', email);
+          sessionStorage.setItem('temp_password', password);
+          router.push('/login/mfa-setup');
+        } else if (result.code === 2608) {
+          // New device requires MFA - show MFA input
+          console.log('New device detected, MFA required, showing MFA input');
+          setShowMfaInput(true);
+        }
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error instanceof Error) {
+        setSuccessMessage('');
+        if (error.message.includes('JSON')) {
+          setLoginError('The server response format is incorrect. Please try again later');
+        } else {
+          setLoginError(error.message || 'Login failed');
+        }
+      } else {
+        setLoginError('An unknown error occurred. Please try again later');
       }
     } finally {
       setIsSubmitting(false);
@@ -115,7 +190,8 @@ export default function LoginPage() {
 
   // Effect to track when email changes - hide MFA input for admin
   useEffect(() => {
-    if (email === 'admin@xjtlu.edu.cn') {
+    const isAdminEmail = email.endsWith('@xjtlu.edu.cn') || email === 'admin@thalitera.com';
+    if (isAdminEmail) {
       setShowMfaInput(false);
     }
   }, [email]);
@@ -185,9 +261,9 @@ export default function LoginPage() {
               </div>
             )}
             
-            {error && (
+            {(error || loginError) && (
               <div className="mb-4 rounded-md bg-red-50 p-4 text-red-800">
-                {error}
+                {loginError || error}
               </div>
             )}
             
@@ -203,7 +279,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  {email === 'admin@xjtlu.edu.cn' && (
+                  {(email.endsWith('@xjtlu.edu.cn') || email === 'admin@thalitera.com') && (
                     <p className="text-xs text-blue-600">Admin login detected. MFA not required.</p>
                   )}
                 </div>

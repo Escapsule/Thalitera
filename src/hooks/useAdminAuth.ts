@@ -153,8 +153,8 @@ export function useAdminAuth(): UseAdminAuthReturn {
       document.cookie = `THALITERA_ADMIN_SESSION_ID=; Path=/admin; domain=${domain}; Max-Age=0`;
       document.cookie = 'THALITERA_ADMIN_SESSION_ID=; Path=/admin; Max-Age=0';
       
-      // Redirect to admin login page
-      window.location.href = '/admin/login';
+      // Redirect to main login page
+      window.location.href = '/login';
     } catch (error) {
       console.error('Admin logout error:', error);
       setError('Logout failed');
@@ -168,7 +168,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
       
       document.cookie = 'THALITERA_ADMIN_SESSION_ID=; Path=/admin; Max-Age=0';
       
-      window.location.href = '/admin/login';
+      window.location.href = '/login';
     } finally {
       setIsLoading(false);
     }

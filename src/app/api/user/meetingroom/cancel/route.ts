@@ -11,7 +11,8 @@ export async function POST(request: Request) {
       ?.split('=')[1] || '';
 
     // Get reservation ID from request body
-    const { reservationId } = await request.json();
+    const body = await request.text();
+    const reservationId = body.replace(/^"|"$/g, ''); // 去除可能的引号
     
     console.log('Cancel reservation request received for ID:', reservationId);
     

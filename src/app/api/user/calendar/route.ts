@@ -24,6 +24,7 @@ interface CalendarItem {
   start_time: string;
   end_time: string;
   meeting_room: MeetingRoom;
+  status?: string;
 }
 
 // 修正异常日期的函数
@@ -86,7 +87,7 @@ export async function GET() {
       credentials: 'include',
     });
 
-    // console.log('Calendar API response:', response);
+
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -130,9 +131,9 @@ export async function GET() {
           const normalizedEndTime = normalizeDate(item.end_time);
           
           return {
-            reservation_id: item.reservation_id || '',
-            room_id: item.meeting_room?.room_id || '',
-            room_name: item.meeting_room?.name || '',
+            reservation_id: item.reservation_id,
+            room_id: item.meeting_room?.room_id,
+            room_name: item.meeting_room?.name,
             user_id: '', // Backend doesn't provide this directly
             start_time: normalizedStartTime,
             end_time: normalizedEndTime,
@@ -140,7 +141,7 @@ export async function GET() {
             updated_at: '', // Backend doesn't provide this
             attendees: [], // Backend doesn't provide this
             purpose: '', // Backend doesn't provide this
-            status: 'confirmed', // Default to confirmed since backend doesn't provide status
+            status: item.status, // Use the original status if available
           };
         })
       };

@@ -31,14 +31,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         const adminAuth = document.cookie.includes('admin_auth=true');
         setAdminAuthenticated(adminAuth);
 
-        // If not authenticated and not on the login page, redirect to the admin login page
-        if (!adminAuth && pathname?.startsWith('/admin') && pathname !== '/admin/login') {
-          router.push('/admin/login');
+        // If not authenticated and not on the login page, redirect to the main login page
+        if (!adminAuth && pathname?.startsWith('/admin') && pathname !== '/login') {
+          router.push('/login');
           return;
         }
 
         // If authenticated and on the login page, redirect to the dashboard
-        if (adminAuth && pathname === '/admin/login') {
+        if (adminAuth && pathname === '/login') {
           router.push('/admin/dashboard');
           return;
         }
@@ -46,9 +46,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Admin auth verification error:', error);
         setAdminAuthenticated(false);
         
-        // If an error occurs, redirect to the admin login page if not on the login page
-        if (pathname?.startsWith('/admin') && pathname !== '/admin/login') {
-          router.push('/admin/login');
+        // If an error occurs, redirect to the login page if not on the login page
+        if (pathname?.startsWith('/admin') && pathname !== '/login') {
+          router.push('/login');
         }
       } finally {
         setIsLoading(false);
