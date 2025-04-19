@@ -63,8 +63,12 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   }
   
-  // Calculate default start and end times
-  const defaultEndTime = "20:00" // 8 PM
+  // Calculate default end time (1 hour after start time)
+  const getDefaultEndTime = (startTimeStr: string) => {
+    const [hours, minutes] = startTimeStr.split(':').map(Number)
+    const endHour = hours + 1 > 20 ? 20 : hours + 1
+    return formatTimeToString(endHour, minutes)
+  }
   
   // Generate available times from 8:00 to 20:00
   const timeOptions = Array.from({ length: 25 }, (_, i) => {
@@ -98,11 +102,14 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
           setSelectedStartTime(availableOptions[0])
         }
         
-        // Set default end time (either from booking or 8 PM)
+        // Set default end time (either from booking or 1 hour after start time)
         if (booking.endTime && booking.endTime > selectedStartTime) {
           setSelectedEndTime(booking.endTime)
         } else {
-          setSelectedEndTime(defaultEndTime)
+          const startTime = booking.startTime && availableOptions.includes(booking.startTime) 
+            ? booking.startTime 
+            : availableOptions[0];
+          setSelectedEndTime(getDefaultEndTime(startTime))
         }
       }
     }
@@ -251,13 +258,8 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
                     setSelectedStartTime(value);
                     // If end time is before start time, reset it
                     if (selectedEndTime <= value) {
-                      // Find next available time slot
-                      const startIndex = availableTimeOptions.findIndex(t => t === value);
-                      if (startIndex < availableTimeOptions.length - 1) {
-                        setSelectedEndTime(availableTimeOptions[startIndex + 1]);
-                      } else {
-                        setSelectedEndTime(defaultEndTime);
-                      }
+                      // Set to 1 hour after new start time
+                      setSelectedEndTime(getDefaultEndTime(value));
                     }
                   }}>
                     <SelectTrigger id="startTime">

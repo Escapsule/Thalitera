@@ -64,8 +64,16 @@ export default function SearchPage() {
   
   // Set default start time to current rounded time or 08:00 if after 8 PM
   const defaultStartTime = isAfter8PM ? "08:00" : formatTimeToString(roundedHour, roundedMinute)
-  // Set default end time to 8 PM
-  const defaultEndTime = "20:00"
+  
+  // Calculate default end time (1 hour after start time)
+  const getDefaultEndTime = (startTimeStr: string) => {
+    const [hours, minutes] = startTimeStr.split(':').map(Number)
+    const endHour = hours + 1 > 20 ? 20 : hours + 1
+    return formatTimeToString(endHour, minutes)
+  }
+  
+  // Set default end time to 1 hour after start time
+  const defaultEndTime = getDefaultEndTime(defaultStartTime)
   
   // State for filters
   const [date, setDate] = useState<Date>(initialDate)
@@ -114,11 +122,13 @@ export default function SearchPage() {
     // If current start time is not available, set to first available
     if (availableOptions.length > 0 && !availableOptions.includes(startTime)) {
       setStartTime(availableOptions[0])
+      // Update end time accordingly
+      setEndTime(getDefaultEndTime(availableOptions[0]))
     }
     
-    // If current end time is not valid, set to default end time
+    // If current end time is not valid, set to 1 hour after start time
     if (!availableOptions.includes(endTime) || endTime <= startTime) {
-      setEndTime(defaultEndTime)
+      setEndTime(getDefaultEndTime(startTime))
     }
   }, [date])
 
@@ -246,12 +256,7 @@ export default function SearchPage() {
                         setStartTime(value);
                         // If end time is before or equal to start time, reset it
                         if (endTime <= value) {
-                          const startIndex = timeOptions.findIndex(t => t === value);
-                          if (startIndex < timeOptions.length - 1) {
-                            setEndTime(timeOptions[startIndex + 1]);
-                          } else {
-                            setEndTime(defaultEndTime);
-                          }
+                          setEndTime(getDefaultEndTime(value));
                         }
                       }}
                     >
@@ -393,12 +398,7 @@ export default function SearchPage() {
                           setStartTime(value);
                           // If end time is before or equal to start time, reset it
                           if (endTime <= value) {
-                            const startIndex = timeOptions.findIndex(t => t === value);
-                            if (startIndex < timeOptions.length - 1) {
-                              setEndTime(timeOptions[startIndex + 1]);
-                            } else {
-                              setEndTime(defaultEndTime);
-                            }
+                            setEndTime(getDefaultEndTime(value));
                           }
                         }}
                       >

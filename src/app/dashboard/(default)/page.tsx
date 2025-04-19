@@ -254,6 +254,29 @@ export default function Dashboard() {
     }
   };
 
+  // Handle the closing of detail dialog and refresh data if needed
+  const handleDetailClose = () => {
+    setIsDetailOpen(false);
+    // Refresh reservations to get the latest data
+    const fetchReservations = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/user/calendar');
+        const data = await response.json() as ApiResponse<Reservation[]>;
+        
+        if (data.code === 200 && data.data && Array.isArray(data.data)) {
+          setReservations(data.data);
+        }
+      } catch (error) {
+        console.error('Error refreshing reservations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReservations();
+  };
+
   return (
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -429,7 +452,7 @@ export default function Dashboard() {
       <ReservationDetail 
         reservation={selectedBooking} 
         isOpen={isDetailOpen} 
-        onClose={() => setIsDetailOpen(false)}
+        onClose={handleDetailClose}
         onCancel={handleCancelReservation}
         canCancel={selectedBooking ? isReservationCreator(selectedBooking) : false}
       />
