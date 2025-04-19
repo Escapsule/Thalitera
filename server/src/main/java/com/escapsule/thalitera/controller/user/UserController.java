@@ -235,6 +235,29 @@ public class UserController {
     }
 
     /**
+     * Update user info
+     *
+     * @param session The HTTP session object used to store the user's information.
+     * @return Returns the result of the user's trust device.
+     */
+    @Operation(summary = "User update info",
+            description = "Update user info.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User info updated"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+    })
+    @GetMapping("/update-info")
+    public ApiResult<UserVO> updateUserInfo(HttpSession session,
+                                       @RequestParam String username) {
+        User user = Optional.ofNullable((User) session.getAttribute("user"))
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
+        UserVO vo = userService.updateUserInfo(user.getUserId(), username);
+        user.setUsername(username);
+        session.setAttribute("user", user);
+        return ApiResult.success(vo);
+    }
+
+    /**
      * Get user trust device
      *
      * @param session The HTTP session object used to store the user's information.

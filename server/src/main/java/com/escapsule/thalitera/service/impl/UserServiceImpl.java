@@ -25,8 +25,8 @@ import com.escapsule.thalitera.utils.PasswordUtils;
 import com.escapsule.thalitera.utils.TotpUtils;
 import com.escapsule.thalitera.utils.UserAgentUtils;
 import com.escapsule.thalitera.vo.CalendarVO;
-import com.escapsule.thalitera.vo.LoginHistoryVO;
 import com.escapsule.thalitera.vo.TrustDeviceVO;
+import com.escapsule.thalitera.vo.UserVO;
 import com.jthinking.common.util.ip.IPInfoUtils;
 import com.pig4cloud.captcha.GifCaptcha;
 import com.pig4cloud.captcha.base.Captcha;
@@ -451,6 +451,30 @@ public class UserServiceImpl implements UserService {
         userMapper.updateTrustedDevice(userId, devices);
         log.info("User {} deleted trusted device {}", user.getEmail(), fingerprint);
         return user;
+    }
+
+    /**
+     * Updates the username of a user.
+     *
+     * @param userId   The unique identifier of the user.
+     * @param username The new username to be updated.
+     * @return The updated user value object.
+     */
+    @Override
+    public UserVO updateUserInfo(UUID userId, String username) {
+        User user = Optional.ofNullable(userMapper.getUserById(userId))
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        userMapper.updateUserNameById(userId, username);
+        log.info("User {} updated username to {}", userId, username);
+        return UserVO.builder()
+                .userId(userId)
+                .username(username)
+                .email(user.getEmail())
+                .avatar(user.getAvatar())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 
 

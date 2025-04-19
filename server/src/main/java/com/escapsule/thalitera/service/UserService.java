@@ -5,6 +5,7 @@ import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.CalendarVO;
 import com.escapsule.thalitera.vo.LoginHistoryVO;
 import com.escapsule.thalitera.vo.TrustDeviceVO;
+import com.escapsule.thalitera.vo.UserVO;
 
 import java.util.List;
 import java.util.UUID;
@@ -111,4 +112,12 @@ public interface UserService {
      */
     User deleteTrustDevice(UUID userId, String fingerprint);
 
+    /**
+     * Update user info
+     *
+     * @param userId user id
+     * @param username user username
+     * @return user vo info
+     */
+    UserVO updateUserInfo(UUID userId, String username);
 }
