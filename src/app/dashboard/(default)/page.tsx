@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
 import { toast } from "sonner"
+import { useUserInfo } from "@/hooks/useUserInfo"
 
 // API response interface based on documentation
 interface ApiResponse<T> {
@@ -54,24 +55,13 @@ export default function Dashboard() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState<string>('')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [needsRefresh, setNeedsRefresh] = useState(false)
+  
+  // Get user info using the hook
+  const { data: userInfo } = useUserInfo()
 
   useEffect(() => {
-    // Get current user ID from localStorage
-    if (typeof window !== 'undefined') {
-      const storedUserInfo = localStorage.getItem('user_info');
-      if (storedUserInfo) {
-        try {
-          const userInfo = JSON.parse(storedUserInfo);
-          setCurrentUserId(userInfo.user_id || '');
-        } catch (error) {
-          console.error('Error parsing user info from localStorage:', error);
-        }
-      }
-    }
-
     const fetchReservations = async () => {
       try {
         setLoading(true)
@@ -118,7 +108,9 @@ export default function Dashboard() {
 
   // Check if current user is the creator of the reservation
   const isReservationCreator = (reservation: Reservation): boolean => {
-    return currentUserId === reservation.user_id;
+    if (!userInfo) return false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (userInfo as any)?.user_id === reservation.user_id;
   }
 
   // Calculate statistics - include today's bookings in the count

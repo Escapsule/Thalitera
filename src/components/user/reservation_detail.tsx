@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useUserInfo } from "@/hooks/useUserInfo"
 
 // Type for reservation data from API
 interface Attendee {
@@ -75,6 +76,20 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
   const [isUpdating, setIsUpdating] = useState(false)
   const [localReservation, setLocalReservation] = useState<Reservation | null>(null)
   const [reservationDate, setReservationDate] = useState("")
+  
+  // Get current user info from the hook
+  const { data: userInfo } = useUserInfo()
+  
+  // Check if current user is the creator of the reservation
+  const isReservationCreator = (): boolean => {
+    if (!localReservation || !userInfo) return false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (userInfo as any)?.user_id === localReservation.user_id
+  }
+  
+  // Determine if the user can edit/cancel this reservation
+  // Uses both the prop (for backward compatibility) and the user check
+  const userCanModify = canCancel || isReservationCreator()
 
   // Update local state when reservation changes
   useEffect(() => {
@@ -98,37 +113,61 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
   const generateTimeOptions = () => {
     const options = [];
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    const reservationDate = new Date(localReservation.start_time);
+    const isCurrentDay = now.toDateString() === reservationDate.toDateString();
     
-    // Start from next half hour or hour
-    let startHour = currentHour;
-    let startMinute = currentMinute <= 30 ? 30 : 0;
-    
-    if (currentMinute > 30) {
-      startHour += 1;
-      startMinute = 0;
-    }
-    
-    // Generate options from 8 AM to 8 PM
-    for (let hour = 8; hour <= 20; hour++) {
-      // Skip times in the past
-      if (hour < startHour || (hour === startHour && startMinute > 0 && startMinute > 30)) {
-        continue;
+    // For current day, start from next half hour or hour
+    // For other days, show all time slots starting from 8 AM
+    if (isCurrentDay) {
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Start from next half hour or hour
+      let startHour = currentHour;
+      let startMinute = currentMinute <= 30 ? 30 : 0;
+      
+      if (currentMinute > 30) {
+        startHour += 1;
+        startMinute = 0;
       }
       
-      // Add hour option
-      options.push({
-        value: `${hour}:00`,
-        label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
-      });
-      
-      // Add half hour option if not 8 PM
-      if (hour < 20) {
+      // Generate options from current time to 8 PM
+      for (let hour = 8; hour <= 20; hour++) {
+        // Skip times in the past
+        if (hour < startHour || (hour === startHour && startMinute > 0 && startMinute > 30)) {
+          continue;
+        }
+        
+        // Add hour option
         options.push({
-          value: `${hour}:30`,
-          label: `${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`
+          value: `${hour}:00`,
+          label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
         });
+        
+        // Add half hour option if not 8 PM
+        if (hour < 20) {
+          options.push({
+            value: `${hour}:30`,
+            label: `${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`
+          });
+        }
+      }
+    } else {
+      // For non-current day, show all time slots from 8 AM to 8 PM
+      for (let hour = 8; hour <= 20; hour++) {
+        // Add hour option
+        options.push({
+          value: `${hour}:00`,
+          label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
+        });
+        
+        // Add half hour option if not 8 PM
+        if (hour < 20) {
+          options.push({
+            value: `${hour}:30`,
+            label: `${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`
+          });
+        }
       }
     }
     
@@ -144,6 +183,12 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
 
   // Initialize edit form when entering edit mode
   const handleEditClick = () => {
+    // Check if user is authorized to edit
+    if (!userCanModify) {
+      toast.error("You can only edit meetings that you've created")
+      return
+    }
+    
     setAttendees(localReservation.attendees.map(a => a.email));
     setPurpose(localReservation.purpose);
     
@@ -158,17 +203,21 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
     } catch (error) {
       console.error("Error parsing reservation times:", error);
       
-      // Set default values
-      const now = new Date();
-      const nextHour = now.getHours() + 1;
-      setSelectedStartTime(`${nextHour}:00`);
-      setSelectedEndTime(`${nextHour + 1}:00`);
+      // For non-current day reservations, set default start time to 8 AM
+      setSelectedStartTime(`8:00`);
+      setSelectedEndTime(`9:00`);
     }
     
     setIsEditMode(true);
   };
 
   const handleCancel = () => {
+    // Check if user is authorized to cancel
+    if (!userCanModify) {
+      toast.error("You can only cancel meetings that you've created")
+      return
+    }
+    
     setIsConfirmDialogOpen(true)
   };
 
@@ -221,11 +270,14 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
       const [startHours, startMinutes] = selectedStartTime.split(':').map(Number);
       const [endHours, endMinutes] = selectedEndTime.split(':').map(Number);
       
-      // Create start and end times
-      const startDate = new Date();
+      // Create dates based on the original reservation date, not today
+      const originalDate = new Date(localReservation.start_time);
+      
+      // Create new Date objects with the original date but updated hours/minutes
+      const startDate = new Date(originalDate);
       startDate.setHours(startHours, startMinutes, 0, 0);
       
-      const endDate = new Date();
+      const endDate = new Date(originalDate);
       endDate.setHours(endHours, endMinutes, 0, 0);
       
       // Validate times
@@ -240,6 +292,12 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
       }
       
       setIsUpdating(true);
+      
+      console.log("Updating reservation with dates:", {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        originalDate: originalDate.toISOString()
+      });
       
       const response = await fetch('/api/user/meetingroom/update', {
         method: 'POST',
@@ -491,7 +549,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
             {!isEditMode ? (
               // View mode buttons
               <>
-                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && canCancel && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && userCanModify && (
                   <div className="flex w-full gap-2">
                     <Button 
                       onClick={handleEditClick} 
@@ -510,7 +568,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                     </Button>
                   </div>
                 )}
-                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !canCancel && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !userCanModify && (
                   <div className="text-xs text-muted-foreground text-center w-full">
                     Only the creator of this reservation can modify or cancel it.
                   </div>
