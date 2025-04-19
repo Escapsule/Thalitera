@@ -2,8 +2,6 @@ package com.escapsule.thalitera.service.impl;
 
 import com.escapsule.thalitera.dto.MeetingRoomUtilizationDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
-import com.escapsule.thalitera.enumeration.ErrorCode;
-import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.ReservationMapper;
 import com.escapsule.thalitera.service.MeetingRoomStatisticsService;
@@ -27,18 +25,21 @@ public class MeetingRoomStatisticsServiceImpl implements MeetingRoomStatisticsSe
     private final MeetingRoomMapper meetingRoomMapper;
 
     @Override
-    public List<MeetingRoomUtilizationDTO> getUtilizationReport(OffsetDateTime start, OffsetDateTime end) {
-        if (start.isAfter(end)) {
-            throw new BaseException(ErrorCode.INVALID_TIME_RANGE);
+    public List<MeetingRoomUtilizationDTO> getUtilizationReport(OffsetDateTime start, OffsetDateTime end, UUID roomId) {
+        List<MeetingRoom> rooms;
+
+        if (roomId != null) {
+            MeetingRoom room = meetingRoomMapper.getMeetingRoomByRoomId(roomId);
+            if (room == null) return List.of(); // 可改为抛出自定义异常
+            rooms = List.of(room);
+        } else {
+            rooms = meetingRoomMapper.getAllMeetingRooms();
         }
-        // ✅ Fetch all meeting rooms from DB
-        List<MeetingRoom> rooms = meetingRoomMapper.getAllMeetingRooms();
+
         List<MeetingRoomUtilizationDTO> results = new ArrayList<>();
 
         for (MeetingRoom room : rooms) {
-            UUID roomId = room.getRoomId();
-
-            double bookedHours = reservationMapper.getTotalBookedHours(roomId, start, end);
+            double bookedHours = reservationMapper.getTotalBookedHours(room.getRoomId(), start, end);
             double availableHours = countWorkdaysHours(start.toLocalDate(), end.toLocalDate());
 
             BigDecimal rate = (availableHours > 0)
@@ -46,7 +47,7 @@ public class MeetingRoomStatisticsServiceImpl implements MeetingRoomStatisticsSe
                     : BigDecimal.ZERO;
 
             results.add(new MeetingRoomUtilizationDTO(
-                    roomId,
+                    room.getRoomId(),
                     room.getName(),
                     bookedHours,
                     availableHours,
@@ -57,7 +58,6 @@ public class MeetingRoomStatisticsServiceImpl implements MeetingRoomStatisticsSe
         return results;
     }
 
-    // ✅ Helper to calculate available hours based on workdays (Mon–Fri)
     private long countWorkdaysHours(LocalDate start, LocalDate end) {
         long hours = 0;
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {

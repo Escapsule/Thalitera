@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
+
 
 @RestController
 @RequestMapping("/admin/statistics")
@@ -31,8 +33,9 @@ public class AdminStatisticsController {
     @GetMapping("/meeting-room-utilization")
     public List<MeetingRoomUtilizationDTO> getUtilization(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            @RequestParam(required = false) UUID roomId
     ) {
-        return statisticsService.getUtilizationReport(startDate, endDate);
+        return statisticsService.getUtilizationReport(startDate, endDate, roomId);
     }
 }
