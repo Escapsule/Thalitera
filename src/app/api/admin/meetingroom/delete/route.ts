@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
-    const { room_id, admin_password } = await request.json();
+    const { room_id } = await request.json();
 
     console.log('Forwarding delete request to backend:', `http://${backendUrl}/admin/meetingroom/delete`);
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ room_id, admin_password }),
+      body: JSON.stringify({ room_id }),
       credentials: 'include',
     });
 
