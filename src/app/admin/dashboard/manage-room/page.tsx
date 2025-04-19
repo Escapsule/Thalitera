@@ -46,7 +46,6 @@ interface MeetingRoom {
 
 const getBackendUrl = () => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-  // 检查 backendUrl 是否已经包含协议
   if (backendUrl.startsWith('http://') || backendUrl.startsWith('https://')) {
     return backendUrl;
   }
@@ -62,61 +61,24 @@ const statusMap = {
   deleted: { label: 'Deleted', color: 'bg-gray-100 text-gray-800' }
 }
 
-// Mock data
-const mockRooms: MeetingRoom[] = [
-  {
-    room_id: "room-001",
-    name: "Main Conference Room",
-    capacity_min: 10,
-    capacity_max: 30,
-    building: "Headquarters",
-    floor: 3,
-    status: "active",
-    facilities: {
-      projector: true,
-      whiteboard: 2,
-      power_sockets: 12,
-      coffee_break: true,
-      special_notes: ["HD Projection System", "Video Conference Equipment"]
-    }
-  },
-  {
-    room_id: "room-002",
-    name: "Small Discussion Room A",
-    capacity_min: 2,
-    capacity_max: 8,
-    building: "R&D Center",
-    floor: 2,
-    status: "active",
-    facilities: {
-      projector: false,
-      whiteboard: 1,
-      power_sockets: 6,
-      coffee_break: false,
-      special_notes: ["Suitable for small group discussions"]
-    }
-  }
-];
-
 const ManageRoomPage = () => {
   // State definitions
-  const [rooms, setRooms] = useState<MeetingRoom[]>(mockRooms) // Initialize with mock data
-  const [loading, setLoading] = useState(false) // Set to false because loading is not needed
+  const [rooms, setRooms] = useState<MeetingRoom[]>([]) 
+  const [loading, setLoading] = useState(true) 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  // 将 isEditDialogOpen 改为 isModifyDialogOpen
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false)
   
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
 
   // Add filtering states
-  const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>(mockRooms)
+  const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>([])
   const [filters, setFilters] = useState({
     name: '',
     building: '',
     status: 'all',
-    capacity: '', // Single capacity field instead of min/max
+    capacity: '', 
     hasProjector: false,
     hasCoffeeBreak: false,
     minWhiteboard: '',
@@ -140,13 +102,13 @@ const ManageRoomPage = () => {
     }
   })
 
-  // Get meeting room list - modified to use mock data
+  // Get meeting room list
   const fetchRooms = async () => {
     setLoading(true)
     try {
       console.log(`${localStorage.getItem('cookie')}`, `${localStorage.getItem('token')}`)
       const backendUrl = getBackendUrl();
-      console.log('请求后端 URL:', backendUrl);
+      console.log('Request backend URL:', backendUrl);
       
       const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
         method: 'GET',
@@ -372,7 +334,7 @@ const ManageRoomPage = () => {
   const applyFilters = () => {
     let result = [...rooms];
 
-    // 确保不显示已删除的会议室
+    // Do not display deleted meeting rooms
     result = result.filter(room => room.status !== 'deleted');
 
     // Filter by name
@@ -395,7 +357,6 @@ const ManageRoomPage = () => {
     }
 
     // Filter by capacity - using single capacity field
-    // This finds rooms that can accommodate the specified number of people
     if (filters.capacity) {
       const capacity = parseInt(filters.capacity);
       result = result.filter(room =>
