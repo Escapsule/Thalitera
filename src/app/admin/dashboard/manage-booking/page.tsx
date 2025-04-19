@@ -194,8 +194,13 @@ const ManageBookingPage = () => {
       console.log('Fetched bookings:', data.data);
       
       if (data.code === 200) {
-        setBookings(data.data);
-        setFilteredBookings(data.data);
+        // De duplication processing: Use Map to ensure that each reservation_id only retains one record
+        const uniqueBookings = Array.from(
+          new Map(data.data.map((booking: Booking) => [booking.reservation_id, booking])).values()
+        ) as Booking[];
+        
+        setBookings(uniqueBookings);
+        setFilteredBookings(uniqueBookings);
       } else {
         console.error(data.message || 'Failed to retrieve booking records');
         setBookings([]);
@@ -606,8 +611,8 @@ const ManageBookingPage = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        currentBookings.map((booking) => (
-                          <TableRow key={booking.reservation_id}>
+                        currentBookings.map((booking, index) => (
+                          <TableRow key={`${booking.reservation_id}-${index}`}>
                             <TableCell>{booking.room_name}</TableCell>
                             <TableCell>
                               <span className="font-medium">{booking.user_name}</span>
