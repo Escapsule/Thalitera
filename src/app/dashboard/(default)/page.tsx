@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [needsRefresh, setNeedsRefresh] = useState(false)
 
   useEffect(() => {
     // Get current user ID from localStorage
@@ -236,6 +238,9 @@ export default function Dashboard() {
         return Promise.reject(new Error(data.message || 'Failed to cancel reservation'));
       }
       
+      // Set flag for refreshing data
+      setNeedsRefresh(true);
+      
       toast.success('Reservation successfully canceled');
       return Promise.resolve();
     } catch (error) {
@@ -257,24 +262,31 @@ export default function Dashboard() {
   // Handle the closing of detail dialog and refresh data if needed
   const handleDetailClose = () => {
     setIsDetailOpen(false);
-    // Refresh reservations to get the latest data
-    const fetchReservations = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/user/calendar');
-        const data = await response.json() as ApiResponse<Reservation[]>;
-        
-        if (data.code === 200 && data.data && Array.isArray(data.data)) {
-          setReservations(data.data);
+    
+    // Only refresh if changes were made (reservation was modified or canceled)
+    if (needsRefresh) {
+      // Set refresh flag to avoid loader
+      setIsRefreshing(true);
+      
+      // Refresh reservations to get the latest data
+      const fetchReservations = async () => {
+        try {
+          const response = await fetch('/api/user/calendar');
+          const data = await response.json() as ApiResponse<Reservation[]>;
+          
+          if (data.code === 200 && data.data && Array.isArray(data.data)) {
+            setReservations(data.data);
+          }
+        } catch (error) {
+          console.error('Error refreshing reservations:', error);
+        } finally {
+          setIsRefreshing(false);
+          setNeedsRefresh(false);
         }
-      } catch (error) {
-        console.error('Error refreshing reservations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchReservations();
+      fetchReservations();
+    }
   };
 
   return (
@@ -313,53 +325,55 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ) : reservationsToDisplay.length > 0 ? (
-                    reservationsToDisplay.map((reservation) => (
-                      <div 
-                        key={reservation.reservation_id + reservation.start_time} 
-                        className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
-                        onClick={() => handleOpenDetail(reservation)}
-                      >
-                        <div className="space-y-1">
-                          <h3 className="font-medium">{reservation.room_name}</h3>
-                          <div className="text-xs text-muted-foreground">
-                            {reservation.building}, Floor {reservation.floor}
-                          </div>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="mr-1 h-4 w-4" />
-                            {formatTimeString(reservation.start_time)} - {formatTimeString(reservation.end_time)}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            <span className="font-medium">Reserved by:</span> {reservation.user_name}
-                          </div>
-                          {reservation.purpose && (
+                    <div className={isRefreshing ? "opacity-70 transition-opacity duration-200" : ""}>
+                      {reservationsToDisplay.map((reservation) => (
+                        <div 
+                          key={reservation.reservation_id + reservation.start_time} 
+                          className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
+                          onClick={() => handleOpenDetail(reservation)}
+                        >
+                          <div className="space-y-1">
+                            <h3 className="font-medium">{reservation.room_name}</h3>
                             <div className="text-xs text-muted-foreground">
-                              <span className="font-medium">Purpose:</span> {reservation.purpose}
+                              {reservation.building}, Floor {reservation.floor}
                             </div>
-                          )}
-                          {reservation.attendees && reservation.attendees.length > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              <span className="font-medium">Attendees:</span> {reservation.attendees.length}
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Clock className="mr-1 h-4 w-4" />
+                              {formatTimeString(reservation.start_time)} - {formatTimeString(reservation.end_time)}
                             </div>
-                          )}
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <span className="font-medium">Reserved by:</span> {reservation.user_name}
+                            </div>
+                            {reservation.purpose && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">Purpose:</span> {reservation.purpose}
+                              </div>
+                            )}
+                            {reservation.attendees && reservation.attendees.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">Attendees:</span> {reservation.attendees.length}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant="outline" className="ml-auto">
+                              {format(new Date(reservation.start_time), "MMM d")}
+                            </Badge>
+                            <Badge 
+                              variant={
+                                reservation.status === 'canceled' ? 'destructive' : 
+                                reservation.status === 'completed' ? 'secondary' : 
+                                reservation.status === 'pending' ? 'outline' :
+                                'default'
+                              }
+                              className="text-xs"
+                            >
+                              {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge variant="outline" className="ml-auto">
-                            {format(new Date(reservation.start_time), "MMM d")}
-                          </Badge>
-                          <Badge 
-                            variant={
-                              reservation.status === 'canceled' ? 'destructive' : 
-                              reservation.status === 'completed' ? 'secondary' : 
-                              reservation.status === 'pending' ? 'outline' :
-                              'default'
-                            }
-                            className="text-xs"
-                          >
-                            {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed">
                       <div className="text-center">
@@ -455,6 +469,7 @@ export default function Dashboard() {
         onClose={handleDetailClose}
         onCancel={handleCancelReservation}
         canCancel={selectedBooking ? isReservationCreator(selectedBooking) : false}
+        onDataChange={() => setNeedsRefresh(true)}
       />
     </div>
   )

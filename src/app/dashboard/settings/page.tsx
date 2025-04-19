@@ -11,17 +11,11 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from '@/hooks/useAuth'
-
-interface UserProfile {
-  user_id: string;
-  user_name: string;
-  email: string;
-  avatar: string;
-}
+import { useUserInfo, UserInfo } from '@/hooks/useUserInfo'
 
 const Page = () => {
   // Profile state
-  const [profile, setProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState<UserInfo>({
     user_id: '',
     user_name: '',
     email: '',
@@ -30,6 +24,9 @@ const Page = () => {
   
   // Auth hook for logout functionality
   const { logout } = useAuth();
+  
+  // Get user info from React Query
+  const { data: userInfo, isLoading: isLoadingUserInfo, error: userInfoError, refetch: refetchUserInfo } = useUserInfo();
   
   // Get device info from hook
   const deviceInfo = useDeviceInfo();
@@ -61,66 +58,12 @@ const Page = () => {
     success: null as string | null,
   });
 
-  // Get user profile data
-  const fetchUserProfile = async () => {
-    try {
-      setStatus(prev => ({ ...prev, loading: true, error: null }));
-      
-      // First check if user info is available in localStorage
-      if (typeof window !== 'undefined') {
-        const storedUserInfo = localStorage.getItem('user_info');
-        if (storedUserInfo) {
-          const userInfo = JSON.parse(storedUserInfo);
-          setProfile({
-            user_id: userInfo.user_id || '',
-            user_name: userInfo.user_name || '',
-            email: userInfo.email || '',
-            avatar: userInfo.avatar || ''
-          });
-          setStatus(prev => ({ ...prev, loading: false }));
-          return;
-        }
-      }
-      
-      // If no data in localStorage, fetch from API
-      const response = await fetch('/api/user/info', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.data) {
-        const userData = {
-          user_id: result.data.user_id || '',
-          user_name: result.data.username || '',
-          email: result.data.email || '',
-          avatar: result.data.avatar || ''
-        };
-        
-        setProfile(userData);
-        
-        // Also update localStorage with fresh data
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user_info', JSON.stringify(userData));
-        }
-      } else {
-        throw new Error(result.message || 'Failed to obtain user information');
-      }
-    } catch (error) {
-      setStatus(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to obtain user information'
-      }));
-    } finally {
-      setStatus(prev => ({ ...prev, loading: false }));
+  // Update profile state when user info is loaded
+  useEffect(() => {
+    if (userInfo) {
+      setProfile(userInfo);
     }
-  };
+  }, [userInfo]);
 
   // Handle profile input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,15 +149,8 @@ const Page = () => {
 
       const result = await response.json();
       if (result.code === 1073741824) {
-        // Update localStorage with the new user_name
-        if (typeof window !== 'undefined') {
-          const storedUserInfo = localStorage.getItem('user_info');
-          if (storedUserInfo) {
-            const userData = JSON.parse(storedUserInfo);
-            userData.user_name = profile.user_name;
-            localStorage.setItem('user_info', JSON.stringify(userData));
-          }
-        }
+        // Refetch user info to update the data
+        refetchUserInfo();
         
         setIsEditing(false);
         setStatus(prev => ({ ...prev, success: 'Information saved successfully!' }));
@@ -237,7 +173,9 @@ const Page = () => {
   // Cancel profile editing
   const handleCancelProfile = () => {
     setIsEditing(false);
-    fetchUserProfile();
+    if (userInfo) {
+      setProfile(userInfo);
+    }
     setStatus(prev => ({ ...prev, error: null }));
   };
 
@@ -279,22 +217,8 @@ const Page = () => {
 
       const result = await response.json();
       if (result.code === 1073741824) {
-        // Update profile and localStorage with new avatar
-        const newAvatar = result.data.avatar;
-        setProfile(prev => ({
-          ...prev,
-          avatar: newAvatar
-        }));
-        
-        // Update localStorage with the new avatar
-        if (typeof window !== 'undefined') {
-          const storedUserInfo = localStorage.getItem('user_info');
-          if (storedUserInfo) {
-            const userData = JSON.parse(storedUserInfo);
-            userData.avatar = newAvatar;
-            localStorage.setItem('user_info', JSON.stringify(userData));
-          }
-        }
+        // Refetch user info to update the avatar
+        refetchUserInfo();
         
         setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully!' }));
         setTimeout(() => {
@@ -379,11 +303,21 @@ const Page = () => {
     }
   };
 
-  // Initialize data on component mount
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
+  // Show loading state while fetching user info
+  if (isLoadingUserInfo) {
+    return <div className="flex h-screen items-center justify-center">Loading user information...</div>;
+  }
 
+  // Show error state if user info failed to load
+  if (userInfoError) {
+    return (
+      <div className="flex h-screen items-center justify-center flex-col">
+        <div className="text-red-500 mb-4">Failed to load user information</div>
+        <Button onClick={() => refetchUserInfo()}>Try Again</Button>
+      </div>
+    );
+  }
+  
   // Get device icon based on type
   const getDeviceIcon = (type: string) => {
     switch (type.toLowerCase()) {

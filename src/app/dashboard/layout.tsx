@@ -6,50 +6,16 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
+import { ReactQueryProvider, UserInfoProvider } from '@/hooks/useUserInfo';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const forceBreak = searchParams.get('forceBreak') === 'true';
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
   
   // Use the session monitor to automatically check auth status every 5 minutes
   const { sessionStatus } = useSessionMonitor();
-  
-  // Fetch user info and store in localStorage
-  const fetchUserInfo = async () => {
-    try {
-      const response = await fetch('/api/user/info', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data) {
-          // Store user info in localStorage
-          localStorage.setItem('user_info', JSON.stringify({
-            user_id: result.data.user_id || '',
-            user_name: result.data.username || '',
-            email: result.data.email || '',
-            avatar: result.data.avatar || ''
-          }));
-          console.log('User info stored in localStorage');
-        } else {
-          console.error('Failed to get user info:', result.message);
-        }
-      } else {
-        console.error('Failed to fetch user info:', response.status);
-      }
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-    } finally {
-      setIsLoadingUserInfo(false);
-    }
-  };
   
   useEffect(() => {
     // Check authentication instead of automatically setting it
@@ -84,29 +50,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         document.cookie = `THALITERA_SESSION_ID=${tempSessionId}; Path=/; SameSite=Lax; Max-Age=86400`;
       }
       
-      // Fetch user info if authenticated
-      if ((hasLocalStorageAuth || hasCookie) && !localStorage.getItem('user_info')) {
-        fetchUserInfo();
-      } else {
-        setIsLoadingUserInfo(false);
-      }
-      
       setIsCheckingAuth(false);
     }
   }, [router, forceBreak, sessionStatus]);
 
-  // Show loading while checking auth or fetching user info
-  if (isCheckingAuth || isLoadingUserInfo) {
+  // Show loading while checking auth
+  if (isCheckingAuth) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar/>
-      <main>
-        <SidebarTrigger className="ml-2 fixed"/>
-        {children}
-      </main>
-    </SidebarProvider>
+    <ReactQueryProvider>
+      <UserInfoProvider>
+        <SidebarProvider>
+          <AppSidebar/>
+          <main>
+            <SidebarTrigger className="ml-2 fixed"/>
+            {children}
+          </main>
+        </SidebarProvider>
+      </UserInfoProvider>
+    </ReactQueryProvider>
   )
 }

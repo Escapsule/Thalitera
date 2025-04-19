@@ -256,11 +256,8 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
                   <Label htmlFor="startTime">Start Time</Label>
                   <Select value={selectedStartTime} onValueChange={(value) => {
                     setSelectedStartTime(value);
-                    // If end time is before start time, reset it
-                    if (selectedEndTime <= value) {
-                      // Set to 1 hour after new start time
-                      setSelectedEndTime(getDefaultEndTime(value));
-                    }
+                    // Always set end time to be 1 hour after start time
+                    setSelectedEndTime(getDefaultEndTime(value));
                   }}>
                     <SelectTrigger id="startTime">
                       <SelectValue placeholder="Start Time" />

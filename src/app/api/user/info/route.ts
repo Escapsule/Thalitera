@@ -55,6 +55,19 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    
+    // Normalize the data structure to ensure both username and user_name are available
+    if (data.data) {
+      // Make sure user_name is available if username exists
+      if (data.data.username && !data.data.user_name) {
+        data.data.user_name = data.data.username;
+      }
+      // Make sure username is available if user_name exists
+      else if (data.data.user_name && !data.data.username) {
+        data.data.username = data.data.user_name;
+      }
+    }
+    
     return NextResponse.json(data);
   } catch (error) {
     console.error('API route error:', error);

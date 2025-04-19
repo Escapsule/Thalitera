@@ -12,9 +12,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 // Type for reservation data from API
 interface Attendee {
@@ -50,6 +52,7 @@ type ReservationDetailProps = {
   onClose: () => void
   onCancel: (reservationId: string) => Promise<void>
   canCancel?: boolean
+  onDataChange?: () => void
 }
 
 // API response interface
@@ -60,36 +63,106 @@ interface ApiResponse<T> {
   timestamp: string;
 }
 
-export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canCancel = true }: ReservationDetailProps) {
+export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canCancel = true, onDataChange }: ReservationDetailProps) {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [attendeeEmail, setAttendeeEmail] = useState("")
   const [attendees, setAttendees] = useState<string[]>([])
   const [purpose, setPurpose] = useState("")
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
+  const [selectedStartTime, setSelectedStartTime] = useState("")
+  const [selectedEndTime, setSelectedEndTime] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
+  const [localReservation, setLocalReservation] = useState<Reservation | null>(null)
+  const [reservationDate, setReservationDate] = useState("")
 
-  if (!reservation) return null
+  // Update local state when reservation changes
+  useEffect(() => {
+    if (reservation) {
+      setLocalReservation(reservation);
+      
+      // Set reservation date
+      try {
+        const date = new Date(reservation.start_time);
+        setReservationDate(format(date, "EEEE, MMMM d, yyyy"));
+      } catch (error) {
+        console.error("Error formatting reservation date:", error);
+        setReservationDate("Unknown date");
+      }
+    }
+  }, [reservation]);
+
+  if (!localReservation) return null;
+
+  // Generate available time options (8:00 AM to 8:00 PM)
+  const generateTimeOptions = () => {
+    const options = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Start from next half hour or hour
+    let startHour = currentHour;
+    let startMinute = currentMinute <= 30 ? 30 : 0;
+    
+    if (currentMinute > 30) {
+      startHour += 1;
+      startMinute = 0;
+    }
+    
+    // Generate options from 8 AM to 8 PM
+    for (let hour = 8; hour <= 20; hour++) {
+      // Skip times in the past
+      if (hour < startHour || (hour === startHour && startMinute > 0 && startMinute > 30)) {
+        continue;
+      }
+      
+      // Add hour option
+      options.push({
+        value: `${hour}:00`,
+        label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
+      });
+      
+      // Add half hour option if not 8 PM
+      if (hour < 20) {
+        options.push({
+          value: `${hour}:30`,
+          label: `${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`
+        });
+      }
+    }
+    
+    return options;
+  };
+
+  // 计算默认结束时间（比开始时间晚1小时）
+  const getDefaultEndTime = (startTimeStr: string) => {
+    const [hours, minutes] = startTimeStr.split(':').map(Number);
+    const endHour = hours + 1 > 20 ? 20 : hours + 1;
+    return `${endHour}:${minutes === 30 ? '30' : '00'}`;
+  };
 
   // Initialize edit form when entering edit mode
   const handleEditClick = () => {
-    setAttendees(reservation.attendees.map(a => a.email));
-    setPurpose(reservation.purpose);
+    setAttendees(localReservation.attendees.map(a => a.email));
+    setPurpose(localReservation.purpose);
     
-    // Format date and time for input fields
+    // Parse current reservation time for default values
     try {
-      const start = new Date(reservation.start_time);
-      const end = new Date(reservation.end_time);
+      const start = new Date(localReservation.start_time);
+      const end = new Date(localReservation.end_time);
       
-      // Format as YYYY-MM-DDThh:mm (format required by time input)
-      setStartTime(format(start, "yyyy-MM-dd'T'HH:mm"));
-      setEndTime(format(end, "yyyy-MM-dd'T'HH:mm"));
+      // Set default values
+      setSelectedStartTime(`${start.getHours()}:${start.getMinutes() === 30 ? '30' : '00'}`);
+      setSelectedEndTime(`${end.getHours()}:${end.getMinutes() === 30 ? '30' : '00'}`);
     } catch (error) {
-      console.error("Error formatting dates for edit:", error);
-      toast.error("Could not prepare the form. Please try again.");
-      return;
+      console.error("Error parsing reservation times:", error);
+      
+      // Set default values
+      const now = new Date();
+      const nextHour = now.getHours() + 1;
+      setSelectedStartTime(`${nextHour}:00`);
+      setSelectedEndTime(`${nextHour + 1}:00`);
     }
     
     setIsEditMode(true);
@@ -102,8 +175,9 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
   const handleConfirmCancel = async () => {
     setIsLoading(true)
     try {
-      await onCancel(reservation.reservation_id)
+      await onCancel(localReservation.reservation_id)
       toast.success("Reservation cancelled successfully")
+      if (onDataChange) onDataChange() // Trigger data refresh
     } catch (err) {
       console.error("Error cancelling reservation:", err)
       toast.error("Failed to cancel reservation")
@@ -137,30 +211,44 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
 
   // Update reservation
   const handleUpdateReservation = async () => {
-    if (!startTime || !endTime) {
+    if (!selectedStartTime || !selectedEndTime) {
       toast.error("Please select start and end times");
       return;
     }
     
-    const startDate = new Date(startTime);
-    const endDate = new Date(endTime);
-    
-    if (startDate >= endDate) {
-      toast.error("End time must be after start time");
-      return;
-    }
-    
-    setIsUpdating(true);
-    
     try {
+      // Parse selected times
+      const [startHours, startMinutes] = selectedStartTime.split(':').map(Number);
+      const [endHours, endMinutes] = selectedEndTime.split(':').map(Number);
+      
+      // Create start and end times
+      const startDate = new Date();
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      
+      const endDate = new Date();
+      endDate.setHours(endHours, endMinutes, 0, 0);
+      
+      // Validate times
+      if (startHours < 8 || startHours > 20 || endHours < 8 || endHours > 20) {
+        toast.error("Reservations must be between 8 AM and 8 PM");
+        return;
+      }
+      
+      if (startDate >= endDate) {
+        toast.error("End time must be after start time");
+        return;
+      }
+      
+      setIsUpdating(true);
+      
       const response = await fetch('/api/user/meetingroom/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reservation_id: reservation.reservation_id,
-          room_id: reservation.room_id,
+          reservation_id: localReservation.reservation_id,
+          room_id: localReservation.room_id,
           attendees: attendees,
           purpose: purpose,
           start_time: startDate.toISOString(),
@@ -181,6 +269,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
       }
       
       toast.success("Reservation updated successfully");
+      if (onDataChange) onDataChange(); // Trigger data refresh
       setIsEditMode(false);
       onClose(); // Close the dialog to trigger a refresh of the reservations
     } catch (error) {
@@ -207,12 +296,27 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
     }
   };
 
+  // Handle dialog close with clean state reset
+  const handleDialogClose = () => {
+    // Allow time for dialog close animation
+    setTimeout(() => {
+      setIsEditMode(false);
+      setAttendeeEmail("");
+      setAttendees([]);
+      setPurpose("");
+      setSelectedStartTime("");
+      setSelectedEndTime("");
+    }, 200);
+    
+    onClose();
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[500px] animate-scaleCenter">
+      <Dialog open={isOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[500px] animate-scaleCenter transition-all duration-200">
           <DialogHeader>
-            <DialogTitle className="text-xl text-[lch(17_23_133)]">{reservation.room_name}</DialogTitle>
+            <DialogTitle className="text-xl text-[lch(17_23_133)]">{localReservation.room_name}</DialogTitle>
             <DialogDescription>
               {isEditMode ? "Edit reservation details" : "Reservation details"}
             </DialogDescription>
@@ -226,7 +330,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                   <CalendarIcon className="h-5 w-5 text-[lch(17_23_133)]" />
                   <div className="text-sm">
                     <span className="font-medium">Date: </span>
-                    {safeFormat(reservation.start_time, "EEEE, MMMM d, yyyy")}
+                    {safeFormat(localReservation.start_time, "EEEE, MMMM d, yyyy")}
                   </div>
                 </div>
                 
@@ -234,7 +338,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                   <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
                   <div className="text-sm">
                     <span className="font-medium">Time: </span>
-                    {safeFormat(reservation.start_time, "h:mm a")} - {safeFormat(reservation.end_time, "h:mm a")}
+                    {safeFormat(localReservation.start_time, "h:mm a")} - {safeFormat(localReservation.end_time, "h:mm a")}
                   </div>
                 </div>
                 
@@ -242,7 +346,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                   <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
                   <div className="text-sm">
                     <span className="font-medium">Location: </span>
-                    {reservation.building}, Floor {reservation.floor}
+                    {localReservation.building}, Floor {localReservation.floor}
                   </div>
                 </div>
                 
@@ -250,26 +354,26 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                   <Users className="h-5 w-5 text-[lch(17_23_133)]" />
                   <div className="text-sm">
                     <span className="font-medium">Reserved by: </span>
-                    {reservation.user_name}
+                    {localReservation.user_name}
                   </div>
                 </div>
                 
-                {reservation.purpose && (
+                {localReservation.purpose && (
                   <div className="flex items-center gap-3">
                     <Info className="h-5 w-5 text-[lch(17_23_133)]" />
                     <div className="text-sm">
                       <span className="font-medium">Purpose: </span>
-                      {reservation.purpose}
+                      {localReservation.purpose}
                     </div>
                   </div>
                 )}
               </div>
               
-              {reservation.attendees && reservation.attendees.length > 0 && (
+              {localReservation.attendees && localReservation.attendees.length > 0 && (
                 <div className="space-y-2">
                   <div className="font-medium text-sm">Attendees</div>
                   <div className="flex flex-wrap gap-2">
-                    {reservation.attendees.map((attendee, index) => (
+                    {localReservation.attendees.map((attendee, index) => (
                       <div key={index} className="flex items-center gap-1 bg-[lch(94_5_133)] rounded-full px-2 py-1 text-xs">
                         <span>{attendee.email || attendee.username}</span>
                       </div>
@@ -280,43 +384,63 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
               
               <div className="bg-muted p-3 rounded-md">
                 <p className="text-xs text-muted-foreground">
-                  Reservation status: <span className="font-medium capitalize">{reservation.status}</span>
+                  Reservation status: <span className="font-medium capitalize">{localReservation.status}</span>
                 </p>
               </div>
             </div>
           ) : (
             // Edit mode
             <div className="grid gap-6 py-4">
+              <div className="text-base font-medium mb-2">
+                {reservationDate}
+              </div>
+              
               <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="startTime">Start Time</Label>
-                    <Input 
-                      id="startTime" 
-                      type="datetime-local" 
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                    />
+                    <Select value={selectedStartTime} onValueChange={(value) => {
+                      setSelectedStartTime(value);
+                      // Always set end time to be 1 hour after start time
+                      setSelectedEndTime(getDefaultEndTime(value));
+                    }}>
+                      <SelectTrigger id="startTime">
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generateTimeOptions().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="endTime">End Time</Label>
-                    <Input 
-                      id="endTime" 
-                      type="datetime-local" 
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
+                    <Select value={selectedEndTime} onValueChange={setSelectedEndTime}>
+                      <SelectTrigger id="endTime">
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generateTimeOptions().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="purpose">Purpose</Label>
-                  <Input 
+                  <Textarea 
                     id="purpose" 
                     value={purpose}
                     onChange={(e) => setPurpose(e.target.value)}
                     placeholder="Meeting purpose"
-                    className="min-h-[80px]"
+                    className="min-h-[120px] resize-none"
                   />
                 </div>
                 
@@ -367,7 +491,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
             {!isEditMode ? (
               // View mode buttons
               <>
-                {reservation.status !== 'canceled' && reservation.status !== 'completed' && canCancel && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && canCancel && (
                   <div className="flex w-full gap-2">
                     <Button 
                       onClick={handleEditClick} 
@@ -386,7 +510,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                     </Button>
                   </div>
                 )}
-                {reservation.status !== 'canceled' && reservation.status !== 'completed' && !canCancel && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !canCancel && (
                   <div className="text-xs text-muted-foreground text-center w-full">
                     Only the creator of this reservation can modify or cancel it.
                   </div>
@@ -429,7 +553,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
           
           <div className="p-6">
             <DialogDescription className="text-base mb-4">
-              Are you sure you want to cancel your reservation for <span className="font-medium">{reservation.room_name}</span> on {safeFormat(reservation.start_time, "MMMM d")} at {safeFormat(reservation.start_time, "h:mm a")}?
+              Are you sure you want to cancel your reservation for <span className="font-medium">{localReservation.room_name}</span> on {safeFormat(localReservation.start_time, "MMMM d")} at {safeFormat(localReservation.start_time, "h:mm a")}?
             </DialogDescription>
             
             <div className="flex gap-3 mt-6">
