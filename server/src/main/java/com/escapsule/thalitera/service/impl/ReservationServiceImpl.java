@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -43,6 +44,10 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationMapper reservationMapper;
     private final MeetingRoomMapper meetingRoomMapper;
     private final UserMapper userMapper;
+
+    private final Set<Long> validTimeInterval = Set.of(
+            30L, 60L, 90L, 120L
+    );
 
 //    private final OffsetDateTime undefinedTime = OffsetDateTime.parse("1970-01-01T00:00:00Z");
 
@@ -121,6 +126,9 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     public boolean makeReservation(ReservationDTO reservationDTO,
                                    UUID userId) {
+        // Time Interval Validation
+        timeValidation(reservationDTO.getStartTime(), reservationDTO.getEndTime());
+        LocalDate day = reservationDTO.getStartTime().toLocalDate();
         // Generate a reservation ID
         UUID reservationId = UUID.randomUUID();
         // Construct the reservation object
@@ -162,6 +170,12 @@ public class ReservationServiceImpl implements ReservationService {
         );
         // Check conflicts
         for (Reservation r : reservations) {
+            if (r.getUserId().equals(userId) && day.equals(r.getStartTime().toLocalDate())) {
+                reservationMapper.deleteReservation(reservationId);
+                throw new BaseException(
+                        ErrorCode.PERMISSION_DENIED.getCode(), "One can only make one reservation per day"
+                );
+            }
             if (
                     checkConflict(
                             reservationDTO.getStartTime(), reservationDTO.getEndTime(),
@@ -188,6 +202,9 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public boolean updateReservation(ReservationDTO reservationDTO, UUID userId) {
+        // Time Interval Validation
+        timeValidation(reservationDTO.getStartTime(), reservationDTO.getEndTime());
+        LocalDate day = reservationDTO.getStartTime().toLocalDate();
         // Get the old reservation
         Reservation oldReservation = reservationMapper.getReservationByReservationId(
                 reservationDTO.getReservationId()
@@ -208,6 +225,11 @@ public class ReservationServiceImpl implements ReservationService {
             // Skip the current reservation
             if (r.getReservationId().equals(reservationDTO.getReservationId())) {
                 continue;
+            }
+            if (r.getUserId().equals(userId) && day.equals(r.getStartTime().toLocalDate())) {
+                throw new BaseException(
+                        ErrorCode.PERMISSION_DENIED.getCode(), "One can only make one reservation per day"
+                );
             }
             // Check conflicts
             if (
@@ -412,6 +434,29 @@ public class ReservationServiceImpl implements ReservationService {
         }
         if (attendeesCount > room.getCapacityMax() || attendeesCount < room.getCapacityMin()) {
             throw new BaseException(ErrorCode.INVALID_ATTENDEES_COUNT);
+        }
+    }
+
+    /**
+     * Validate the time range
+     *
+     * @param st requested start time
+     * @param ed requested end time
+     */
+    private void timeValidation(OffsetDateTime st, OffsetDateTime ed) {
+        if (
+                st == null || ed == null ||
+                st.isAfter(ed) || st.isEqual(ed) ||
+                st.isBefore(OffsetDateTime.now()) || ed.isBefore(OffsetDateTime.now()) ||
+                (st.getMinute() != 0 && st.getMinute() != 30) ||
+                (ed.getMinute() != 0 && ed.getMinute() != 30) ||
+                (!(st.toLocalDate().equals(ed.toLocalDate())))
+        ) {
+            throw new BaseException(ErrorCode.INVALID_TIME_RANGE);
+        }
+        long timeInterval = ed.toEpochSecond() - st.toEpochSecond();
+        if (!validTimeInterval.contains(timeInterval / 60)) {
+            throw new BaseException(ErrorCode.INVALID_TIME_INTERVAL);
         }
     }
 }

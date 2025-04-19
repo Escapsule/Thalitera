@@ -44,6 +44,7 @@ public enum ErrorCode {
     MISSING_RESERVATION_ID(2207, "Missing reservation id."),
     MISSING_ATTENDEES(2208, "Missing attendees."),
     INVALID_ATTENDEES_COUNT(2209, "Too many or too few attendees."),
+    INVALID_TIME_INTERVAL(2210, "Invalid time interval."),
 
     //2401 ~ 2599 notification system related
 
