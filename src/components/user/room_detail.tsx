@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MeetingRoom } from '@/types/meeting-room'
 
 // Define the type for the booking data
 type Booking = {
@@ -30,6 +31,7 @@ type Booking = {
   date: Date
   startTime: string
   endTime: string
+  roomData?: MeetingRoom | null
 }
 
 // Simplified room details component for booking creation only
@@ -115,27 +117,22 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     }
   }, [booking, isOpen])
 
+  // Reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setCoBookers([])
+      setEmailInput("")
+      setPurpose("")
+      setBookingError(null)
+      setBookingSuccess(false)
+    }
+  }, [isOpen])
+
   if (!booking) return null
 
-  // Find the corresponding room data
-  const roomData = {
-    name: booking.roomName,
-    capacity_min: 8,
-    capacity_max: 12,
-    building: "Building A",
-    floor: "2",
-    facilities: {
-      whiteboard: 1,
-      projecter: true,
-      power_sockets: 4,
-      coffee_break: true,
-      special_notes: ["Standard amenities"]
-    }
-  }
-
-  // Format the date and time
   const bookingDate = booking.date
   const availableTimeOptions = getAvailableTimeOptions(bookingDate)
+  const roomData = booking.roomData
   
   const handleAddCoBooker = () => {
     if (emailInput && emailInput.includes('@') && !coBookers.includes(emailInput)) {
@@ -233,7 +230,9 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] animate-scaleCenter">
         <DialogHeader>
-          <DialogTitle className="text-xl text-[lch(17_23_133)]">{roomData.name}</DialogTitle>
+          <DialogTitle className="text-xl text-[lch(17_23_133)]">
+            {roomData?.name || booking.roomName}
+          </DialogTitle>
           <DialogDescription>
             Booking details for your meeting
           </DialogDescription>
@@ -296,7 +295,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Location: </span>
-                {roomData.building}, Floor {roomData.floor}
+                {roomData?.building || "Unknown"}, Floor {roomData?.floor || "Unknown"}
               </div>
             </div>
             
@@ -304,7 +303,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <Users className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
                 <span className="font-medium">Capacity: </span>
-                {roomData.capacity_min} - {roomData.capacity_max} people
+                {roomData?.capacity_min || "?"} - {roomData?.capacity_max || "?"} people
               </div>
             </div>
           </div>
@@ -314,11 +313,13 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
-                <p className="text-sm text-muted-foreground">Conference room with standard amenities.</p>
+                <p className="text-sm text-muted-foreground">
+                  {roomData?.name || booking.roomName} - Conference room with standard amenities.
+                </p>
               </div>
             </div>
             
-            {roomData.facilities && Object.entries(roomData.facilities).length > 0 && (
+            {roomData?.facilities && Object.entries(roomData.facilities).length > 0 && (
               <div className="rounded-md border p-3">
                 <h4 className="text-sm font-medium mb-2">Amenities</h4>
                 <div className="grid grid-cols-2 gap-2">

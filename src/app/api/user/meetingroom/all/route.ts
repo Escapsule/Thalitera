@@ -40,6 +40,8 @@ export async function GET() {
     }
 
     const data = await response.json();
+
+    console.log('Data:', data);
     return NextResponse.json(data);
   } catch (error) {
     console.error('API route error:', error);

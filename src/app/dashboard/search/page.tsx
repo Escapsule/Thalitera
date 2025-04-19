@@ -35,10 +35,11 @@ import { MeetingRoom } from '@/types/meeting-room'
 type Booking = {
   id: number
   roomName: string
-  roomId: string | number  // Allow both string and number to match both types
+  roomId: string | number
   date: Date
   startTime: string
   endTime: string
+  roomData: MeetingRoom | null
 }
 
 export default function SearchPage() {
@@ -79,7 +80,8 @@ export default function SearchPage() {
   const [date, setDate] = useState<Date>(initialDate)
   const [startTime, setStartTime] = useState<string>(defaultStartTime)
   const [endTime, setEndTime] = useState<string>(defaultEndTime)
-  const [capacity, setCapacity] = useState<string>("")
+  const [capacityMin, setCapacityMin] = useState<string>("")
+  const [capacityMax, setCapacityMax] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
@@ -149,7 +151,11 @@ export default function SearchPage() {
     }
     
     // Filter by capacity
-    if (capacity && room.capacity_max < parseInt(capacity)) {
+    if (capacityMin && room.capacity_min < parseInt(capacityMin)) {
+      return false
+    }
+    
+    if (capacityMax && room.capacity_max > parseInt(capacityMax)) {
       return false
     }
     
@@ -170,17 +176,18 @@ export default function SearchPage() {
     return true
   })
 
-  // Handle opening room detail with a fake booking
+  // Handle opening room detail with booking info and full room data
   const handleViewRoom = (room: MeetingRoom) => {
-    const fakeBooking: Booking = {
+    const bookingWithRoomData: Booking = {
       id: 0,
       roomName: room.name,
       roomId: room.room_id,
       date: date,
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      roomData: room
     }
-    setSelectedRoom(fakeBooking)
+    setSelectedRoom(bookingWithRoomData)
     setIsDetailOpen(true)
   }
 
@@ -205,7 +212,8 @@ export default function SearchPage() {
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm("")
-    setCapacity("")
+    setCapacityMin("")
+    setCapacityMax("")
     setSelectedAmenities([])
     setSelectedLocations([])
     setDate(initialDate)
@@ -295,15 +303,31 @@ export default function SearchPage() {
               
               {/* Capacity Filter */}
               <div className="space-y-3">
-                <Label htmlFor="capacity">Minimum Capacity</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min="1"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  placeholder="Minimum people"
-                />
+                <Label htmlFor="capacity">Capacity</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="capacityMin" className="text-xs text-muted-foreground">Min</Label>
+                    <Input
+                      id="capacityMin"
+                      type="number"
+                      min="1"
+                      value={capacityMin}
+                      onChange={(e) => setCapacityMin(e.target.value)}
+                      placeholder="Minimum"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="capacityMax" className="text-xs text-muted-foreground">Max</Label>
+                    <Input
+                      id="capacityMax"
+                      type="number"
+                      min="1"
+                      value={capacityMax}
+                      onChange={(e) => setCapacityMax(e.target.value)}
+                      placeholder="Maximum"
+                    />
+                  </div>
+                </div>
               </div>
               
               <Separator />
@@ -437,15 +461,31 @@ export default function SearchPage() {
                 
                 {/* Capacity Filter */}
                 <div className="space-y-3">
-                  <Label htmlFor="capacity-mobile">Minimum Capacity</Label>
-                  <Input
-                    id="capacity-mobile"
-                    type="number"
-                    min="1"
-                    value={capacity}
-                    onChange={(e) => setCapacity(e.target.value)}
-                    placeholder="Minimum people"
-                  />
+                  <Label htmlFor="capacity-mobile">Capacity</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="capacityMin-mobile" className="text-xs text-muted-foreground">Min</Label>
+                      <Input
+                        id="capacityMin-mobile"
+                        type="number"
+                        min="1"
+                        value={capacityMin}
+                        onChange={(e) => setCapacityMin(e.target.value)}
+                        placeholder="Minimum"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="capacityMax-mobile" className="text-xs text-muted-foreground">Max</Label>
+                      <Input
+                        id="capacityMax-mobile"
+                        type="number"
+                        min="1"
+                        value={capacityMax}
+                        onChange={(e) => setCapacityMax(e.target.value)}
+                        placeholder="Maximum"
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 <Separator />
