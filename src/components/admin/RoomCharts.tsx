@@ -192,10 +192,23 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
   const facilitiesUsage = validReservations.reduce((acc, reservation) => {
     const room = rooms.find(r => r.room_id === reservation.room_id);
     if (room) {
-      if (room.facilities.projector) acc.projector = (acc.projector || 0) + 1;
-      if (room.facilities.whiteboard) acc.whiteboard = (acc.whiteboard || 0) + 1;
-      if (room.facilities.power_sockets) acc.power_sockets = (acc.power_sockets || 0) + 1;
-      if (room.facilities.coffee_break) acc.coffee_break = (acc.coffee_break || 0) + 1;
+      // Boolean type facility statistics
+      if (room.facilities.projector) {
+        acc.projector = (acc.projector || 0) + 1;
+      }
+      if (room.facilities.coffee_break) {
+        acc.coffee_break = (acc.coffee_break || 0) + 1;
+      }
+      
+      // Numerical type facility statistics
+      if (room.facilities.whiteboard) {
+        const whiteboardKey = `${room.facilities.whiteboard} Whiteboard${room.facilities.whiteboard > 1 ? 's' : ''}`;
+        acc[whiteboardKey] = (acc[whiteboardKey] || 0) + 1;
+      }
+      if (room.facilities.power_sockets) {
+        const socketKey = `${room.facilities.power_sockets} Socket${room.facilities.power_sockets > 1 ? 's' : ''}`;
+        acc[socketKey] = (acc[socketKey] || 0) + 1;
+      }
     }
     return acc;
   }, {} as Record<string, number>);
@@ -252,8 +265,27 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
       percentage: ((count / totalReservations) * 100).toFixed(1)
     }))
     .sort((a, b) => {
-      const order = ['projector', 'whiteboard', 'power_sockets', 'coffee_break'];
-      return order.indexOf(a.name) - order.indexOf(b.name);
+      // Custom sorting order: first boolean facilities, then numerical facilities
+      const order = ['projector', 'coffee_break'];
+      const aIndex = order.indexOf(a.name);
+      const bIndex = order.indexOf(b.name);
+      
+      // If both are boolean facilities, sort by predefined order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If both are numerical facilities, sort by number size
+      if (aIndex === -1 && bIndex === -1) {
+        const aNum = parseInt(a.name);
+        const bNum = parseInt(b.name);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return aNum - bNum;
+        }
+      }
+      
+      // Boolean facilities排在前面
+      return aIndex === -1 ? 1 : -1;
     });
 
   // Color Configuration
@@ -403,8 +435,6 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                   value: parseFloat(item.percentage),
                   itemStyle: { 
                     color: item.name === 'projector' ? '#9E8FA1' :
-                           item.name === 'whiteboard' ? '#9BADBC' :
-                           item.name === 'power_sockets' ? '#D8A6A6' :
                            item.name === 'coffee_break' ? '#B8A8A8' :
                            COLORS[index % COLORS.length]
                   }
