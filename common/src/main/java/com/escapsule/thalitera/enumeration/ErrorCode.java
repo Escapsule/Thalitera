@@ -67,6 +67,9 @@ public enum ErrorCode {
     FILE_SIZE_EXCEEDS_LIMIT(2703, "File size exceeds limit."),
     FILE_NAME_IS_NOT_VALID(2704, "File name is not valid."),
     FILE_HEADER_VERIFICATION_FAILED(2705, "File header verification failed."),
+    INVALID_FILE_UPLOAD_ACTION(2706, "Invalid file upload action."),
+    AVATAR_UPDATE_FAILED(2707, "Avatar update failed."),
+    MEETING_ROOM_IMAGE_UPDATE_FAILED(2708, "Meeting room image update failed."),
 
     // 3001 ~ 3999 database related
     DATABASE_CONNECTION_ERROR(3001, "Database connection error, please try again later."),

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/files")
@@ -27,14 +28,16 @@ public class FileUploadController {
     private final FileUploadService fileUploadService;
 
     @PostMapping("/upload")
-    public ApiResult<FileUploadResponseVO> upload(@RequestParam(value = "file") MultipartFile file,
-                                                  @RequestParam(value = "method", required = false) String method,
+    public ApiResult<FileUploadResponseVO> upload(@RequestParam MultipartFile file,
+                                                  @RequestParam(required = false) String action,
+                                                  @RequestParam(required = false) UUID roomId,
                                                   HttpSession session) {
         User user  = Optional.ofNullable((User) session.getAttribute("user"))
                 .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
         FileUploadRequestDTO dto = FileUploadRequestDTO.builder()
                 .file(file)
-                .method(method)
+                .action(action)
+                .roomId(roomId)
                 .uploadedBy(user.getUserId())
                 .build();
         return ApiResult.success(fileUploadService.upload(dto));

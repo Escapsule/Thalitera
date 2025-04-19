@@ -6,6 +6,7 @@ import com.escapsule.thalitera.po.MeetingRoomPO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,4 +30,13 @@ public interface MeetingRoomMapper {
     List<MeetingRoom> getAllMeetingRooms();
 
     int batchDeleteMeetingRoom(List<UUID> roomIds);
+
+    /**
+     * Update the image url of a meeting room
+     *
+     * @param url the image url
+     * @param roomId the room id
+     */
+    @Update("UPDATE meeting_rooms SET image = #{url} WHERE room_id = #{roomId}")
+    void updateMeetingRoomImage(String url, UUID roomId);
 }

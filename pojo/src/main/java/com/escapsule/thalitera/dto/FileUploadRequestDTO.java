@@ -15,5 +15,6 @@ import java.util.UUID;
 public class FileUploadRequestDTO {
     private MultipartFile file;
     private UUID uploadedBy;
-    private String method;
+    private String action;
+    private UUID roomId;
 }
