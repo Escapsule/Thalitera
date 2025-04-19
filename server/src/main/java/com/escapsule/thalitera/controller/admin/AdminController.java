@@ -119,7 +119,30 @@ public class AdminController {
      * @return List of reservationVO
      */
     @GetMapping("/reservations")
-    private ApiResult<List<ReservationVO>> getAllReservations() {
+    public ApiResult<List<ReservationVO>> getAllReservations() {
         return ApiResult.success(reservationService.getAllReservations());
+    }
+
+    /**
+     * Confirm operation with password
+     *
+     * @param password The password to confirm the operation
+     * @param session  The HTTP session object
+     * @return ApiResult with success message
+     */
+    @PostMapping("/operation-confirm")
+    public ApiResult<String> operationConfirm(@RequestBody String password,
+                                              HttpSession session) {
+        log.info("Operation confirm with password: {}", password);
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+        }
+        boolean success = adminService.operationConfirm(user.getPasswordHash(), password);
+        if (success) {
+            return ApiResult.success("Operation confirmed.");
+        } else {
+            return ApiResult.success("Operation failed.");
+        }
     }
 }

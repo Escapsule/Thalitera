@@ -6,6 +6,7 @@ import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.UserVO;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface AdminService {
 
@@ -34,4 +35,6 @@ public interface AdminService {
      * @return User object if login is successful, null otherwise
      */
     User login(UserLoginDTO dto, String ip, String userAgent, String fingerprint);
+
+    boolean operationConfirm(String passwordHash, String password);
 }

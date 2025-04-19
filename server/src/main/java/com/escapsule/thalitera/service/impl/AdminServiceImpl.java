@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -120,6 +121,14 @@ public class AdminServiceImpl implements AdminService {
         logLoginAttempt(user, ip, df, location, true, null);
 
         return user;
+    }
+
+    @Override
+    public boolean operationConfirm(String passwordHash, String password) {
+        if (!PasswordUtils.matches(password, passwordHash)) {
+            throw new BaseException(ErrorCode.USER_PASSWORD_INCORRECT);
+        }
+        return true;
     }
 
     private void logLoginAttempt(@Nullable User user,
