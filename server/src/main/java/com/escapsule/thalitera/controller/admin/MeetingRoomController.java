@@ -95,7 +95,8 @@ public class MeetingRoomController {
         }
         log.info("Delete meeting room: {}", roomIds);
         int rows = meetingRoomService.deleteMeetingRoom(roomIds);
-        log.info("{} meeting rooms deleted", rows);
-        return ApiResult.success(rows + " meeting rooms deleted.");
+        String data = rows + (rows == 1 ? "meeting room" : "meeting rooms") + " deleted.";
+        log.info(data);
+        return ApiResult.success(data);
     }
 }

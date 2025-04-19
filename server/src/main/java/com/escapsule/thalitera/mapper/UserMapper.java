@@ -6,7 +6,12 @@ import com.escapsule.thalitera.handler.DFListTypeHandler;
 import com.escapsule.thalitera.handler.PGUUIDListTypeHandler;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import jakarta.validation.constraints.NotNull;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.UUID;
@@ -131,4 +136,13 @@ public interface UserMapper {
      */
     @Update("UPDATE users SET avatar = #{url}, updated_at = now() WHERE user_id = #{uploadedBy}")
     void updateAvatar(String url, UUID uploadedBy);
+
+    /**
+     * Get users by emails
+     *
+     * @param emails list of user emails
+     * @return List of users
+     */
+    @Result(property = "trustedDevice", column = "trusted_devices", typeHandler = DFListTypeHandler.class)
+    List<User> getUsersByEmails(List<String> emails);
 }

@@ -1,6 +1,7 @@
 package com.escapsule.thalitera.service.impl;
 
 import com.escapsule.thalitera.constant.ReservationStatusConstant;
+import com.escapsule.thalitera.constant.UserStatusConstant;
 import com.escapsule.thalitera.dto.ReservationDTO;
 import com.escapsule.thalitera.dto.TimeRangeDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
@@ -28,8 +29,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,12 +86,15 @@ public class ReservationServiceImpl implements ReservationService {
                     )
             );
         }
+        log.info("Get active meeting rooms by filter: {}", meetingRoomPO);
         // Get the list of meeting rooms
         List<MeetingRoom> suitableMeetingRooms = meetingRoomMapper.getActiveMeetingRoomsByFilter(meetingRoomPO);
         Set<UUID> conflictRoomIds = new HashSet<>();
         // Check conflicts
         for (MeetingRoom meetingRoom : suitableMeetingRooms) {
-            List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(meetingRoom.getRoomId());
+            List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(
+                    meetingRoom.getRoomId()
+            );
             for (Reservation r : reservations) {
                 if (
                         checkConflict(
@@ -120,21 +127,39 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = ReservationTransfer.INSTANCE.newReservationDTO2Reservation(
                 reservationDTO, reservationId, TokenUtils.generateShortToken(), userId
         );
-        reservationDTO.getAttendees().forEach(
-                userEmail -> {
-                    // Get the user ID by email
-                    // TODO optimize to one query per request (instead of one query per attendee)
-                    User user = userMapper.getUserByEmail(userEmail);
-                    if (user == null) {
-                        throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(),
-                                userEmail + " not found");
-                    }
-                    reservation.getAttendees().add(user.getUserId());
-                }
-        );
+        // Distinct the attendees
+        List<String> emails = reservationDTO.getAttendees().stream().distinct()
+                .filter(email -> StringUtils.isNotBlank(email) && StringUtils.isNotEmpty(email))
+                .toList();
+        if (emails.isEmpty()) {
+            throw new BaseException(ErrorCode.MISSING_ATTENDEES);
+        }
+        // Verify the capacity strict
+        capacityVerification(reservationDTO, emails.size() + 1);
+        // Batch query to get users by emails
+        List<User> users = userMapper.getUsersByEmails(emails);
+        // Map the users by email
+        Map<String, User> emailUserMap = users.stream()
+                .collect(Collectors.toMap(User::getEmail, Function.identity()));
+        // Check if all emails are valid
+        emails.forEach(email -> {
+            User user = emailUserMap.get(email);
+            if (user == null) {
+                throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(), email + " not found");
+            }
+            if (userId.equals(user.getUserId())) {
+                throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot add yourself as attendee.");
+            }
+            if (!UserStatusConstant.ACTIVE.equals(user.getStatus())) {
+                throw new BaseException(ErrorCode.USER_NOT_ACTIVE.getCode(), email + " is not active.");
+            }
+            reservation.getAttendees().add(user.getUserId());
+        });
         reservationMapper.makeReservation(reservation);
         // Get the list of confirmed reservations
-        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
+        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(
+                reservationDTO.getRoomId()
+        );
         // Check conflicts
         for (Reservation r : reservations) {
             if (
@@ -164,15 +189,21 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     public boolean updateReservation(ReservationDTO reservationDTO, UUID userId) {
         // Get the old reservation
-        Reservation oldReservation = reservationMapper.getReservationsByReservationId(reservationDTO.getReservationId());
+        Reservation oldReservation = reservationMapper.getReservationByReservationId(
+                reservationDTO.getReservationId()
+        );
         if (oldReservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
         if (!oldReservation.getUserId().equals(userId)) {
-            throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot edit reservation created by other.");
+            throw new BaseException(
+                    ErrorCode.PERMISSION_DENIED.getCode(), "Cannot edit reservation created by other."
+            );
         }
         // Get the list of confirmed reservations
-        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(reservationDTO.getRoomId());
+        List<Reservation> reservations = reservationMapper.getConfirmedReservationsByRoomId(
+                reservationDTO.getRoomId()
+        );
         for (Reservation r : reservations) {
             // Skip the current reservation
             if (r.getReservationId().equals(reservationDTO.getReservationId())) {
@@ -193,18 +224,40 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation newReservation = ReservationTransfer.INSTANCE.updateReservationDTO2Reservation(
                 reservationDTO, oldReservation.getVersion(), oldReservation.getQrToken(), oldReservation.getUserId()
         );
-        reservationDTO.getAttendees().forEach(
-                userEmail -> {
-                    // Get the user ID by email
-                    // TODO optimize to one query per request (instead of one query per attendee)
-                    User user = userMapper.getUserByEmail(userEmail);
-                    if (user == null) {
-                        throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(),
-                                userEmail + " not found");
-                    }
-                    newReservation.getAttendees().add(user.getUserId());
-                }
-        );
+        // Distinct the attendees
+        List<String> emails = reservationDTO.getAttendees().stream().distinct()
+                .filter(email -> StringUtils.isNotBlank(email) && StringUtils.isNotEmpty(email))
+                .toList();
+        if (emails.isEmpty()) {
+            throw new BaseException(ErrorCode.MISSING_ATTENDEES);
+        }
+        // If attendees count and room id are not changed, skip the check
+        if (!(
+                oldReservation.getRoomId().equals(reservationDTO.getRoomId()) &&
+                oldReservation.getAttendees().size() == emails.size()
+        )) {
+            // Verify the capacity strict
+            capacityVerification(reservationDTO, emails.size() + 1);
+        }
+        // Batch query to get users by emails
+        List<User> users = userMapper.getUsersByEmails(emails);
+        // Map the users by email
+        Map<String, User> emailUserMap = users.stream()
+                .collect(Collectors.toMap(User::getEmail, Function.identity()));
+        // Check if all emails are valid
+        emails.forEach(email -> {
+            User user = emailUserMap.get(email);
+            if (user == null) {
+                throw new BaseException(ErrorCode.USER_NOT_FOUND.getCode(), email + " not found");
+            }
+            if (userId.equals(user.getUserId())) {
+                throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot add yourself as attendee.");
+            }
+            if (!UserStatusConstant.ACTIVE.equals(user.getStatus())) {
+                throw new BaseException(ErrorCode.USER_NOT_ACTIVE.getCode(), email + " is not active.");
+            }
+            newReservation.getAttendees().add(user.getUserId());
+        });
         reservationMapper.updateReservation(newReservation);
         return true;
     }
@@ -224,13 +277,15 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BaseException(ErrorCode.MISSING_RESERVATION_ID);
         }
         // Get the reservation
-        Reservation reservation = reservationMapper.getReservationsByReservationId(reservationId);
+        Reservation reservation = reservationMapper.getReservationByReservationId(reservationId);
         // Check if the reservation exists
         if (reservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
         if (!reservation.getUserId().equals(userId)) {
-            throw new BaseException(ErrorCode.PERMISSION_DENIED.getCode(), "Cannot cancel reservation created by other.");
+            throw new BaseException(
+                    ErrorCode.PERMISSION_DENIED.getCode(), "Cannot cancel reservation created by other."
+            );
         }
         // Update the reservation status
         reservationMapper.updateReservationStatus(reservationId, ReservationStatusConstant.CANCELED);
@@ -342,5 +397,21 @@ public class ReservationServiceImpl implements ReservationService {
                         )
                 )
         ;
+    }
+
+    /**
+     * Verify if the capacity of the room is valid for required attendees count
+     *
+     * @param reservationDTO The DTO object containing the parameters for the meeting room.
+     * @param attendeesCount The number of attendees
+     */
+    private void capacityVerification(ReservationDTO reservationDTO, int attendeesCount) {
+        MeetingRoom room = meetingRoomMapper.getMeetingRoomByRoomId(reservationDTO.getRoomId());
+        if (room == null) {
+            throw new BaseException(ErrorCode.MEETING_ROOM_NOT_FOUND);
+        }
+        if (attendeesCount > room.getCapacityMax() || attendeesCount < room.getCapacityMin()) {
+            throw new BaseException(ErrorCode.INVALID_ATTENDEES_COUNT);
+        }
     }
 }

@@ -42,6 +42,8 @@ public enum ErrorCode {
     CAPACITY_ERROR(2205, "Invalid capacity setting."),
     MISSING_ROOM_ID(2206, "Missing room id."),
     MISSING_RESERVATION_ID(2207, "Missing reservation id."),
+    MISSING_ATTENDEES(2208, "Missing attendees."),
+    INVALID_ATTENDEES_COUNT(2209, "Too many or too few attendees."),
 
     //2401 ~ 2599 notification system related
 

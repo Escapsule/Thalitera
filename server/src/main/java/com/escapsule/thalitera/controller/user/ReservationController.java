@@ -41,6 +41,7 @@ public class ReservationController {
     @GetMapping("/all")
     public ApiResult<List<MeetingRoomVO>> getAllActiveMeetingRooms() {
         List<MeetingRoom> meetingRooms = reservationService.getAllActiveMeetingRooms();
+        log.info("Get all active meeting rooms: {}", meetingRooms);
         return ApiResult.success(
                 meetingRooms
                         .stream()
@@ -58,6 +59,7 @@ public class ReservationController {
     @PostMapping("/filter")
     public ApiResult<List<MeetingRoomVO>> getMeetingRoomByFilter(@RequestBody @Valid ReservationDTO reservationDTO) {
         List<MeetingRoom> suitableMeetingRooms = reservationService.getMeetingRoom(reservationDTO);
+        log.info("Get meeting rooms by filter: {}", suitableMeetingRooms);
         return ApiResult.success(
                 suitableMeetingRooms
                         .stream()
@@ -74,6 +76,7 @@ public class ReservationController {
      */
     @PostMapping("/reserved-time-ranges")
     public ApiResult<List<TimeRangeDTO>> getMeetingRoomUnavailableTime(@RequestBody TimeRangeQueryDTO dto) {
+        log.info("Get reserved time ranges for room: {}, date: {}", dto.getRoomId(), dto.getDateTime().toLocalDate());
         return ApiResult.success(reservationService.getMeetingRoomReservedTime(dto.getRoomId(), dto.getDateTime()));
     }
 
@@ -92,6 +95,7 @@ public class ReservationController {
             throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         }
         boolean success = reservationService.makeReservation(reservationDTO, user.getUserId());
+        log.info("User {} booked a meeting room: {}", user.getUserId(), reservationDTO);
         if (success) {
             return ApiResult.success("Booking successful.");
         } else {
@@ -114,6 +118,7 @@ public class ReservationController {
             throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         }
         boolean success = reservationService.updateReservation(reservationDTO, user.getUserId());
+        log.info("User {} updated a meeting room booking: {}", user.getUserId(), reservationDTO);
         if (success) {
             return ApiResult.success("Update successful.");
         } else {
@@ -136,6 +141,7 @@ public class ReservationController {
             throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         }
         boolean success = reservationService.cancelReservation(reservationId, user.getUserId());
+        log.info("User {} canceled a meeting room booking: {}", user.getUserId(), reservationId);
         if (success) {
             return ApiResult.success("Cancel successful.");
         } else {
