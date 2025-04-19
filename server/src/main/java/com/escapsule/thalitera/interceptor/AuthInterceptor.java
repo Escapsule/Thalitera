@@ -51,10 +51,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         User user = (User) session.getAttribute("user");
-        if (!hasPermission(
-                user.getStatus(),
-                request.getRequestURI())
-        ) {
+        if (!hasPermission(user.getStatus(), request.getRequestURI())) {
             sendForbiddenError(response);
             return false;
         }
@@ -72,8 +69,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     private boolean isPublicEndpoint(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path.startsWith("/user/login") ||
-               path.startsWith("/user/register") ||
-               path.startsWith("/files/");
+               path.startsWith("/user/register");
     }
 
     /**
@@ -116,11 +112,12 @@ public class AuthInterceptor implements HandlerInterceptor {
      * @return true: has permission, false: no permission
      */
     private boolean hasPermission(String role, String path) {
-        // Admin can access all interfaces starting with /admin/.
-        if ("admin".equals(role) && path.startsWith("/admin/")) {
+
+        if ("admin".equals(role) && (path.startsWith("/admin/") || path.startsWith("/files/"))) {
             return true;
-            // Users can only access interfaces starting with /user/ (excluding the public interfaces that have been released).
-        } else if ("active".equals(role) && path.startsWith("/user/")) {
+        }
+
+        else if ("active".equals(role) && (path.startsWith("/user/") || path.startsWith("/files/"))) {
             return true;
         }
         return false;
