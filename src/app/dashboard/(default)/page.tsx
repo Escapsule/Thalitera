@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Clock } from "lucide-react"
+import { Clock, ArrowUp, ArrowDown, Search } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +11,24 @@ import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
 import { toast } from "sonner"
 import { useUserInfo } from "@/hooks/useUserInfo"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 // API response interface based on documentation
 interface ApiResponse<T> {
@@ -58,6 +76,17 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [needsRefresh, setNeedsRefresh] = useState(false)
   
+  // New state for sorting and filtering
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [attendeeInput, setAttendeeInput] = useState("")
+  const [filterBuilding, setFilterBuilding] = useState("_all")
+  const [filteredBuildings, setFilteredBuildings] = useState<string[]>([])
+  const [filteredAttendees, setFilteredAttendees] = useState<string[]>([])
+  
+  // Active filters as state
+  const [activeAttendees, setActiveAttendees] = useState<string[]>([])
+  const [activeBuildings, setActiveBuildings] = useState<string[]>([])
+  
   // Get user info using the hook
   const { data: userInfo } = useUserInfo()
 
@@ -90,7 +119,12 @@ export default function Dashboard() {
         
         // Check if data is in the expected format
         if (data && data.data && Array.isArray(data.data)) {
-          setReservations(data.data)
+          // Sort reservations by start_time in ascending order by default
+          const sortedReservations = [...data.data].sort((a, b) => 
+            new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+          );
+          
+          setReservations(sortedReservations)
         } else {
           setReservations([])
         }
@@ -105,6 +139,50 @@ export default function Dashboard() {
 
     fetchReservations()
   }, [])
+
+  // Effect to update filtered buildings and attendees based on date selection
+  useEffect(() => {
+    // Get relevant reservations based on date selection
+    const relevantReservations = showAllBookings 
+      ? reservations.filter((reservation) => {
+          try {
+            const startTime = new Date(reservation.start_time)
+            return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
+          } catch (error) {
+            console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
+            return false
+          }
+        })
+      : reservations.filter((reservation) => {
+          if (!date) return false
+          try {
+            const startTime = new Date(reservation.start_time)
+            return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled' && reservation.status !== 'completed'
+          } catch (error) {
+            console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
+            return false
+          }
+        });
+    
+    // Extract unique buildings from filtered reservations
+    const buildings = Array.from(new Set(relevantReservations.map(r => r.building)))
+    setFilteredBuildings(buildings)
+    
+    // Extract unique attendee emails from filtered reservations
+    const allAttendees = relevantReservations.flatMap(r => r.attendees.map(a => a.email))
+    const uniqueEmails = Array.from(new Set(allAttendees))
+    setFilteredAttendees(uniqueEmails)
+    
+    // Reset filters when changing date view if the current filter values aren't in the new set
+    if (activeBuildings.length > 0) {
+      setActiveBuildings(prev => prev.filter(building => buildings.includes(building)))
+    }
+    
+    if (activeAttendees.length > 0) {
+      setActiveAttendees(prev => prev.filter(email => uniqueEmails.includes(email)))
+    }
+    
+  }, [date, showAllBookings, reservations]);
 
   // Check if current user is the creator of the reservation
   const isReservationCreator = (reservation: Reservation): boolean => {
@@ -128,26 +206,51 @@ export default function Dashboard() {
   }).length
 
   // Get bookings for selected date or all future bookings (including today)
-  const reservationsToDisplay = showAllBookings 
-    ? reservations.filter((reservation) => {
-        try {
-          const startTime = new Date(reservation.start_time)
-          return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
-        } catch (error) {
-          console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
-          return false
-        }
-      })
-    : reservations.filter((reservation) => {
-        if (!date) return false
-        try {
-          const startTime = new Date(reservation.start_time)
-          return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled' && reservation.status !== 'completed'
-        } catch (error) {
-          console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
-          return false
-        }
-      })
+  // Apply filters and sorting
+  const reservationsToDisplay = (() => {
+    // First filter by date
+    let filtered = showAllBookings 
+      ? reservations.filter((reservation) => {
+          try {
+            const startTime = new Date(reservation.start_time)
+            return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
+          } catch (error) {
+            console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
+            return false
+          }
+        })
+      : reservations.filter((reservation) => {
+          if (!date) return false
+          try {
+            const startTime = new Date(reservation.start_time)
+            return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled' && reservation.status !== 'completed'
+          } catch (error) {
+            console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
+            return false
+          }
+        });
+        
+    // Filter by buildings if any are active
+    if (activeBuildings.length > 0) {
+      filtered = filtered.filter(reservation => activeBuildings.includes(reservation.building));
+    }
+    
+    // Filter by attendee email if any are active
+    if (activeAttendees.length > 0) {
+      filtered = filtered.filter(reservation => 
+        reservation.attendees.some(attendee => 
+          activeAttendees.includes(attendee.email)
+        )
+      );
+    }
+    
+    // Apply sorting by start_time
+    return [...filtered].sort((a, b) => {
+      const timeA = new Date(a.start_time).getTime();
+      const timeB = new Date(b.start_time).getTime();
+      return sortDirection === "asc" ? timeA - timeB : timeB - timeA;
+    });
+  })();
 
   // Handle opening the detail modal
   const handleOpenDetail = (reservation: Reservation) => {
@@ -165,6 +268,45 @@ export default function Dashboard() {
       return "Invalid time"
     }
   }
+
+  // Toggle sort direction
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+  };
+
+  // Add an attendee filter
+  const addAttendeeFilter = (email: string) => {
+    if (!activeAttendees.includes(email)) {
+      setActiveAttendees(prev => [...prev, email]);
+    }
+    setAttendeeInput("");
+  };
+
+  // Add a building filter
+  const addBuildingFilter = (building: string) => {
+    if (building === "_all") {
+      setActiveBuildings([]);
+    } else if (!activeBuildings.includes(building)) {
+      setActiveBuildings(prev => [...prev, building]);
+    }
+  };
+
+  // Remove a specific filter
+  const removeFilter = (type: 'building' | 'attendee', value: string) => {
+    if (type === 'building') {
+      setActiveBuildings(prev => prev.filter(b => b !== value));
+    } else {
+      setActiveAttendees(prev => prev.filter(a => a !== value));
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setActiveAttendees([]);
+    setActiveBuildings([]);
+    setAttendeeInput("");
+    setFilterBuilding("_all");
+  };
 
   // Cancel reservation handler with optimistic updates
   const handleCancelReservation = async (reservationId: string) => {
@@ -267,7 +409,14 @@ export default function Dashboard() {
           const data = await response.json() as ApiResponse<Reservation[]>;
           
           if (data.code === 200 && data.data && Array.isArray(data.data)) {
-            setReservations(data.data);
+            // Sort by start_time in current sort direction
+            const sortedReservations = [...data.data].sort((a, b) => {
+              const timeA = new Date(a.start_time).getTime();
+              const timeB = new Date(b.start_time).getTime();
+              return sortDirection === "asc" ? timeA - timeB : timeB - timeA;
+            });
+            
+            setReservations(sortedReservations);
           }
         } catch (error) {
           console.error('Error refreshing reservations:', error);
@@ -309,6 +458,158 @@ export default function Dashboard() {
                 <CardDescription className="text-[lch(0_0_0)]">View and manage your upcoming room bookings</CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Sort and filter controls */}
+                <div className="flex flex-col gap-4 mb-4">
+                  <div className="flex flex-wrap gap-2 items-center justify-between">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={toggleSortDirection}
+                      className="flex items-center gap-1"
+                    >
+                      {sortDirection === "asc" ? (
+                        <>
+                          <ArrowUp className="h-4 w-4" 
+                            style={{ fill: 'currentColor', color: 'black', stroke: 'currentColor' }} 
+                          />
+                          <span>Timeline</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowDown className="h-4 w-4" 
+                            style={{ fill: 'currentColor', color: 'black', stroke: 'currentColor' }} 
+                          />
+                          <span>Timeline</span>
+                        </>
+                      )}
+                    </Button>
+                    
+                    <div className="flex gap-2">
+                      <Select value={filterBuilding} onValueChange={(value) => {
+                        setFilterBuilding(value);
+                        if (value !== filterBuilding) {
+                          addBuildingFilter(value);
+                        }
+                      }}>
+                        <SelectTrigger className="w-[160px] h-9 text-xs">
+                          <SelectValue placeholder="Filter by building" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_all">All Buildings</SelectItem>
+                          {filteredBuildings.map(building => (
+                            <SelectItem key={building} value={building}>{building}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-9">
+                            <Search className="h-4 w-4 mr-1" />
+                            Attendee
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-64">
+                          <DropdownMenuLabel>Search Attendee</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <div className="p-2">
+                            <div className="flex gap-2 mb-2">
+                              <Input
+                                placeholder="Enter email"
+                                value={attendeeInput}
+                                onChange={(e) => setAttendeeInput(e.target.value)}
+                                className="flex-1"
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => attendeeInput && addAttendeeFilter(attendeeInput)}
+                                disabled={!attendeeInput}
+                              >
+                                +
+                              </Button>
+                            </div>
+                            {filteredAttendees.length > 0 ? (
+                              <DropdownMenuGroup>
+                                <DropdownMenuLabel className="text-xs">Suggestions</DropdownMenuLabel>
+                                {filteredAttendees
+                                  .filter(email => !attendeeInput || email.toLowerCase().includes(attendeeInput.toLowerCase()))
+                                  .slice(0, 5)
+                                  .map(email => (
+                                    <DropdownMenuItem 
+                                      key={email} 
+                                      onClick={() => addAttendeeFilter(email)}
+                                      className="flex justify-between"
+                                    >
+                                      <span>{email}</span>
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost" 
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          addAttendeeFilter(email);
+                                        }}
+                                      >
+                                        +
+                                      </Button>
+                                    </DropdownMenuItem>
+                                  ))
+                                }
+                              </DropdownMenuGroup>
+                            ) : (
+                              <div className="text-xs text-center text-muted-foreground py-2">
+                                No attendees found in current view
+                              </div>
+                            )}
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  
+                  {/* Active filters display */}
+                  {(activeBuildings.length > 0 || activeAttendees.length > 0) && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7">
+                        Clear All
+                      </Button>
+                      
+                      {activeBuildings.map(building => (
+                        <Badge 
+                          key={`building-${building}`} 
+                          variant="outline"
+                          className="flex items-center gap-1 px-2 py-1"
+                        >
+                          <span>Building: {building}</span>
+                          <button 
+                            onClick={() => removeFilter('building', building)}
+                            className="ml-1 h-4 w-4 rounded-full text-xs flex items-center justify-center hover:bg-muted"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                      
+                      {activeAttendees.map(email => (
+                        <Badge 
+                          key={`attendee-${email}`} 
+                          variant="outline"
+                          className="flex items-center gap-1 px-2 py-1"
+                        >
+                          <span>Attendee: {email}</span>
+                          <button 
+                            onClick={() => removeFilter('attendee', email)}
+                            className="ml-1 h-4 w-4 rounded-full text-xs flex items-center justify-center hover:bg-muted"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <div className="space-y-4">
                   {loading ? (
                     <div className="flex h-[200px] items-center justify-center">
@@ -369,8 +670,13 @@ export default function Dashboard() {
                   ) : (
                     <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed">
                       <div className="text-center">
-                        <h3 className="font-medium">No bookings for this date</h3>
-                        <p className="text-sm text-muted-foreground">Select another date or <Link href="/dashboard/search" className="text-[lch(17_23_133)] underline">book a room</Link></p>
+                        <h3 className="font-medium">No bookings found</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {filterBuilding !== "_all" || activeAttendees.length > 0 ? 
+                            "Try adjusting your filters or " : 
+                            "Select another date or "}
+                          <Link href="/dashboard/search" className="text-[lch(17_23_133)] underline">book a room</Link>
+                        </p>
                       </div>
                     </div>
                   )}
