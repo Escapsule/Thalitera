@@ -6,55 +6,81 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
 
-    // Transform the body to use 'email' instead of 'email_address'
-    const transformedBody = {
-      ...body,
-      email: body.email_address,
-    };
-    delete transformedBody.email_address;
-
-    console.log(transformedBody);
+    console.log('Admin login request body:', body);
     
-    // Create headers object for the backend request
+    // 确保 backendUrl 格式正确
+    const baseUrl = backendUrl?.startsWith('http') 
+      ? backendUrl 
+      : `http://${backendUrl}`;
+    
+    // 创建后端请求的 headers 对象
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Accept': '*/*',
     };
 
-    // Forward fingerprint if present
+    // 如果存在指纹，则转发
     if (fingerprint) {
       headers['THALITERA_FINGERPRINT'] = fingerprint;
+      console.log('Forwarding fingerprint:', fingerprint);
     }
 
-    // Forward the request to the backend
-    const response = await fetch(`${backendUrl}/admin/login`, {
+    console.log('Forwarding request to backend:', `${baseUrl}/admin/login`);
+
+    // 转发请求到后端
+    const response = await fetch(`${baseUrl}/admin/login`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(transformedBody),
+      body: JSON.stringify(body),
+      credentials: 'include', // 添加这一行，确保包含凭据
     });
 
-    // Get the response data
-    const data = await response.json();
+    console.log('Backend response status:', response.status);
 
-    // Create a response with the data from backend
-    const nextResponse = NextResponse.json(data, { status: data.code === 200 ? 200 : 401 });
+    // 获取响应数据
+    let data;
+    try {
+      data = await response.json();
+      console.log('Backend response data:', data);
+    } catch (jsonError) {
+      console.error('Failed to parse JSON response:', jsonError);
+      const text = await response.text();
+      console.error('Raw response:', text);
+      throw new Error('Invalid JSON response from backend');
+    }
 
-    // If login was successful, set the session cookie
+    // 创建带有后端数据的响应
+    const nextResponse = NextResponse.json(data);
+
+    // 如果登录成功，设置会话 cookie
     if (data.code === 200) {
-      // Forward cookies from backend if present
-      response.headers.forEach((value, key) => {
-        if (key.toLowerCase() === 'set-cookie') {
-          nextResponse.headers.append('Set-Cookie', value);
-        }
-      });
+      console.log('Admin login successful, setting cookies');
+      
+      // 转发后端的 cookies（如果存在）
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        console.log('Backend set-cookie header:', setCookieHeader);
+        
+        // 分割多个 cookie（如果有）
+        const cookies = setCookieHeader.split(/,(?=[^,]*=)/);
+        cookies.forEach(cookie => {
+          nextResponse.headers.append('Set-Cookie', cookie.trim());
+          console.log('Forwarded backend cookie:', cookie.trim().split(';')[0]);
+        });
+      } else {
+        console.log('No backend cookies found');
+      }
 
-      // Always set our own session cookie regardless of backend cookies
+      // 设置我们自己的会话 cookie
       const sessionId = `${Date.now()}_${fingerprint || 'unknown'}`;
-      nextResponse.headers.set(
+      nextResponse.headers.append(
         'Set-Cookie',
         `THALITERA_SESSION_ID=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`
       );
       
       console.log("Admin cookie set:", sessionId);
+    } else {
+      console.log('Admin login failed with code:', data.code);
     }
 
     return nextResponse;
@@ -84,4 +110,4 @@ export async function OPTIONS() {
       'Access-Control-Max-Age': '86400',
     },
   });
-} 
+}

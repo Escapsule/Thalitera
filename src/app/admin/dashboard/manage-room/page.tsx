@@ -42,11 +42,11 @@ interface MeetingRoom {
     special_notes: string[]
   }
   created_by?: ''
+  created_at?: string
 }
 
 const getBackendUrl = () => {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-  return `http://${backendUrl}`;
+  return '/api/admin/meetingroom';
 };
 
 // Status mapping
@@ -74,22 +74,6 @@ const mockRooms: MeetingRoom[] = [
       power_sockets: 12,
       coffee_break: true,
       special_notes: ["HD Projection System", "Video Conference Equipment"]
-    }
-  },
-  {
-    room_id: "room-002",
-    name: "Small Discussion Room A",
-    capacity_min: 2,
-    capacity_max: 8,
-    building: "R&D Center",
-    floor: 2,
-    status: "active",
-    facilities: {
-      projector: false,
-      whiteboard: 1,
-      power_sockets: 6,
-      coffee_break: false,
-      special_notes: ["Suitable for small group discussions"]
     }
   }
 ];
@@ -137,54 +121,180 @@ const ManageRoomPage = () => {
   })
 
   // Get meeting room list - modified to use mock data
+  // 修改 fetchRooms 函数，确保正确处理 cookie
   const fetchRooms = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      console.log(`${localStorage.getItem('cookie')}`, `${localStorage.getItem('token')}`)
-      const response = await fetch(`${getBackendUrl()}/admin/meetingroom/all`, {
+      console.log('当前 document.cookie:', document.cookie); 
+      
+      // 生成指纹信息（如果需要）
+      const fingerprint = localStorage.getItem('THALITERA_FINGERPRINT') || 
+                          `device_${Math.random().toString(36).substring(2, 15)}`;
+      
+      // 如果指纹不存在，保存到 localStorage
+      if (!localStorage.getItem('THALITERA_FINGERPRINT')) {
+        localStorage.setItem('THALITERA_FINGERPRINT', fingerprint);
+      }
+      
+      const response = await fetch('/api/admin/meetingroom/all', {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'THALITERA_FINGERPRINT': fingerprint
+        }
       });
-      
-      const data = await response.json()
-      console.log(data)
+  
+      // 检查响应状态
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`请求失败 (${response.status}):`, errorText);
+        
+        // 处理 401 未授权错误
+        if (response.status === 401) {
+          console.error('认证失败，请重新登录');
+          alert('您的登录已过期或无效，请重新登录');
+          // 可以添加重定向到登录页面
+          // window.location.href = '/admin/login';
+          return;
+        }
+        
+        throw new Error(`请求失败: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log(data);
       if (data.code === 200) {
-        setRooms(data.data || [])
-        console.log("get room list successfully!")
+        setRooms(data.data || []);
+        setFilteredRooms(data.data || []);
+        console.log("获取会议室列表成功!");
       } else {
-        console.error(data.message || 'Failed to get meeting room list')
+        console.error(data.message || '获取会议室列表失败');
+        alert(`获取会议室列表失败: ${data.message || '未知错误'}`);
       }
     } catch (error) {
-      console.error('Failed to get meeting room list', error)
+      console.error('获取会议室列表失败', error);
+      alert(`获取会议室列表失败: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
+  };
+  
   const addRoom = async (roomData: Partial<MeetingRoom>) => {
     setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+  
     try {
-      const response = await fetch(`http://${backendUrl}/admin/meetingroom/add`, {
+      const response = await fetch('/api/admin/meetingroom/add', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(roomData),
+        signal: controller.signal,
       });
+  
+      clearTimeout(timeoutId);
+  
+      // 检查响应类型
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('非JSON响应:', contentType);
+        const text = await response.text();
+        console.error('响应内容:', text);
+        throw new Error('Expected JSON response but got: ' + contentType);
+      }
+  
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('解析JSON失败:', jsonError);
+        alert('服务器返回了无效的JSON数据');
+        return false;
+      }
+  
+      if (data?.code === 200) {
+        fetchRooms();
+        return true;
+      } else {
+        console.error(data?.message || '添加会议室失败');
+        alert(data?.message || '添加会议室失败');
+        return false;
+      }
+    } catch (error) {
+      clearTimeout(timeoutId); // 清除超时
+      console.error('添加会议室失败', error);
+      alert('添加会议室失败，请检查网络连接');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 清空会议室数据的通用函数
+  const clearRooms = () => {
+    setRooms([]);
+    setFilteredRooms([]);
+  };
+  
+
+  // 修改 modifyRoom 函数
+  const modifyRoom = async (roomData: MeetingRoom) => {
+    setLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('/api/admin/meetingroom/modify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          room_id: roomData.room_id,
+          name: roomData.name,
+          capacity_min: roomData.capacity_min,
+          capacity_max: roomData.capacity_max,
+          building: roomData.building,
+          floor: roomData.floor,
+          status: roomData.status,
+          facilities: {
+            projector: roomData.facilities.projector,
+            whiteboard: roomData.facilities.whiteboard,
+            power_sockets: roomData.facilities.power_sockets,
+            coffee_break: roomData.facilities.coffee_break,
+            special_notes: roomData.facilities.special_notes,
+          },
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // 检查响应类型
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('非JSON响应:', contentType);
+        const text = await response.text();
+        console.error('响应内容:', text);
+        throw new Error('Expected JSON response but got: ' + contentType);
+      }
+      
       const data = await response.json();
       if (data.code === 200) {
         fetchRooms();
         return true;
       } else {
-        console.error(data.message || 'Failed to add meeting room');
-        alert(data.message || 'Failed to add meeting room');
+        console.error(data.message || '修改会议室失败');
+        alert(data.message || '修改会议室失败');
         return false;
       }
     } catch (error) {
-      console.error('Failed to add meeting room', error);
-      alert('Failed to add meeting room, please check your network connection');
+      console.error('修改会议室失败', error);
+      alert('修改会议室失败，请检查网络连接');
       return false;
     } finally {
       setLoading(false);
@@ -255,51 +365,6 @@ const ManageRoomPage = () => {
     } catch (error) {
       alert('Failed to modify meeting room');
       console.error(error);
-    }
-  }
-
-  const modifyRoom = async (roomData: MeetingRoom) => {
-    setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-    try {
-      const response = await fetch(`http://${backendUrl}/admin/meetingroom/modify`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          room_id: roomData.room_id,
-          name: roomData.name,
-          capacity_min: roomData.capacity_min,
-          capacity_max: roomData.capacity_max,
-          building: roomData.building,
-          floor: roomData.floor,
-          status: roomData.status,
-          facilities: {
-            projector: roomData.facilities.projector,
-            whiteboard: roomData.facilities.whiteboard,
-            power_sockets: roomData.facilities.power_sockets,
-            coffee_break: roomData.facilities.coffee_break,
-            special_notes: roomData.facilities.special_notes,
-          },
-        }),
-      });
-      const data = await response.json();
-      if (data.code === 200) {
-        fetchRooms();
-        return true;
-      } else {
-        console.error(data.message || 'Failed to modify meeting room');
-        alert(data.message || 'Failed to modify meeting room');
-        return false;
-      }
-    } catch (error) {
-      console.error('Failed to modify meeting room', error);
-      alert('Failed to modify meeting room, please check your network connection');
-      return false;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -420,9 +485,10 @@ const ManageRoomPage = () => {
   }
 
   // Load data when component mounts
+  // 确保在组件挂载时调用 fetchRooms
   useEffect(() => {
-    fetchRooms()
-  }, [])
+    fetchRooms();
+  }, []);
 
   // Update filtered results when rooms data changes
   useEffect(() => {
