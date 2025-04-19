@@ -29,7 +29,7 @@ public class FileUploadController {
 
     @PostMapping("/upload")
     public ApiResult<FileUploadResponseVO> upload(@RequestParam MultipartFile file,
-                                                  @RequestParam(required = false) String action,
+                                                  @RequestParam String action,
                                                   @RequestParam(required = false) UUID roomId,
                                                   HttpSession session) {
         User user  = Optional.ofNullable((User) session.getAttribute("user"))
