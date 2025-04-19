@@ -25,6 +25,11 @@ spring:
       host: localhost
       password:
       database: 0
+oss:
+  endpoint:  # console address
+  access-key: # access-key
+  secret-key: # secret-key
+  bucket: # bucket
 ```
 
 # env

@@ -2,6 +2,7 @@ package com.escapsule.thalitera.handler;
 
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.BaseException;
+import com.escapsule.thalitera.exception.FileException;
 import com.escapsule.thalitera.exception.NotificationException;
 import com.escapsule.thalitera.response.ApiResult;
 import jakarta.mail.MessagingException;
@@ -67,6 +68,14 @@ public class GlobalExceptionHandler {
                                                                     WebRequest request) {
         ApiResult<?> response = ApiResult.error(ex.getCode(), ex.getMessage());
         log.error("The notification service is abnormal: code={}, msg={}", ex.getCode(), ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    //  Handling file exceptions
+    @ExceptionHandler(FileException.class)
+    public ResponseEntity<ApiResult<?>> handleCaptchaException(FileException ex) {
+        ApiResult<?> response = ApiResult.error(ex.getCode(), ex.getMessage());
+        log.error("File upload exceptions: code={}, msg={}",ex.getCode(), ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 

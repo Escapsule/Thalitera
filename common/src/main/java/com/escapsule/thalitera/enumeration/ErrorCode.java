@@ -58,6 +58,18 @@ public enum ErrorCode {
     TOTP_SECRET_NOT_FOUND(2606, "TOTP secret not found"),
     TOTP_RECOVERY_CODES_NOT_FOUND(2607, "TOTP recovery codes not found"),
     USER_HAS_NEW_DEVICE(2608, "User has new device, please give MFA code"),
+    CLAM_AV_SERVICE_UNAVAILABLE(2609, "ClamAV service unavailable"),
+    VIRUS_INFECTION_FILE_DETECTED(2709, "Virus infection file detected"),
+
+    // 2701 ~ 2799 file upload related
+    THIS_FILE_TYPE_IS_NOT_ALLOWED(2701, "This file type is not allowed, please try again."),
+    FILE_IS_EMPTY(2702, "File is empty."),
+    FILE_SIZE_EXCEEDS_LIMIT(2703, "File size exceeds limit."),
+    FILE_NAME_IS_NOT_VALID(2704, "File name is not valid."),
+    FILE_HEADER_VERIFICATION_FAILED(2705, "File header verification failed."),
+    INVALID_FILE_UPLOAD_ACTION(2706, "Invalid file upload action."),
+    AVATAR_UPDATE_FAILED(2707, "Avatar update failed."),
+    MEETING_ROOM_IMAGE_UPDATE_FAILED(2708, "Meeting room image update failed."),
 
     // 3001 ~ 3999 database related
     DATABASE_CONNECTION_ERROR(3001, "Database connection error, please try again later."),

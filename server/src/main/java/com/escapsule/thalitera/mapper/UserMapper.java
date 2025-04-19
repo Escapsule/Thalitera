@@ -122,4 +122,13 @@ public interface UserMapper {
             "updated_at = now() " +
             "WHERE user_id = #{userId}")
     void updateTrustedDevice(UUID userId, List<DeviceFingerprint> trustedDevice);
+
+    /**
+     * Update user avatar
+     *
+     * @param url avatar url
+     * @param uploadedBy user id
+     */
+    @Update("UPDATE users SET avatar = #{url}, updated_at = now() WHERE user_id = #{uploadedBy}")
+    void updateAvatar(String url, UUID uploadedBy);
 }
