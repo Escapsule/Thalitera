@@ -68,7 +68,7 @@ interface Reservation {
 
 export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [showAllBookings, setShowAllBookings] = useState(false)
+  const [showAllBookings, setShowAllBookings] = useState(true)
   const [selectedBooking, setSelectedBooking] = useState<Reservation | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -87,8 +87,22 @@ export default function Dashboard() {
   const [activeAttendees, setActiveAttendees] = useState<string[]>([])
   const [activeBuildings, setActiveBuildings] = useState<string[]>([])
   
+  // View mode: upcoming or history
+  const [viewMode, setViewMode] = useState<"upcoming" | "history">("upcoming")
+  
   // Get user info using the hook
   const { data: userInfo } = useUserInfo()
+  
+  // Add type guard for userInfo
+  const getUserEmail = (): string | null => {
+    if (userInfo && typeof userInfo === 'object' && 'email' in userInfo && typeof userInfo.email === 'string') {
+      return userInfo.email;
+    }
+    return null;
+  }
+
+  // Add state to track if a date has been selected
+  const [dateFilterActive, setDateFilterActive] = useState(false)
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -195,6 +209,9 @@ export default function Dashboard() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
+  // Current time for checking if a meeting is over
+  const currentTime = new Date()
+  
   const futureReservations = reservations.filter((reservation) => {
     try {
       const startTime = new Date(reservation.start_time)
@@ -205,30 +222,126 @@ export default function Dashboard() {
     }
   }).length
 
+  // Count past reservations (meetings that have ended)
+  const pastReservations = reservations.filter((reservation) => {
+    try {
+      // Consider a reservation as "past" if its end time is before current time
+      // or if it's marked as completed (but not canceled)
+      const endTime = new Date(reservation.end_time)
+      return (endTime < currentTime || reservation.status === 'completed') && reservation.status !== 'canceled'
+    } catch (error) {
+      console.error(`Invalid date format for past filtering: ${reservation.end_time}`, error);
+      return false
+    }
+  }).length
+
+  // Calculate unique contacts (excluding user's own email)
+  const uniqueContacts = (() => {
+    // Get current user's email - handle the type safely
+    const userEmail = getUserEmail() || '';
+    
+    // Collect all attendee emails from all reservations and deduplicate
+    const allUniqueEmails = new Set<string>();
+    
+    // Process each reservation
+    reservations.forEach(reservation => {
+      // Add each attendee's email, skipping the current user's email
+      reservation.attendees.forEach(attendee => {
+        if (attendee.email && attendee.email !== userEmail) {
+          allUniqueEmails.add(attendee.email.toLowerCase()); // Convert to lowercase for case-insensitive deduplication
+        }
+      });
+    });
+    
+    // Log the unique emails to console
+    console.log("Unique contact attendees:", Array.from(allUniqueEmails));
+    
+    // Return the count of unique emails
+    return allUniqueEmails.size;
+  })();
+
+  // Function to check if a meeting is over (past end time)
+  const isMeetingOver = (reservation: Reservation): boolean => {
+    try {
+      const endTime = new Date(reservation.end_time)
+      return endTime < currentTime && reservation.status !== 'canceled' && reservation.status !== 'completed'
+    } catch (error) {
+      console.error(`Invalid date format for end time check: ${reservation.end_time}`, error);
+      return false
+    }
+  }
+
   // Get bookings for selected date or all future bookings (including today)
   // Apply filters and sorting
   const reservationsToDisplay = (() => {
-    // First filter by date
-    let filtered = showAllBookings 
-      ? reservations.filter((reservation) => {
-          try {
-            const startTime = new Date(reservation.start_time)
-            return startTime >= today && reservation.status !== 'canceled' && reservation.status !== 'completed'
-          } catch (error) {
-            console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
-            return false
-          }
-        })
-      : reservations.filter((reservation) => {
-          if (!date) return false
-          try {
-            const startTime = new Date(reservation.start_time)
-            return startTime.toDateString() === date.toDateString() && reservation.status !== 'canceled' && reservation.status !== 'completed'
-          } catch (error) {
-            console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
-            return false
-          }
-        });
+    // First filter by date and view mode
+    let filtered = (() => {
+      // Show past or upcoming meetings based on viewMode
+      if (viewMode === "history") {
+        // For history view, show ONLY meetings that have ended (end_time < currentTime) or are completed
+        if (showAllBookings) {
+          return reservations.filter((reservation) => {
+            try {
+              const endTime = new Date(reservation.end_time)
+              // Include meetings that have ended or are marked as completed
+              return (endTime < currentTime || reservation.status === 'completed') && reservation.status !== 'canceled'
+            } catch (error) {
+              console.error(`Invalid date format for history all view: ${reservation.end_time}`, error);
+              return false
+            }
+          });
+        } else {
+          return reservations.filter((reservation) => {
+            if (!date) return false
+            try {
+              const startTime = new Date(reservation.start_time)
+              const endTime = new Date(reservation.end_time)
+              // For a specific date, show meetings that have ended or are completed
+              return startTime.toDateString() === date.toDateString() && 
+                    (endTime < currentTime || reservation.status === 'completed') && 
+                    reservation.status !== 'canceled'
+            } catch (error) {
+              console.error(`Invalid date format for history date filtering: ${reservation.start_time}`, error);
+              return false
+            }
+          });
+        }
+      } else {
+        // For upcoming view - EXCLUDE meetings that are over
+        if (showAllBookings) {
+          return reservations.filter((reservation) => {
+            try {
+              const startTime = new Date(reservation.start_time)
+              const endTime = new Date(reservation.end_time)
+              // Only include meetings that haven't ended yet
+              return startTime >= today && 
+                    endTime >= currentTime && 
+                    reservation.status !== 'canceled' && 
+                    reservation.status !== 'completed'
+            } catch (error) {
+              console.error(`Invalid date format for all bookings: ${reservation.start_time}`, error);
+              return false
+            }
+          });
+        } else {
+          return reservations.filter((reservation) => {
+            if (!date) return false
+            try {
+              const startTime = new Date(reservation.start_time)
+              const endTime = new Date(reservation.end_time)
+              // For selected date, only include meetings that haven't ended yet
+              return startTime.toDateString() === date.toDateString() && 
+                    endTime >= currentTime && 
+                    reservation.status !== 'canceled' && 
+                    reservation.status !== 'completed'
+            } catch (error) {
+              console.error(`Invalid date format for date filtering: ${reservation.start_time}`, error);
+              return false
+            }
+          });
+        }
+      }
+    })();
         
     // Filter by buildings if any are active
     if (activeBuildings.length > 0) {
@@ -285,10 +398,15 @@ export default function Dashboard() {
   // Add a building filter
   const addBuildingFilter = (building: string) => {
     if (building === "_all") {
+      // Clear building selection
       setActiveBuildings([]);
-    } else if (!activeBuildings.includes(building)) {
-      setActiveBuildings(prev => [...prev, building]);
+    } else {
+      // Replace any existing building with the new one (only one building can be selected)
+      setActiveBuildings([building]);
     }
+    
+    // Reset the dropdown to show "Select Building" after selection
+    setFilterBuilding("_all");
   };
 
   // Remove a specific filter
@@ -431,8 +549,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <div className="flex h-screen flex-col py-6 ml-12 overflow-hidden">
+      <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="ml-auto flex items-center gap-4">
           <Avatar>
             <AvatarImage src="/placeholder-user.jpg" alt="User" />
@@ -441,8 +559,8 @@ export default function Dashboard() {
         </div>
       </header>
       
-      <div className="flex flex-1 justify-center">
-        <main className="flex-1 p-4 md:p-6 min-w-[80vw]">
+      <div className="flex flex-1 justify-center overflow-hidden">
+        <main className="flex-1 p-4 md:p-6 min-w-[80vw] overflow-hidden">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
@@ -450,16 +568,66 @@ export default function Dashboard() {
                 <CardTitle className="text-4xl text-[lch(17_23_133)]">{futureReservations}</CardTitle>
               </CardHeader>
             </Card>
-          </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-[1fr_300px]">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-[lch(17_23_133)]">Your Schedule</CardTitle>
-                <CardDescription className="text-[lch(0_0_0)]">View and manage your upcoming room bookings</CardDescription>
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[lch(17_23_133)]">History Bookings</CardDescription>
+                <CardTitle className="text-4xl text-[lch(17_23_133)]">{pastReservations}</CardTitle>
               </CardHeader>
-              <CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[lch(17_23_133)]">Contact Attendees</CardDescription>
+                <CardTitle className="text-4xl text-[lch(17_23_133)]">{uniqueContacts}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+          <div className="mt-6 grid gap-6 md:grid-cols-[1fr_300px] h-[calc(100vh-200px)] overflow-hidden">
+            <Card className="flex flex-col overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-[lch(17_23_133)]">Your Schedule</CardTitle>
+                    <CardDescription className="text-[lch(0_0_0)]">View and manage your room bookings</CardDescription>
+                  </div>
+                  <div className="flex bg-muted rounded-md">
+                    <button 
+                      onClick={() => {
+                        setViewMode("upcoming");
+                        // Clear date filter when changing view modes
+                        setShowAllBookings(true);
+                        setDateFilterActive(false);
+                        setDate(new Date());
+                      }}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        viewMode === "upcoming" 
+                          ? 'bg-[lch(17_23_133)] text-white' 
+                          : 'hover:bg-[lch(95_0_0)]'
+                      }`}
+                    >
+                      Upcoming
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setViewMode("history");
+                        // Clear date filter when changing view modes
+                        setShowAllBookings(true);
+                        setDateFilterActive(false);
+                        setDate(new Date());
+                      }}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        viewMode === "history" 
+                          ? 'bg-[lch(17_23_133)] text-white' 
+                          : 'hover:bg-[lch(95_0_0)]'
+                      }`}
+                    >
+                      History
+                    </button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden flex flex-col">
                 {/* Sort and filter controls */}
-                <div className="flex flex-col gap-4 mb-4">
+                <div className="flex flex-col gap-4 mb-4 flex-shrink-0">
                   <div className="flex flex-wrap gap-2 items-center justify-between">
                     <Button 
                       variant="outline" 
@@ -486,16 +654,13 @@ export default function Dashboard() {
                     
                     <div className="flex gap-2">
                       <Select value={filterBuilding} onValueChange={(value) => {
-                        setFilterBuilding(value);
-                        if (value !== filterBuilding) {
-                          addBuildingFilter(value);
-                        }
+                        addBuildingFilter(value);
                       }}>
                         <SelectTrigger className="w-[160px] h-9 text-xs">
                           <SelectValue placeholder="Filter by building" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="_all">All Buildings</SelectItem>
+                          <SelectItem value="_all">Select Building</SelectItem>
                           {filteredBuildings.map(building => (
                             <SelectItem key={building} value={building}>{building}</SelectItem>
                           ))}
@@ -532,8 +697,38 @@ export default function Dashboard() {
                             {filteredAttendees.length > 0 ? (
                               <DropdownMenuGroup>
                                 <DropdownMenuLabel className="text-xs">Suggestions</DropdownMenuLabel>
+                                {/* Add current user's email at the top with "Me" badge */}
+                                {getUserEmail() && (
+                                  <DropdownMenuItem 
+                                    key="current-user" 
+                                    onClick={() => addAttendeeFilter(getUserEmail() as string)}
+                                    className="flex justify-between items-center"
+                                  >
+                                    <div className="flex items-center">
+                                      <span>{getUserEmail() as string}</span>
+                                      <Badge variant="outline" className="ml-2 text-xs px-1.5 py-0">Me</Badge>
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addAttendeeFilter(getUserEmail() as string);
+                                      }}
+                                    >
+                                      +
+                                    </Button>
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                <DropdownMenuSeparator />
+                                
                                 {filteredAttendees
-                                  .filter(email => !attendeeInput || email.toLowerCase().includes(attendeeInput.toLowerCase()))
+                                  .filter(email => 
+                                    (!attendeeInput || email.toLowerCase().includes(attendeeInput.toLowerCase())) && 
+                                    (!getUserEmail() || email !== getUserEmail()) // Exclude current user's email since it's shown separately
+                                  )
                                   .slice(0, 5)
                                   .map(email => (
                                     <DropdownMenuItem 
@@ -569,9 +764,15 @@ export default function Dashboard() {
                   </div>
                   
                   {/* Active filters display */}
-                  {(activeBuildings.length > 0 || activeAttendees.length > 0) && (
+                  {(activeBuildings.length > 0 || activeAttendees.length > 0 || dateFilterActive) && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7">
+                      <Button variant="secondary" size="sm" onClick={() => {
+                        clearFilters();
+                        setShowAllBookings(true); // Reset to all bookings
+                        setDateFilterActive(false); // Clear date filter
+                        setDate(new Date()); // Reset date to current date
+                
+                      }} className="h-7 hover:bg-[lch(17_23_133)] hover:text-white">
                         Clear All
                       </Button>
                       
@@ -606,11 +807,30 @@ export default function Dashboard() {
                           </button>
                         </Badge>
                       ))}
+                      
+                      {dateFilterActive && (
+                        <Badge 
+                          variant="outline"
+                          className="flex items-center gap-1 px-2 py-1"
+                        >
+                          <span>Date: {format(date!, "MMM d, yyyy")}</span>
+                          <button 
+                            onClick={() => {
+                              setShowAllBookings(true);
+                              setDateFilterActive(false);
+                              setDate(new Date()); // Reset date to current date
+                            }}
+                            className="ml-1 h-4 w-4 rounded-full text-xs flex items-center justify-center hover:bg-muted"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      )}
                     </div>
                   )}
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1 overflow-hidden">
                   {loading ? (
                     <div className="flex h-[200px] items-center justify-center">
                       <div className="text-center">
@@ -618,11 +838,11 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ) : reservationsToDisplay.length > 0 ? (
-                    <div className={isRefreshing ? "opacity-70 transition-opacity duration-200" : ""}>
+                    <div className={`h-full overflow-y-auto pr-2 ${isRefreshing ? "opacity-70 transition-opacity duration-200" : ""}`}>
                       {reservationsToDisplay.map((reservation) => (
                         <div 
                           key={reservation.reservation_id + reservation.start_time} 
-                          className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
+                          className="flex items-center justify-between rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors mb-3"
                           onClick={() => handleOpenDetail(reservation)}
                         >
                           <div className="space-y-1">
@@ -657,11 +877,12 @@ export default function Dashboard() {
                                 reservation.status === 'canceled' ? 'destructive' : 
                                 reservation.status === 'completed' ? 'secondary' : 
                                 reservation.status === 'pending' ? 'outline' :
+                                isMeetingOver(reservation) ? 'secondary' :
                                 'default'
                               }
                               className="text-xs"
                             >
-                              {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                              {isMeetingOver(reservation) ? 'Over' : reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
                             </Badge>
                           </div>
                         </div>
@@ -674,8 +895,12 @@ export default function Dashboard() {
                         <p className="text-sm text-muted-foreground">
                           {filterBuilding !== "_all" || activeAttendees.length > 0 ? 
                             "Try adjusting your filters or " : 
-                            "Select another date or "}
-                          <Link href="/dashboard/search" className="text-[lch(17_23_133)] underline">book a room</Link>
+                            viewMode === "history" ?
+                              "You don't have any past bookings for this date" :
+                              "Select another date or "}
+                          {viewMode === "upcoming" && (
+                            <Link href="/dashboard/search" className="text-[lch(17_23_133)] underline">book a room</Link>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -683,47 +908,32 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="flex flex-col h-full overflow-hidden">
               <CardHeader>
                 <CardTitle>Calendar</CardTitle>
                 <CardDescription>Select a date to view your bookings</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-auto">
                 <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => setShowAllBookings(false)}
-                      className={`py-2 px-4 rounded-md text-sm font-medium ${
-                        !showAllBookings 
-                          ? 'bg-[lch(17_23_133)] text-[lch(100_0_0)]' 
-                          : 'bg-[lch(95_0_0)] text-[lch(32_0_0)] hover:bg-[lch(92_0_0)]'
-                      }`}
-                    >
-                      Date
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setShowAllBookings(true);
-                        setDate(new Date()); // Reset to today when showing all
-                      }}
-                      className={`py-2 px-4 rounded-md text-sm font-medium ${
-                        showAllBookings 
-                          ? 'bg-[lch(17_23_133)] text-[lch(100_0_0)]' 
-                          : 'bg-[lch(95_0_0)] text-[lch(32_0_0)] hover:bg-[lch(92_0_0)]'
-                      }`}
-                    >
-                      All
-                    </button>
-                  </div>
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={(newDate) => {
-                      setDate(newDate);
-                      setShowAllBookings(false);
+                      if (newDate) {
+                        setDate(newDate);
+                        setShowAllBookings(false);
+                        setDateFilterActive(true); // Mark date filter as active
+                      }
                     }}
                     className="rounded-md border shadow-sm"
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    disabled={(date) => {
+                      // In "history" mode, disable future dates (after today)
+                      // In "upcoming" mode, disable past dates (before today)
+                      const today = new Date(new Date().setHours(0, 0, 0, 0));
+                      return viewMode === "history" 
+                        ? date > today 
+                        : date < today;
+                    }}
                     initialFocus
                     components={{
                       DayContent: (props) => {

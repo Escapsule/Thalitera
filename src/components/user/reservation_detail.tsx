@@ -80,6 +80,18 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
   // Get current user info from the hook
   const { data: userInfo } = useUserInfo()
   
+  // Check if a meeting is over (end time has passed)
+  const isMeetingOver = (reservation: Reservation): boolean => {
+    try {
+      const endTime = new Date(reservation.end_time)
+      const currentTime = new Date()
+      return endTime < currentTime && reservation.status !== 'canceled' && reservation.status !== 'completed'
+    } catch (error) {
+      console.error(`Invalid date format for end time check: ${reservation.end_time}`, error);
+      return false
+    }
+  }
+  
   // Check if current user is the creator of the reservation
   const isReservationCreator = (): boolean => {
     if (!localReservation || !userInfo) return false
@@ -442,7 +454,9 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
               
               <div className="bg-muted p-3 rounded-md">
                 <p className="text-xs text-muted-foreground">
-                  Reservation status: <span className="font-medium capitalize">{localReservation.status}</span>
+                  Reservation status: <span className="font-medium capitalize">
+                    {isMeetingOver(localReservation) ? 'Over' : localReservation.status}
+                  </span>
                 </p>
               </div>
             </div>
@@ -549,7 +563,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
             {!isEditMode ? (
               // View mode buttons
               <>
-                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && userCanModify && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !isMeetingOver(localReservation) && userCanModify && (
                   <div className="flex w-full gap-2">
                     <Button 
                       onClick={handleEditClick} 
@@ -568,7 +582,12 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                     </Button>
                   </div>
                 )}
-                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !userCanModify && (
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && isMeetingOver(localReservation) && (
+                  <div className="text-xs text-muted-foreground text-center w-full">
+                    This meeting has ended and can no longer be modified.
+                  </div>
+                )}
+                {localReservation.status !== 'canceled' && localReservation.status !== 'completed' && !isMeetingOver(localReservation) && !userCanModify && (
                   <div className="text-xs text-muted-foreground text-center w-full">
                     Only the creator of this reservation can modify or cancel it.
                   </div>
