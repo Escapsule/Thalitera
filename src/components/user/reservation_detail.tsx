@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { Clock, MapPin, Users, Calendar as CalendarIcon, Info, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Clock, MapPin, Users, Calendar as CalendarIcon, Info, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -30,6 +30,9 @@ interface Reservation {
   room_id: string;
   room_name: string;
   user_id: string;
+  user_name: string;
+  building: string;
+  floor: string | number;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -51,22 +54,6 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
   const [isLoading, setIsLoading] = useState(false)
 
   if (!reservation) return null
-
-  // Hardcoded room data - in a real app, you would fetch this from API
-  const roomData = {
-    name: reservation.room_name,
-    capacity_min: 8,
-    capacity_max: 12,
-    building: "Building A",
-    floor: "2",
-    facilities: {
-      whiteboard: 1,
-      projecter: true,
-      power_sockets: 4,
-      coffee_break: true,
-      special_notes: ["Standard amenities"]
-    }
-  }
 
   const handleCancel = () => {
     setIsConfirmDialogOpen(true)
@@ -102,7 +89,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[500px] animate-scaleCenter">
           <DialogHeader>
-            <DialogTitle className="text-xl text-[lch(17_23_133)]">{roomData.name}</DialogTitle>
+            <DialogTitle className="text-xl text-[lch(17_23_133)]">{reservation.room_name}</DialogTitle>
             <DialogDescription>
               Reservation details
             </DialogDescription>
@@ -130,15 +117,15 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
                 <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
                 <div className="text-sm">
                   <span className="font-medium">Location: </span>
-                  {roomData.building}, Floor {roomData.floor}
+                  {reservation.building}, Floor {reservation.floor}
                 </div>
               </div>
               
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-[lch(17_23_133)]" />
                 <div className="text-sm">
-                  <span className="font-medium">Capacity: </span>
-                  {roomData.capacity_min} - {roomData.capacity_max} people
+                  <span className="font-medium">Reserved by: </span>
+                  {reservation.user_name}
                 </div>
               </div>
               
@@ -153,39 +140,13 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
               )}
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
-                <div>
-                  <div className="font-medium text-sm mb-1">Room Description</div>
-                  <p className="text-sm text-muted-foreground">Conference room with standard amenities.</p>
-                </div>
-              </div>
-              
-              {roomData.facilities && Object.entries(roomData.facilities).length > 0 && (
-                <div className="rounded-md border p-3">
-                  <h4 className="text-sm font-medium mb-2">Amenities</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(roomData.facilities)
-                      .filter(([, value]) => value !== null && value !== undefined)
-                      .map(([key], index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
-                          <span>{key}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
             {reservation.attendees && reservation.attendees.length > 0 && (
               <div className="space-y-2">
                 <div className="font-medium text-sm">Attendees</div>
                 <div className="flex flex-wrap gap-2">
                   {reservation.attendees.map((attendee, index) => (
                     <div key={index} className="flex items-center gap-1 bg-[lch(94_5_133)] rounded-full px-2 py-1 text-xs">
-                      <span>{attendee.email}</span>
+                      <span>{attendee.email || attendee.username}</span>
                     </div>
                   ))}
                 </div>
@@ -225,7 +186,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
           
           <div className="p-6">
             <DialogDescription className="text-base mb-4">
-              Are you sure you want to cancel your reservation for <span className="font-medium">{roomData.name}</span> on {safeFormat(reservation.start_time, "MMMM d")} at {safeFormat(reservation.start_time, "h:mm a")}?
+              Are you sure you want to cancel your reservation for <span className="font-medium">{reservation.room_name}</span> on {safeFormat(reservation.start_time, "MMMM d")} at {safeFormat(reservation.start_time, "h:mm a")}?
             </DialogDescription>
             
             <div className="flex gap-3 mt-6">

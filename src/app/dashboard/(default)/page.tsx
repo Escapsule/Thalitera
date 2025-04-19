@@ -35,8 +35,9 @@ interface Reservation {
   room_id: string;
   room_name: string;
   user_id: string;
+  user_name: string;
   building: string;
-  floor: string;
+  floor: string | number;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -276,6 +277,19 @@ export default function Dashboard() {
                             <Clock className="mr-1 h-4 w-4" />
                             {formatTimeString(reservation.start_time)} - {formatTimeString(reservation.end_time)}
                           </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="font-medium">Reserved by:</span> {reservation.user_name}
+                          </div>
+                          {reservation.purpose && (
+                            <div className="text-xs text-muted-foreground">
+                              <span className="font-medium">Purpose:</span> {reservation.purpose}
+                            </div>
+                          )}
+                          {reservation.attendees && reservation.attendees.length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              <span className="font-medium">Attendees:</span> {reservation.attendees.length}
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <Badge variant="outline" className="ml-auto">

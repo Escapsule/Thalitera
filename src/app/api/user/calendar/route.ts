@@ -1,30 +1,33 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
-// Define interfaces for the backend response
-interface MeetingRoom {
-  reservation_id: string;
-  room_id: string;
-  image: string | null;
-  name: string;
-  capacity_min: number;
-  capacity_max: number;
-  building: string;
-  floor: string;
-  status: string;
-  facilities: {
-    projector: boolean;
-    whiteboard: number;
-    [key: string]: boolean | number | string;
-  };
+// Define interface for attendee
+interface Attendee {
+  user_id: string;
+  avatar?: string;
+  username?: string;
+  email?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// Define interfaces for the API response
 interface CalendarItem {
   reservation_id: string;
+  room_id: string;
+  room_name: string;
+  building: string;
+  floor: string | number;
+  user_id: string;
+  user_name: string;
   start_time: string;
   end_time: string;
-  meeting_room: MeetingRoom;
-  status?: string;
+  created_at: string;
+  updated_at: string;
+  attendees: Attendee[];
+  purpose: string;
+  status: string;
 }
 
 // 修正异常日期的函数
@@ -87,8 +90,6 @@ export async function GET() {
       credentials: 'include',
     });
 
-
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Calendar API error (${response.status}):`, errorText);
@@ -120,6 +121,9 @@ export async function GET() {
 
     const data = await response.json();
     
+    // Log the original data from the API
+    console.log('Original API response data:', data);
+    
     // Transform the data to match the frontend expected format
     // The frontend expects a specific format for reservations
     if (data && data.data && Array.isArray(data.data)) {
@@ -132,16 +136,19 @@ export async function GET() {
           
           return {
             reservation_id: item.reservation_id,
-            room_id: item.meeting_room?.room_id,
-            room_name: item.meeting_room?.name,
-            user_id: '', // Backend doesn't provide this directly
+            room_id: item.room_id,
+            room_name: item.room_name,
+            building: item.building,
+            floor: item.floor,
+            user_id: item.user_id,
+            user_name: item.user_name,
             start_time: normalizedStartTime,
             end_time: normalizedEndTime,
-            created_at: '', // Backend doesn't provide this
-            updated_at: '', // Backend doesn't provide this
-            attendees: [], // Backend doesn't provide this
-            purpose: '', // Backend doesn't provide this
-            status: item.status, // Use the original status if available
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            attendees: item.attendees || [],
+            purpose: item.purpose || '',
+            status: item.status,
           };
         })
       };
