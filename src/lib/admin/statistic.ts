@@ -94,6 +94,30 @@ export const getRoomUtilizationStats = async (
 }[]> => {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    
+    // Verify date format
+    if (!startDate || !endDate) {
+      throw new Error('The start date and end date cannot be empty');
+    }
+
+    // Verification date range
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error('Invalid date format');
+    }
+
+    // Ensure that the date range is reasonable
+    if (start > end) {
+      throw new Error('The start date cannot be later than the end date');
+    }
+
+    // Limit query scope (e.g. maximum query for one year)
+    const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+    if (end.getTime() - start.getTime() > oneYearInMs) {
+      throw new Error('The query time range cannot exceed one year');
+    }
+
     console.log('Fetching room utilization stats:', {
       url: `${backendUrl}/admin/statistics/meeting-room-utilization`,
       params: { startDate, endDate }
@@ -108,30 +132,38 @@ export const getRoomUtilizationStats = async (
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Attempt to obtain error details
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage += ` - ${errorData.message || 'unknown error'}`;
+      } catch (e) {
+        // If unable to parse error response, use default error message
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     console.log('Room utilization stats response:', data);
 
-    // If the return is an array, return it directly
+    // If the returned value is an array, use it directly
     if (Array.isArray(data)) {
       return data;
     }
 
-    // If the return is a wrapped object, check the code
+    // If the returned object is a packaging object, check the code
     if (data.code === 200) {
       return data.data;
     }
 
-    console.error('Unexpected response format:', data);
-    return [];
+    throw new Error(data.message || 'Unknown response format');
   } catch (error) {
     console.error('Error fetching room utilization statistics:', {
       error,
       startDate,
       endDate
     });
+    // Return an empty array instead of throwing an error, so that the component can continue rendering
     return [];
   }
 };
