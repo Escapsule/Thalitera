@@ -377,9 +377,30 @@ export default function Dashboard() {
       const date = new Date(timestamp)
       return format(date, "h:mm a")
     } catch (error) {
-      console.error(`Invalid time format: ${timestamp}`, error);
+      console.error(`Invalid date format: ${timestamp}`, error);
       return "Invalid time"
     }
+  }
+
+  // Truncate email to specified length
+  const truncateEmail = (email: string, maxLength: number = 20): string => {
+    if (email.length <= maxLength) return email;
+    const atIndex = email.indexOf('@');
+    
+    if (atIndex <= maxLength - 3) {
+      // Try to keep the domain part visible
+      const username = email.substring(0, atIndex);
+      const domain = email.substring(atIndex);
+      
+      if (username.length > maxLength - domain.length - 3) {
+        // Truncate username part if needed
+        return username.substring(0, maxLength - domain.length - 3) + '...' + domain;
+      }
+      return email; // No truncation needed
+    }
+    
+    // Simple truncation if @ is too far
+    return email.substring(0, maxLength - 3) + '...';
   }
 
   // Toggle sort direction
@@ -684,6 +705,7 @@ export default function Dashboard() {
                                 value={attendeeInput}
                                 onChange={(e) => setAttendeeInput(e.target.value)}
                                 className="flex-1"
+                                title={attendeeInput.length > 20 ? attendeeInput : undefined}
                               />
                               <Button 
                                 size="sm" 
@@ -693,6 +715,13 @@ export default function Dashboard() {
                               >
                                 +
                               </Button>
+                            </div>
+                            <div className="flex items-center text-xs text-muted-foreground mb-2">
+                              {attendeeInput.length > 0 && (
+                                <span>
+                                  Adding: {truncateEmail(attendeeInput, 25)}
+                                </span>
+                              )}
                             </div>
                             {filteredAttendees.length > 0 ? (
                               <DropdownMenuGroup>
@@ -705,7 +734,7 @@ export default function Dashboard() {
                                     className="flex justify-between items-center"
                                   >
                                     <div className="flex items-center">
-                                      <span>{getUserEmail() as string}</span>
+                                      <span>{truncateEmail(getUserEmail() as string, 30)}</span>
                                       <Badge variant="outline" className="ml-2 text-xs px-1.5 py-0">Me</Badge>
                                     </div>
                                     <Button 
@@ -736,7 +765,7 @@ export default function Dashboard() {
                                       onClick={() => addAttendeeFilter(email)}
                                       className="flex justify-between"
                                     >
-                                      <span>{email}</span>
+                                      <span>{truncateEmail(email, 30)}</span>
                                       <Button 
                                         size="sm" 
                                         variant="ghost" 
@@ -798,7 +827,7 @@ export default function Dashboard() {
                           variant="outline"
                           className="flex items-center gap-1 px-2 py-1"
                         >
-                          <span>Attendee: {email}</span>
+                          <span>Attendee: {truncateEmail(email)}</span>
                           <button 
                             onClick={() => removeFilter('attendee', email)}
                             className="ml-1 h-4 w-4 rounded-full text-xs flex items-center justify-center hover:bg-muted"
