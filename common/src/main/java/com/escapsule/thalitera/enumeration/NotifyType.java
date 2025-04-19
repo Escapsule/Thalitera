@@ -1,8 +1,6 @@
 package com.escapsule.thalitera.enumeration;
 
-import com.escapsule.thalitera.model.ForgetPasswordVerifyVariables;
-import com.escapsule.thalitera.model.RegisterVerifyVariables;
-import com.escapsule.thalitera.model.TemplateVariables;
+import com.escapsule.thalitera.model.*;
 import lombok.Getter;
 
 @Getter
@@ -18,6 +16,24 @@ public enum NotifyType {
             NotifyChannel.EMAIL,
             "forget-password-verification-template",
             ForgetPasswordVerifyVariables.class
+            ),
+    RESERVATION_INIT_EMAIL(
+            "[Thalitera] Check your new reservation",
+            NotifyChannel.EMAIL,
+            "reservation-init-notification-template",
+            ReservationInitAndCancelNotifyVariables.class
+            ),
+    RESERVATION_UPDATE_EMAIL(
+            "[Thalitera] Your reservation has been updated",
+            NotifyChannel.EMAIL,
+            "reservation-update-notification-template",
+            ReservationUpdateNotifyVariables.class
+            ),
+    RESERVATION_CANCEL_EMAIL(
+            "[Thalitera] Your reservation has been canceled",
+            NotifyChannel.EMAIL,
+            "reservation-cancel-notification-template",
+            ReservationInitAndCancelNotifyVariables.class
             ),
     ;
 

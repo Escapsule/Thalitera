@@ -154,4 +154,13 @@ public interface UserMapper {
      */
     @Update("UPDATE users SET username = #{username}, updated_at = now() WHERE user_id = #{userId}")
     void updateUserNameById(UUID userId, String username);
+
+    /**
+     * Get users by ids
+     *
+     * @param ids list of user ids
+     * @return List of users
+     */
+    @Result(property = "trustedDevice", column = "trusted_devices", typeHandler = DFListTypeHandler.class)
+    List<User> getUsersByIds(List<UUID> ids);
 }

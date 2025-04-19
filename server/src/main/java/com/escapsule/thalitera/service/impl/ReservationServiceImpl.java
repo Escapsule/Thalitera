@@ -8,6 +8,9 @@ import com.escapsule.thalitera.entity.MeetingRoom;
 import com.escapsule.thalitera.entity.Reservation;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.enumeration.ErrorCode;
+import com.escapsule.thalitera.enumeration.NotifyType;
+import com.escapsule.thalitera.event.ReservationInitAndCancelNotifyEvent;
+import com.escapsule.thalitera.event.ReservationUpdateNotifyEvent;
 import com.escapsule.thalitera.exception.BaseException;
 import com.escapsule.thalitera.mapper.MeetingRoomMapper;
 import com.escapsule.thalitera.mapper.ReservationMapper;
@@ -21,6 +24,7 @@ import com.escapsule.thalitera.vo.ReservationVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +48,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationMapper reservationMapper;
     private final MeetingRoomMapper meetingRoomMapper;
     private final UserMapper userMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final Set<Long> validTimeInterval = Set.of(
             30L, 60L, 90L, 120L
@@ -189,6 +194,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
         // Update the reservation status
         reservationMapper.updateReservationStatus(reservationId, ReservationStatusConstant.CONFIRMED);
+        initAndCancelNotify(users, reservation, userId, NotifyType.RESERVATION_INIT_EMAIL);
         return true;
     }
 
@@ -281,6 +287,7 @@ public class ReservationServiceImpl implements ReservationService {
             newReservation.getAttendees().add(user.getUserId());
         });
         reservationMapper.updateReservation(newReservation);
+        updateNotify(oldReservation, newReservation, userId);
         return true;
     }
 
@@ -311,6 +318,12 @@ public class ReservationServiceImpl implements ReservationService {
         }
         // Update the reservation status
         reservationMapper.updateReservationStatus(reservationId, ReservationStatusConstant.CANCELED);
+        initAndCancelNotify(
+                userMapper.getUsersByIds(reservation.getAttendees()),
+                reservation,
+                userId,
+                NotifyType.RESERVATION_CANCEL_EMAIL
+        );
         return true;
     }
 
@@ -321,7 +334,11 @@ public class ReservationServiceImpl implements ReservationService {
      */
     @Override
     public List<ReservationVO> getAllReservations() {
-        return reservationMapper.getAllReservationDetails();
+        List<ReservationVO> vo = reservationMapper.getAllReservationDetails();
+        for (ReservationVO v : vo) {
+            v.setRoomId(UUID.fromString(v.getMeetingRoom().getRoomId()));
+        }
+        return vo;
     }
 
     /**
@@ -332,7 +349,11 @@ public class ReservationServiceImpl implements ReservationService {
      */
     @Override
     public List<ReservationVO> getMyReservations(UUID userId) {
-        return reservationMapper.getUserRelatedReservationDetailsByUserId(userId);
+        List<ReservationVO> vo = reservationMapper.getUserRelatedReservationDetailsByUserId(userId);
+        for (ReservationVO v : vo) {
+            v.setRoomId(UUID.fromString(v.getMeetingRoom().getRoomId()));
+        }
+        return vo;
     }
 
     /**
@@ -458,5 +479,77 @@ public class ReservationServiceImpl implements ReservationService {
         if (!validTimeInterval.contains(timeInterval / 60)) {
             throw new BaseException(ErrorCode.INVALID_TIME_INTERVAL);
         }
+    }
+
+    private void initAndCancelNotify(List<User> users, Reservation reservation, UUID userId, NotifyType notifyType) {
+        // notify the attendees
+        List<String> userNames = users.stream()
+                .map(User::getUsername)
+                .toList();
+        MeetingRoom meetingRoom = meetingRoomMapper.getMeetingRoomByRoomId(reservation.getRoomId());
+        List<UUID> userIds = new ArrayList<>(reservation.getAttendees());
+        userIds.add(userId);
+        eventPublisher.publishEvent(
+                new ReservationInitAndCancelNotifyEvent(
+                        this,
+                        meetingRoom.getName(),
+                        reservation.getStartTime().toLocalDateTime(),
+                        reservation.getEndTime().toLocalDateTime(),
+                        meetingRoom.getBuilding(),
+                        meetingRoom.getFloor(),
+                        userMapper.getUserById(userId).getUsername(),
+                        userNames,
+                        userIds,
+                        notifyType
+                )
+        );
+    }
+
+
+    private void updateNotify(Reservation oldReservation, Reservation newReservation, UUID userId) {
+        List<UUID> oldAttendees = oldReservation.getAttendees();
+        List<UUID> newAttendees = newReservation.getAttendees();
+        Set<UUID> addedAttendees = new HashSet<>(newAttendees);
+        addedAttendees.addAll(oldAttendees);
+        addedAttendees.add(userId);
+        List<UUID> targetUser = new ArrayList<>(addedAttendees);
+        List<User> users = userMapper.getUsersByIds(targetUser);
+        Map<UUID, User> uuid2User = users.stream()
+                .collect(Collectors.toMap(User::getUserId, Function.identity()));
+        List<String> oldUserNames = oldAttendees.stream()
+                .map(uuid2User::get)
+                .map(User::getUsername)
+                .toList();
+        List<String> newUserNames = newAttendees.stream()
+                .map(uuid2User::get)
+                .map(User::getUsername)
+                .toList();
+        MeetingRoom oldMeetingRoom = meetingRoomMapper.getMeetingRoomByRoomId(
+                oldReservation.getRoomId()
+        );
+        MeetingRoom newMeetingRoom = meetingRoomMapper.getMeetingRoomByRoomId(
+                newReservation.getRoomId()
+        );
+        eventPublisher.publishEvent(
+                new ReservationUpdateNotifyEvent(
+                        this,
+                        oldMeetingRoom.getName(),
+                        newMeetingRoom.getName(),
+                        oldMeetingRoom.getBuilding(),
+                        newMeetingRoom.getBuilding(),
+                        oldMeetingRoom.getFloor(),
+                        newMeetingRoom.getFloor(),
+                        oldReservation.getStartTime().toLocalDateTime(),
+                        newReservation.getStartTime().toLocalDateTime(),
+                        oldReservation.getEndTime().toLocalDateTime(),
+                        newReservation.getEndTime().toLocalDateTime(),
+                        oldUserNames,
+                        newUserNames,
+                        oldReservation.getPurpose(),
+                        newReservation.getPurpose(),
+                        userMapper.getUserById(userId).getUsername(),
+                        targetUser
+                )
+        );
     }
 }
