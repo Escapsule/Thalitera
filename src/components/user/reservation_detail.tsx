@@ -47,9 +47,10 @@ type ReservationDetailProps = {
   isOpen: boolean
   onClose: () => void
   onCancel: (reservationId: string) => Promise<void>
+  canCancel?: boolean
 }
 
-export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: ReservationDetailProps) {
+export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canCancel = true }: ReservationDetailProps) {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -161,7 +162,7 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
           </div>
 
           <DialogFooter>
-            {reservation.status !== 'canceled' && reservation.status !== 'completed' && (
+            {reservation.status !== 'canceled' && reservation.status !== 'completed' && canCancel && (
               <Button 
                 onClick={handleCancel} 
                 variant="destructive"
@@ -169,6 +170,11 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel }: Re
               >
                 Cancel Reservation
               </Button>
+            )}
+            {reservation.status !== 'canceled' && reservation.status !== 'completed' && !canCancel && (
+              <div className="text-xs text-muted-foreground text-center w-full">
+                Only the creator of this reservation can cancel it.
+              </div>
             )}
           </DialogFooter>
         </DialogContent>

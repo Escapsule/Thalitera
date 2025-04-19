@@ -54,8 +54,22 @@ export default function Dashboard() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
 
   useEffect(() => {
+    // Get current user ID from localStorage
+    if (typeof window !== 'undefined') {
+      const storedUserInfo = localStorage.getItem('user_info');
+      if (storedUserInfo) {
+        try {
+          const userInfo = JSON.parse(storedUserInfo);
+          setCurrentUserId(userInfo.user_id || '');
+        } catch (error) {
+          console.error('Error parsing user info from localStorage:', error);
+        }
+      }
+    }
+
     const fetchReservations = async () => {
       try {
         setLoading(true)
@@ -99,6 +113,11 @@ export default function Dashboard() {
 
     fetchReservations()
   }, [])
+
+  // Check if current user is the creator of the reservation
+  const isReservationCreator = (reservation: Reservation): boolean => {
+    return currentUserId === reservation.user_id;
+  }
 
   // Calculate statistics - include today's bookings in the count
   const today = new Date()
@@ -156,6 +175,15 @@ export default function Dashboard() {
   // Cancel reservation handler with optimistic updates
   const handleCancelReservation = async (reservationId: string) => {
     try {
+      // Find the reservation
+      const reservation = reservations.find(r => r.reservation_id === reservationId);
+      
+      // Check if user is the creator of this reservation
+      if (reservation && !isReservationCreator(reservation)) {
+        toast.error("You can only cancel meetings that you've created.");
+        return Promise.reject(new Error("Unauthorized: Not the meeting creator"));
+      }
+      
       // Optimistic UI update first for better UX
       const updatedReservations = reservations.map(reservation => 
         reservation.reservation_id === reservationId 
@@ -403,6 +431,7 @@ export default function Dashboard() {
         isOpen={isDetailOpen} 
         onClose={() => setIsDetailOpen(false)}
         onCancel={handleCancelReservation}
+        canCancel={selectedBooking ? isReservationCreator(selectedBooking) : false}
       />
     </div>
   )

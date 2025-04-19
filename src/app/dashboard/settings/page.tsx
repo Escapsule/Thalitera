@@ -65,6 +65,24 @@ const Page = () => {
   const fetchUserProfile = async () => {
     try {
       setStatus(prev => ({ ...prev, loading: true, error: null }));
+      
+      // First check if user info is available in localStorage
+      if (typeof window !== 'undefined') {
+        const storedUserInfo = localStorage.getItem('user_info');
+        if (storedUserInfo) {
+          const userInfo = JSON.parse(storedUserInfo);
+          setProfile({
+            user_id: userInfo.user_id || '',
+            user_name: userInfo.user_name || '',
+            email: userInfo.email || '',
+            avatar: userInfo.avatar || ''
+          });
+          setStatus(prev => ({ ...prev, loading: false }));
+          return;
+        }
+      }
+      
+      // If no data in localStorage, fetch from API
       const response = await fetch('/api/user/info', {
         method: 'GET',
         headers: {
@@ -78,12 +96,19 @@ const Page = () => {
 
       const result = await response.json();
       if (result.data) {
-        setProfile({
+        const userData = {
           user_id: result.data.user_id || '',
           user_name: result.data.username || '',
           email: result.data.email || '',
           avatar: result.data.avatar || ''
-        });
+        };
+        
+        setProfile(userData);
+        
+        // Also update localStorage with fresh data
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_info', JSON.stringify(userData));
+        }
       } else {
         throw new Error(result.message || 'Failed to obtain user information');
       }
@@ -181,6 +206,16 @@ const Page = () => {
 
       const result = await response.json();
       if (result.code === 1073741824) {
+        // Update localStorage with the new user_name
+        if (typeof window !== 'undefined') {
+          const storedUserInfo = localStorage.getItem('user_info');
+          if (storedUserInfo) {
+            const userData = JSON.parse(storedUserInfo);
+            userData.user_name = profile.user_name;
+            localStorage.setItem('user_info', JSON.stringify(userData));
+          }
+        }
+        
         setIsEditing(false);
         setStatus(prev => ({ ...prev, success: 'Information saved successfully!' }));
         setTimeout(() => {
@@ -244,10 +279,23 @@ const Page = () => {
 
       const result = await response.json();
       if (result.code === 1073741824) {
+        // Update profile and localStorage with new avatar
+        const newAvatar = result.data.avatar;
         setProfile(prev => ({
           ...prev,
-          avatar: result.data.avatar
+          avatar: newAvatar
         }));
+        
+        // Update localStorage with the new avatar
+        if (typeof window !== 'undefined') {
+          const storedUserInfo = localStorage.getItem('user_info');
+          if (storedUserInfo) {
+            const userData = JSON.parse(storedUserInfo);
+            userData.avatar = newAvatar;
+            localStorage.setItem('user_info', JSON.stringify(userData));
+          }
+        }
+        
         setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully!' }));
         setTimeout(() => {
           setStatus(prev => ({ ...prev, success: null }));

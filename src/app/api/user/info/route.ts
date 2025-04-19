@@ -5,34 +5,28 @@ export async function GET(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     console.log('Backend URL:', backendUrl);
     
-    // Forward all cookies from the client request
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    
-    // Get all cookies from the request
+    // Get the session ID cookie from the request
     const cookie = request.headers.get('cookie') || '';
-    
-    // Extract the THALITERA_SESSION_ID cookie specifically
     const sessionId = cookie.split(';')
       .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
       ?.split('=')[1] || '';
     
     console.log('Session ID from request:', sessionId ? 'Found' : 'Not found');
     
-    if (cookie) {
-      // Send the cookie header as-is
-      headers['cookie'] = cookie;
-      
-      // Also send the specific session ID cookie for redundancy
-      if (sessionId) {
-        headers['Cookie'] = `THALITERA_SESSION_ID=${sessionId}`;
-      }
+    if (!sessionId) {
+      console.warn('No session ID found in request cookies');
+      return NextResponse.json(
+        {
+          code: 401,
+          message: 'Unauthorized: No session ID found',
+          data: null,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
     }
 
-    console.log('Sending request to backend with cookies');
-    
-
+    // Make the request to the backend
     const response = await fetch(`${backendUrl}/user/info`, {
       method: 'GET',
       headers: {
@@ -47,7 +41,17 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       const text = await response.text();
       console.error('Error response body:', text);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      
+      // Return appropriate status code
+      return NextResponse.json(
+        {
+          code: response.status,
+          message: `Backend error: ${response.statusText}`,
+          data: null,
+          timestamp: new Date().toISOString(),
+        },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
