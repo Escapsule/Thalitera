@@ -236,6 +236,48 @@ const formatDate = (dateString: string | null | undefined): string => {
 };
 
 /**
+ * Skeleton Screen Component - Meeting Room List
+ */
+const RoomSkeleton = () => (
+  <div className="space-y-4">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="border rounded-lg p-4 animate-pulse">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <div className="h-5 bg-gray-200 rounded w-32 mb-1"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+        </div>
+        <div className="h-4 bg-gray-200 rounded w-48"></div>
+      </div>
+    ))}
+  </div>
+)
+
+/**
+ * Skeleton Screen Component - User List
+ */
+const UserSkeleton = () => (
+  <div className="space-y-4">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <div key={i} className="border rounded-lg p-4 animate-pulse">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-gray-200"></div>
+            <div>
+              <div className="h-5 bg-gray-200 rounded w-24 mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-32"></div>
+            </div>
+          </div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+/**
  * Admin dashboard page component
  */
 const DashboardPage = () => {
@@ -274,9 +316,9 @@ const DashboardPage = () => {
   const userItemsPerPage = 5; 
 
   // Meeting room pagination calculation
-  const filteredRooms = rooms.filter(room => 
-    room.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
-  )
+  const filteredRooms = rooms
+    .filter(room => room.status !== 'deleted')
+    .filter(room => room.name.toLowerCase().includes(roomSearchQuery.toLowerCase()))
   const roomTotalPages = Math.ceil(filteredRooms.length / roomItemsPerPage);
   const currentRooms = filteredRooms.slice(
     (roomCurrentPage - 1) * roomItemsPerPage,
@@ -310,8 +352,12 @@ const DashboardPage = () => {
    * Get meeting room statistics data
    */
   const fetchRoomStats = async () => {
-    try {
+    // Only set loading state on initial load
+    if (rooms.length === 0) {
       setIsLoadingRooms(true)
+    }
+    
+    try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
       const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
         method: 'GET',
@@ -324,26 +370,30 @@ const DashboardPage = () => {
       const data = await response.json();
       
       if (data.code === 200) {
-        const rooms = data.data;
-        setRooms(rooms);
+        const newRooms = data.data;
         
-        // Number of conference rooms with a statistical status of 'In Use'
-        const activeBookings = rooms.filter((room: Room) => room.status === 'using').length;
-        
-        // Calculate utilization rate: The number of conference rooms currently in use divided by the total number of conference rooms
-        const utilizationRate = (activeBookings / rooms.length) * 100;
-        
-        setRoomStats({
-          totalRooms: rooms.length,
-          activeBookings: activeBookings,
-          utilizationRate: utilizationRate
-        });
+        // Only update if data has changed
+        if (JSON.stringify(rooms) !== JSON.stringify(newRooms)) {
+          setRooms(newRooms);
+          
+          // Count the number of meeting rooms in use
+          const activeBookings = newRooms.filter((room: Room) => room.status === 'using').length;
+          
+          // Calculate utilization rate: current number of meeting rooms in use divided by total number of meeting rooms
+          const utilizationRate = (activeBookings / newRooms.length) * 100;
+          
+          setRoomStats({
+            totalRooms: newRooms.length,
+            activeBookings: activeBookings,
+            utilizationRate: utilizationRate
+          });
+        }
       } else {
-        console.error(data.message || 'Failed to retrieve conference room list');
+        console.error(data.message || 'Failed to get meeting room list');
         useFallbackData();
       }
     } catch (error) {
-      console.error('Failed to retrieve conference room statistics:', error);
+      console.error('Failed to get meeting room statistics data:', error);
       useFallbackData();
     } finally {
       setIsLoadingRooms(false)
@@ -397,8 +447,12 @@ const DashboardPage = () => {
   }
 
   const fetchUserStats = async () => {
-    try {
+    // Only set loading state on initial load
+    if (users.length === 0) {
       setIsLoadingUsers(true)
+    }
+    
+    try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
       const response = await fetch(`${backendUrl}/admin/users`, {
         method: 'GET',
@@ -421,22 +475,23 @@ const DashboardPage = () => {
           update_at: user.updated_at
         }));
         
-        const { bookingsToday } = await getBookingStats();
-        
-        setUsers(formattedUsers);
-        setUserStats({
-          totalUsers: formattedUsers.length,
-          activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
-          bookingsToday: bookingsToday
-        });
-        
-        console.log('Formatted users:', formattedUsers);
+        // Only update if data has changed
+        if (JSON.stringify(users) !== JSON.stringify(formattedUsers)) {
+          const { bookingsToday } = await getBookingStats();
+          
+          setUsers(formattedUsers);
+          setUserStats({
+            totalUsers: formattedUsers.length,
+            activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
+            bookingsToday: bookingsToday
+          });
+        }
       } else {
-        console.error(data.message || 'Failed to retrieve user list');
+        console.error(data.message || 'Failed to get user list');
         useFallbackUserData();
       }
     } catch (error) {
-      console.error('Failed to retrieve user statistics:', error);
+      console.error('Failed to get user statistics data:', error);
       useFallbackUserData();
     } finally {
       setIsLoadingUsers(false)
@@ -614,13 +669,13 @@ const DashboardPage = () => {
     fetchUserReservations()
     fetchRoomReservations()
     
-    // Set the timer to refresh every minute
+    // Set a timer to refresh every 5 minutes
     const timer = setInterval(() => {
       fetchRoomStats()
       fetchUserStats()
       fetchUserReservations()
       fetchRoomReservations()
-    }, 60000) // Refresh every minute
+    }, 300000) // Refresh every 5 minutes
 
     return () => clearInterval(timer)
   }, [])
@@ -697,9 +752,7 @@ const DashboardPage = () => {
                       <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
                           {isLoadingRooms ? (
-                            <div className="flex justify-center items-center h-32">
-                              <div className="text-gray-500">Loading...</div>
-                            </div>
+                            <RoomSkeleton />
                           ) : (
                             currentRooms.map((room) => (
                               <div
@@ -790,9 +843,7 @@ const DashboardPage = () => {
                       <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
                           {isLoadingUsers ? (
-                            <div className="flex justify-center items-center h-32">
-                              <div className="text-gray-500">Loading...</div>
-                            </div>
+                            <UserSkeleton />
                           ) : (
                             currentUsers.map((user) => (
                               <div
