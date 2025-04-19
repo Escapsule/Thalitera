@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.escapsule.thalitera.mapper.ReservationMapper">
+
     <resultMap id="ReservationDetailMap" type="com.escapsule.thalitera.vo.ReservationVO">
         <!-- outer fields mapping -->
         <id property="reservationId" column="reservationId"/>
-        <result property="roomId" column="roomId"/>
-        <result property="roomName" column="roomName"/>
-        <result property="building" column="building"/>
-        <result property="floor" column="floor"/>
         <result property="userId" column="userId"/>
         <result property="userName" column="userName"/>
         <result property="startTime" column="startTime"/>
@@ -17,12 +14,31 @@
         <result property="purpose" column="purpose"/>
         <result property="status" column="status"/>
 
+        <!-- association mapping for meetingRoom -->
+        <association
+                property="meetingRoom"
+                resultMap="MeetingRoomVOMap"
+        />
+
         <!-- collection mapping for attendees -->
         <collection
                 property="attendees"
                 ofType="com.escapsule.thalitera.vo.UserVO"
                 resultMap="UserVOMap"
         />
+    </resultMap>
+
+    <!-- MeetingRoomVO fields mapping -->
+    <resultMap id="MeetingRoomVOMap" type="com.escapsule.thalitera.vo.MeetingRoomVO">
+        <result property="roomId" column="mr_roomId"/>
+        <result property="image" column="mr_image"/>
+        <result property="name" column="mr_name"/>
+        <result property="building" column="mr_building"/>
+        <result property="floor" column="mr_floor"/>
+        <result property="capacityMin" column="mr_capacityMin"/>
+        <result property="capacityMax" column="mr_capacityMax"/>
+        <result property="status" column="mr_status"/>
+        <result property="facilities" column="mr_facilities" javaType="java.util.Map" typeHandler="com.escapsule.thalitera.handler.PGMeetingRoomFacilitiesMapTypeHandler"/>
     </resultMap>
 
     <!-- UserVO fields mapping -->
@@ -46,11 +62,11 @@
         purpose = #{purpose},
         qr_token = #{qrToken},
         updated_at = now(),
-        attendees = '[
+        attendees = jsonb_build_array(
         <foreach collection="attendees" item="attendee" separator=",">
-            "${attendee}"
+            #{attendee}
         </foreach>
-        ]'::jsonb,
+        ),
         version = #{version}
         WHERE
         reservation_id = #{reservationId}
@@ -59,10 +75,6 @@
     <select id="getUserRelatedReservationDetailsByUserId" resultMap="ReservationDetailMap">
         SELECT
             r.reservation_id AS reservationId,
-            r.room_id AS roomId,
-            mr.name AS roomName,
-            mr.building,
-            mr.floor,
             r.user_id AS userId,
             u.username AS userName,
             r.start_time AS startTime,
@@ -71,6 +83,15 @@
             r.updated_at AS updatedAt,
             r.purpose,
             r.status,
+            mr.room_id AS mr_roomId,
+            mr.image AS mr_image,
+            mr.name AS mr_name,
+            mr.building AS mr_building,
+            mr.floor AS mr_floor,
+            mr.capacity_min AS mr_capacityMin,
+            mr.capacity_max AS mr_capacityMax,
+            mr.status AS mr_status,
+            mr.facilities AS mr_facilities,
             ua.user_id AS attendee_userId,
             ua.username AS attendee_username,
             ua.avatar AS attendee_avatar,
@@ -83,20 +104,17 @@
                  UNION
                  SELECT * FROM reservations WHERE attendees @> jsonb_build_array(#{userId}::text)
              ) AS r
-                 JOIN meeting_rooms mr ON r.room_id = mr.room_id
-                 JOIN users u ON r.user_id = u.user_id
-                 LEFT JOIN users ua ON ua.user_id::text = ANY (
-            SELECT jsonb_array_elements_text(r.attendees)
-        )
+        JOIN meeting_rooms mr ON r.room_id = mr.room_id
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN LATERAL (
+            SELECT jsonb_array_elements_text(r.attendees) AS attendee_id
+        ) AS a ON true
+        LEFT JOIN users ua ON ua.user_id::text = a.attendee_id
     </select>
 
-    <select id="getAllReservationDetails" resultType="com.escapsule.thalitera.vo.ReservationVO">
+    <select id="getAllReservationDetails" resultMap="ReservationDetailMap">
         SELECT
             r.reservation_id AS reservationId,
-            r.room_id AS roomId,
-            mr.name AS roomName,
-            mr.building,
-            mr.floor,
             r.user_id AS userId,
             u.username AS userName,
             r.start_time AS startTime,
@@ -105,6 +123,15 @@
             r.updated_at AS updatedAt,
             r.purpose,
             r.status,
+            mr.room_id AS mr_roomId,
+            mr.image AS mr_image,
+            mr.name AS mr_name,
+            mr.building AS mr_building,
+            mr.floor AS mr_floor,
+            mr.capacity_min AS mr_capacityMin,
+            mr.capacity_max AS mr_capacityMax,
+            mr.status AS mr_status,
+            mr.facilities AS mr_facilities,
             ua.user_id AS attendee_userId,
             ua.username AS attendee_username,
             ua.avatar AS attendee_avatar,
@@ -113,20 +140,29 @@
             ua.created_at AS attendee_createdAt,
             ua.updated_at AS attendee_updatedAt
         FROM reservations r
-                 JOIN meeting_rooms mr ON r.room_id = mr.room_id
-                 JOIN users u ON r.user_id = u.user_id
-                 LEFT JOIN users ua ON ua.user_id::text = ANY (
-                     SELECT jsonb_array_elements_text(r.attendees)
-                 )
+        JOIN meeting_rooms mr ON r.room_id = mr.room_id
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN LATERAL (
+            SELECT jsonb_array_elements_text(r.attendees) AS attendee_id
+            ) AS a ON true
+        LEFT JOIN users ua ON ua.user_id::text = a.attendee_id
     </select>
 
     <insert id="makeReservation" parameterType="com.escapsule.thalitera.entity.Reservation">
         INSERT INTO reservations (reservation_id, user_id, room_id, start_time, end_time, purpose, attendees)
-        VALUES (#{reservationId}::uuid, #{userId}::uuid, #{roomId}::uuid, #{startTime}, #{endTime}, #{purpose}, '[
-        <foreach collection="attendees" item="attendee" separator=",">
-            "${attendee}"
-        </foreach>
-        ]'::jsonb)
+        VALUES (
+            #{reservationId}::uuid,
+            #{userId}::uuid,
+            #{roomId}::uuid,
+            #{startTime},
+            #{endTime},
+            #{purpose},
+            jsonb_build_array(
+            <foreach collection="attendees" item="attendee" separator=",">
+                #{attendee}
+            </foreach>
+            )
+        )
         RETURNING *
     </insert>
 </mapper>

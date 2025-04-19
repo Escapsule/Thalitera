@@ -20,11 +20,7 @@ public class ReservationVO {
 
     private UUID roomId;
 
-    private String roomName;
-
-    private String building;
-
-    private int floor;
+    private MeetingRoomVO meetingRoom;
 
     private UUID userId;
 
