@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUserInfo, UserInfo } from '@/hooks/useUserInfo'
 import { useLoginHistory } from '@/hooks/useLoginHistory'
 import { useTrustedDevices, TrustedDevice } from '@/hooks/useTrustedDevices'
+import { usePasswordUpdate } from '@/hooks/usePasswordUpdate'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface PasswordFormData {
   currentPassword: string;
@@ -107,6 +116,9 @@ const Page = () => {
   // Get device info from hook
   const deviceInfo = useDeviceInfo();
   
+  // Password update hook
+  const { updatePassword, isUpdating, reset: resetPasswordUpdate } = usePasswordUpdate();
+  
   // Profile edit mode
   const [isEditing, setIsEditing] = useState(false);
   
@@ -170,6 +182,9 @@ const Page = () => {
     data: trustedDevices = [], 
     isLoading: isLoadingTrustedDevices,
     error: trustedDevicesError,
+    isRevoking,
+    deleteDevice,
+    isDeleting
   } = useTrustedDevices();
 
   // 添加调试代码
@@ -399,35 +414,27 @@ const Page = () => {
 
     try {
       setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const response = await fetch('/api/user/profile-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          current_password: newPasswords.currentPassword,
-          new_password: newPasswords.newPassword,
-        }),
+      
+      await updatePassword({
+        old_password: newPasswords.currentPassword,
+        new_password: newPasswords.newPassword,
       });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.code === 200) {
-        setNewPasswords({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        });
-        setStatus(prev => ({ ...prev, success: 'Password updated successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
-      } else {
-        throw new Error(result.message || 'Password update failed, please try again');
-      }
+      
+      // Reset form fields on success
+      setNewPasswords({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      
+      setStatus(prev => ({ 
+        ...prev, 
+        success: 'Password updated successfully!' 
+      }));
+      
+      setTimeout(() => {
+        setStatus(prev => ({ ...prev, success: null }));
+      }, 3000);
     } catch (error) {
       setStatus(prev => ({
         ...prev,
@@ -453,6 +460,10 @@ const Page = () => {
       }));
     }
   };
+
+  // Add state for delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<TrustedDevice | null>(null);
 
   // Show loading state while fetching user info
   if (isLoadingUserInfo) {
@@ -561,17 +572,36 @@ const Page = () => {
                 </div>
               </form>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => {
-                setNewPasswords({
-                  currentPassword: '',
-                  newPassword: '',
-                  confirmPassword: '',
-                });
-              }}>Cancel</Button>
-              <Button onClick={handleUpdatePassword} disabled={status.loading}>
-                {status.loading ? 'Updating...' : 'Update Password'}
-              </Button>
+            <CardFooter className="flex flex-col space-y-3">
+              <div className="flex w-full justify-between">
+                <Button variant="outline" onClick={() => {
+                  setNewPasswords({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: '',
+                  });
+                  resetPasswordUpdate();
+                }}>Cancel</Button>
+                <Button 
+                  onClick={handleUpdatePassword} 
+                  disabled={status.loading || isUpdating}
+                  className="cursor-pointer hover:bg-[lch(25_25_133)]"
+                >
+                  {status.loading || isUpdating ? 'Updating...' : 'Update Password'}
+                </Button>
+              </div>
+              
+              {/* Show password update status messages here */}
+              {status.error && status.error.includes('password') && (
+                <div className="text-red-500 text-sm w-full">
+                  {status.error}
+                </div>
+              )}
+              {status.success && status.success.includes('Password') && (
+                <div className="text-green-500 text-sm w-full">
+                  {status.success}
+                </div>
+              )}
             </CardFooter>
           </Card>
         </div>
@@ -626,19 +656,26 @@ const Page = () => {
               ) : trustedDevices.length > 0 ? (
                 <div className="space-y-5">
                   {trustedDevices.map((device: TrustedDevice, index: number) => (
-                    <div key={index} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                    <div key={index} className={`flex items-start justify-between border-b pb-4 last:border-0 last:pb-0 ${device.isCurrentDevice ? 'bg-blue-50 p-3 rounded-md -mx-3' : ''}`}>
                       <div className="flex gap-3">
                         <div className="mt-1">
-                          <div className="bg-blue-100 p-1.5 rounded-full">
+                          <div className={`${device.isCurrentDevice ? 'bg-blue-200' : 'bg-blue-100'} p-1.5 rounded-full`}>
                             {device.browser.toLowerCase().includes('mobile') ? (
-                              <Smartphone className="h-4 w-4 text-blue-600" />
+                              <Smartphone className={`h-4 w-4 ${device.isCurrentDevice ? 'text-blue-700' : 'text-blue-600'}`} />
                             ) : (
-                              <Laptop className="h-4 w-4 text-blue-600" />
+                              <Laptop className={`h-4 w-4 ${device.isCurrentDevice ? 'text-blue-700' : 'text-blue-600'}`} />
                             )}
                           </div>
                         </div>
                         <div>
-                          <p className="font-medium">{device.browser}</p>
+                          <p className="font-medium flex items-center gap-2">
+                            {device.browser}
+                            {device.isCurrentDevice && (
+                              <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                                Current Device
+                              </Badge>
+                            )}
+                          </p>
                           <div className="text-sm text-muted-foreground mt-1">
                             <div className="grid grid-cols-1 gap-y-1">
                               <p>OS: {device.os}</p>
@@ -649,9 +686,26 @@ const Page = () => {
                           </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="border-blue-300 text-blue-700">
-                        Trusted
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant={device.isCurrentDevice ? "default" : "outline"} className={device.isCurrentDevice ? "bg-blue-500" : "border-blue-300 text-blue-700"}>
+                          {device.isCurrentDevice ? 'This Device' : 'Trusted'}
+                        </Badge>
+                        
+                        {!device.isCurrentDevice && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            className="rounded-md bg-red-500 hover:bg-red-600 text-white"
+                            onClick={() => {
+                              setDeviceToDelete(device);
+                              setDeleteDialogOpen(true);
+                            }}
+                            disabled={isDeleting || isRevoking}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -786,61 +840,63 @@ const Page = () => {
                   Failed to load login history
                 </div>
               ) : allLoginHistory.length > 0 ? (
-                <div className="space-y-5">
-                  {allLoginHistory.map((entry, index) => {
-                    const date = new Date(entry.login_time);
-                    const formattedDate = date.toLocaleDateString();
-                    const formattedTime = date.toLocaleTimeString(undefined, {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    });
-                    
-                    return (
-                      <div key={index} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
-                        <div className="flex gap-3">
-                          <div className="mt-1">
-                            {entry.success ? (
-                              <div className="bg-green-100 p-1 rounded-full">
-                                <Check className="h-4 w-4 text-green-600" />
-                              </div>
-                            ) : (
-                              <div className="bg-red-100 p-1 rounded-full">
-                                <X className="h-4 w-4 text-red-600" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {index === 0 ? 'Latest Login' : `Login ${index + 1}`}
-                              {!entry.success && (
-                                <span className="text-red-500 text-sm ml-2">Failed</span>
+                <div className="h-[430px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-4">
+                    {allLoginHistory.map((entry, index) => {
+                      const date = new Date(entry.login_time);
+                      const formattedDate = date.toLocaleDateString();
+                      const formattedTime = date.toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                      
+                      return (
+                        <div key={index} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                          <div className="flex gap-3">
+                            <div className="mt-1">
+                              {entry.success ? (
+                                <div className="bg-green-100 p-1 rounded-full">
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </div>
+                              ) : (
+                                <div className="bg-red-100 p-1 rounded-full">
+                                  <X className="h-4 w-4 text-red-600" />
+                                </div>
                               )}
-                            </p>
-                            {!entry.success && entry.failure_reason && (
-                              <p className="text-sm text-red-500 mt-1">
-                                {entry.failure_reason}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {index === 0 ? 'Latest Login' : `Login ${index + 1}`}
+                                {!entry.success && (
+                                  <span className="text-red-500 text-sm ml-2">Failed</span>
+                                )}
                               </p>
-                            )}
-                            <div className="text-sm text-muted-foreground mt-1">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-1 gap-x-4">
-                                <p>Browser: {entry.trust_device.browser}</p>
-                                <p>OS: {entry.trust_device.os}</p>
-                                <p>Location: {entry.trust_device.location}</p>
-                                <p>IP: {entry.trust_device.ip || 'Unknown'}</p>
+                              {!entry.success && entry.failure_reason && (
+                                <p className="text-sm text-red-500 mt-1">
+                                  {entry.failure_reason}
+                                </p>
+                              )}
+                              <div className="text-sm text-muted-foreground mt-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-1 gap-x-4">
+                                  <p>Browser: {entry.trust_device.browser}</p>
+                                  <p>OS: {entry.trust_device.os}</p>
+                                  <p>Location: {entry.trust_device.location}</p>
+                                  <p>IP: {entry.trust_device.ip || 'Unknown'}</p>
+                                </div>
+                                <p className="mt-1">{formattedDate}, {formattedTime}</p>
                               </div>
-                              <p className="mt-1">{formattedDate}, {formattedTime}</p>
                             </div>
                           </div>
+                          <Badge
+                            variant={entry.success ? "default" : "secondary"}
+                            className={entry.success ? "bg-green-500" : "bg-gray-200 text-gray-800"}
+                          >
+                            {entry.success ? 'Success' : 'Failed'}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant={entry.success ? "default" : "secondary"}
-                          className={entry.success ? "bg-green-500" : "bg-gray-200 text-gray-800"}
-                        >
-                          {entry.success ? 'Success' : 'Failed'}
-                        </Badge>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="py-6 text-center text-muted-foreground">
@@ -1029,6 +1085,70 @@ const Page = () => {
 
   return (
     <div className="container py-6 max-w-6xl">
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Delete Trusted Device</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this trusted device?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {deviceToDelete && (
+            <div className="py-4">
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Browser:</span>
+                  <span>{deviceToDelete.browser}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">OS:</span>
+                  <span>{deviceToDelete.os}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Location:</span>
+                  <span>{deviceToDelete.location}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">IP:</span>
+                  <span>{deviceToDelete.ip || 'Unknown'}</span>
+                </div>
+              </div>
+              <p className="text-sm text-red-500">
+                This action cannot be undone. This device will need to be re-authenticated on next login.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeviceToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deviceToDelete) {
+                  deleteDevice(deviceToDelete.fingerprint);
+                  setDeleteDialogOpen(false);
+                  setDeviceToDelete(null);
+                }
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex relative">
         {/* Sidebar container - fixed width for positioning */}
         <div className="hidden md:block w-52 flex-shrink-0">
@@ -1077,13 +1197,13 @@ const Page = () => {
         <div className="flex-1 md:pl-12 overflow-y-auto">
           {renderContent()}
 
-          {/* Error and success prompts */}
-          {status.error && (
+          {/* Only show error/success messages not related to password updates */}
+          {status.error && !status.error.includes('password') && (
             <div className="mt-4 text-red-500 text-sm">
               {status.error}
             </div>
           )}
-          {status.success && (
+          {status.success && !status.success.includes('Password') && (
             <div className="mt-4 text-green-500 text-sm">
               {status.success}
             </div>
