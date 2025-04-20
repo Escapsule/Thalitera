@@ -38,7 +38,7 @@ public class AdminController {
      *
      * @param dto          UserLoginDTO object containing user login information
      * @param userAgent    User-Agent header
-     * @param fingerprint  THALITERA_FINGERPRINT header
+     * @param fingerprint  thalitera_fingerprint header
      * @param httpRequest  HttpServletRequest object
      * @return ApiResult with success message
      */
@@ -54,7 +54,7 @@ public class AdminController {
     })
     public ApiResult<?> login(@RequestBody UserLoginDTO dto,
                               @RequestHeader("User-Agent") String userAgent,
-                              @RequestHeader("THALITERA_FINGERPRINT") String fingerprint,
+                              @RequestHeader("thalitera_fingerprint") String fingerprint,
                               HttpServletRequest httpRequest) {
         log.info("Admin login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
@@ -145,4 +145,29 @@ public class AdminController {
             return ApiResult.success("Operation failed.");
         }
     }
+
+    /**
+     * Check admin authentication
+     *
+     * @param request The HTTP request object
+     * @return ApiResult with success message
+     */
+    @Operation(summary = "Check admin auth",
+            description = "Check admin auth.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User verified successfully"),
+            @ApiResponse(responseCode = "2011", description = "User not login"),
+    })
+    @GetMapping("/check-auth")
+    public ApiResult<?> checkAuth(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+
+        User user = (User) session.getAttribute("user");
+        if (user == null) throw new BaseException(ErrorCode.USER_NOT_LOGIN);
+
+        log.info("user {} still logged in", user.getEmail());
+        return ApiResult.success(true);
+    }
+
 }

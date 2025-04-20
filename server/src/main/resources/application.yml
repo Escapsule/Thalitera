@@ -2,7 +2,7 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
   profiles:
-    active: dev  # active profile
+    active: prod  # active profile
   servlet:
     multipart:
       max-file-size: 50MB

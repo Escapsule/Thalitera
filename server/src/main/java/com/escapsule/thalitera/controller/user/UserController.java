@@ -69,7 +69,7 @@ public class UserController {
     @PostMapping("/login")
     public ApiResult<?> login (@RequestBody UserLoginDTO dto,
                                @RequestHeader("User-Agent") String userAgent,
-                               @RequestHeader("THALITERA_FINGERPRINT")String fingerprint,
+                               @RequestHeader("thalitera_fingerprint")String fingerprint,
                                HttpServletRequest httpRequest) {
         log.info("User login: {}", dto.getEmail());
         String ip = IpUtils.getClientIp(httpRequest);
@@ -118,7 +118,7 @@ public class UserController {
     @PostMapping("/mfa/enable")
     public ApiResult<String> enableMfa(@RequestBody MfaEnableDTO dto,
                                        @RequestHeader("User-Agent") String userAgent,
-                                       @RequestHeader("THALITERA_FINGERPRINT")String fingerprint,
+                                       @RequestHeader("thalitera_fingerprint")String fingerprint,
                                        HttpServletRequest httpRequest) {
         String ip = IpUtils.getClientIp(httpRequest);
         userService.enableMfa(dto.getEmail(), dto.getTotpCode(), userAgent, fingerprint, ip);
@@ -292,7 +292,7 @@ public class UserController {
     })
     @GetMapping("/trust-device/delete")
     public ApiResult<?> deleteTrustDevice(HttpSession session,
-                                          @RequestHeader("THALITERA_FINGERPRINT") String currentFingerprint,
+                                          @RequestHeader("thalitera_fingerprint") String currentFingerprint,
                                           String fingerprint) {
         User sessionUser  = Optional.ofNullable((User) session.getAttribute("user"))
                 .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
