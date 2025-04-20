@@ -5,7 +5,13 @@ export async function POST(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const body = await request.json();
 
-    console.log(body)
+    console.log('Registration request body:', body);
+
+    // Transform request body to match backend expectations
+    const requestBody = {
+      email: body.email_address || body.email,
+      password: body.password
+    };
 
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/user/register`, {
@@ -13,14 +19,16 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
     });
 
     // Get the response data
     const data = await response.json();
-    console.log(data)
+    console.log('Backend registration response:', data);
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      status: data.code === 200 ? 200 : 400
+    });
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(

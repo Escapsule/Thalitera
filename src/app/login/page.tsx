@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeviceInfo } from '@/hooks/use-device-info';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,7 @@ export default function LoginPage() {
   const { login, register, error, isAuthenticated } = useAuth();
   const deviceInfo = useDeviceInfo();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Get browser fingerprint
   const getFingerprint = async (): Promise<string> => {
@@ -76,6 +77,28 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [isAuthenticated, router]);
+
+  // Add effect to check for verification success or error
+  useEffect(() => {
+    // Check if we have a verified=true parameter in URL
+    if (searchParams.get('verified') === 'true') {
+      setSuccessMessage('Your account has been successfully verified! You can now log in.');
+      
+      // Get the verified email from localStorage if available
+      const verifiedEmail = localStorage.getItem('verified_email');
+      if (verifiedEmail) {
+        setEmail(verifiedEmail);
+        // Remove the stored email
+        localStorage.removeItem('verified_email');
+      }
+    }
+    
+    // Check for error parameter
+    const error = searchParams.get('error');
+    if (error === 'invalid_verification_link') {
+      setLoginError('Invalid verification link. Please request a new verification email.');
+    }
+  }, [searchParams]);
 
   // Handle login submission
   const handleLoginSubmit = async (e: React.FormEvent) => {
