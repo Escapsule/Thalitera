@@ -71,6 +71,7 @@ const ManageRoomPage = () => {
   
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('') 
 
   // Add filtering states
   const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>([])
@@ -281,52 +282,55 @@ const ManageRoomPage = () => {
   }
 
   const deleteRoom = async (roomId: string, password: string) => {
-    setLoading(true);
-    try {
-      const backendUrl = getBackendUrl();
-      const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'text/plain', 
-        },
-        body: password, 
-      });
-  
-      const confirmData = await confirmResponse.json();
-  
-      if (confirmData.code !== 200) {
-        alert('Password confirmation failed.');
-        return false;
-      }
-  
-      const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify([roomId]),
-      });
-  
-      const data = await deleteResponse.json();
-      if (data.code === 200) {
-        fetchRooms();
-        return true;
-      } else {
-        alert(data.message || 'Failed to delete meeting room');
-        return false;
-      }
-    } catch (error) {
-      alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  
+      setLoading(true);
+      try {
+        const backendUrl = getBackendUrl();
+        const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'text/plain', 
+          },
+          body: password, 
+        });
+    
+        const confirmData = await confirmResponse.json();
+    
+        if (confirmData.code !== 200) {
+          // Password error reminder
+          setPasswordError('Incorrect password. Please try again.');
+          setLoading(false);
+          return false;
+        }
+        setPasswordError('');
+        
+        const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([roomId]),
+        });
 
+      
+        const data = await deleteResponse.json();
+        if (data.code === 200) {
+          fetchRooms();
+          return true;
+        } else {
+          alert(data.message || 'Failed to delete meeting room');
+          return false;
+        }
+      } catch (error) {
+        alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    
   const handleDeleteRoom = async () => {
     if (!selectedRoom) return;
     if (!adminPassword) {
@@ -673,7 +677,13 @@ const ManageRoomPage = () => {
       </div>
 
       {/* Delete confirmation dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+        setIsDeleteDialogOpen(open);
+        if (!open) {
+          setAdminPassword('');
+          setPasswordError('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
@@ -689,6 +699,9 @@ const ManageRoomPage = () => {
                 onChange={(e) => setAdminPassword(e.target.value)}
                 className="mt-2"
               />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
           </div>
           <DialogFooter>
