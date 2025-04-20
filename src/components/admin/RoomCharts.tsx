@@ -290,16 +290,16 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
 
   // Color Configuration
   const COLORS = [
-    '#B2A5B8',
-    '#D8A6A6',
-    '#9BADBC',
-    '#A9B0B8',
-    '#B8A8A8',
-    '#9E8FA1',
-    '#E6D5C7',
-    '#D8C3A5',
-    '#C4B5A3',
-    '#A8B8A8'
+    '#FFE4E1', // 浅玫瑰色
+    '#FFD6A5', // 杏色
+    '#FFEFD5', // 蜜桃色
+    '#E6F3FF', // 天蓝色
+    '#D4F0F0', // 薄荷绿
+    '#FFF0F5', // 淡紫红
+    '#E6E6FA', // 淡紫色
+    '#F0FFF0', // 蜜露橙
+    '#FFB5C2', // 粉红色
+    '#F0FFFF'  // 天蓝色
   ];
 
   return (
@@ -322,22 +322,35 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
               series: [
                 {
                   type: 'pie',
-                  radius: '50%',
-                  data: buildingData.map((item, index) => ({
-                    ...item,
-                    itemStyle: { color: COLORS[index % COLORS.length] }
-                  })),
+                  radius: ['40%', '70%'],
+                  center: ['60%', '50%'],
+                  avoidLabelOverlap: true,
+                  itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                  },
+                  label: {
+                    show: true,
+                    formatter: '{b}: {d}%',
+                    position: 'outside'
+                  },
                   emphasis: {
+                    label: {
+                      show: true,
+                      fontSize: '14',
+                      fontWeight: 'bold'
+                    },
                     itemStyle: {
                       shadowBlur: 10,
                       shadowOffsetX: 0,
                       shadowColor: 'rgba(0, 0, 0, 0.5)'
                     }
                   },
-                  label: {
-                    show: true,
-                    formatter: '{b}: {d}%'
-                  }
+                  data: buildingData.map((item, index) => ({
+                    ...item,
+                    itemStyle: { color: COLORS[index % COLORS.length] }
+                  }))
                 }
               ]
             }}
@@ -362,22 +375,35 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
               series: [
                 {
                   type: 'pie',
-                  radius: '50%',
-                  data: capacityData.map((item, index) => ({
-                    ...item,
-                    itemStyle: { color: COLORS[index % COLORS.length] }
-                  })),
+                  radius: ['40%', '70%'],
+                  center: ['60%', '50%'],
+                  avoidLabelOverlap: true,
+                  itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                  },
+                  label: {
+                    show: true,
+                    formatter: '{b}: {d}%',
+                    position: 'outside'
+                  },
                   emphasis: {
+                    label: {
+                      show: true,
+                      fontSize: '14',
+                      fontWeight: 'bold'
+                    },
                     itemStyle: {
                       shadowBlur: 10,
                       shadowOffsetX: 0,
                       shadowColor: 'rgba(0, 0, 0, 0.5)'
                     }
                   },
-                  label: {
-                    show: true,
-                    formatter: '{b}: {d}%'
-                  }
+                  data: capacityData.map((item, index) => ({
+                    ...item,
+                    itemStyle: { color: COLORS[index % COLORS.length] }
+                  }))
                 }
               ]
             }}
@@ -434,8 +460,8 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                 data: amenityData.map((item, index) => ({
                   value: parseFloat(item.percentage),
                   itemStyle: { 
-                    color: item.name === 'projector' ? '#9E8FA1' :
-                           item.name === 'coffee_break' ? '#B8A8A8' :
+                    color: item.name === 'projector' ? COLORS[0] :
+                           item.name === 'coffee_break' ? COLORS[1] :
                            COLORS[index % COLORS.length]
                   }
                 })),
@@ -443,6 +469,10 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                   show: true,
                   position: 'right',
                   formatter: '{c}%'
+                },
+                barWidth: '60%',
+                itemStyle: {
+                  borderRadius: [0, 5, 5, 0]
                 }
               }
             ]
@@ -489,7 +519,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                 smooth: true,
                 data: peakHoursData.map(item => item.value),
                 itemStyle: {
-                  color: '#B2A5B8'
+                  color: `${COLORS[8]}95`
                 },
                 areaStyle: {
                   color: {
@@ -500,10 +530,10 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                     y2: 1,
                     colorStops: [{
                       offset: 0,
-                      color: 'rgba(178, 165, 184, 0.3)'
+                      color: `${COLORS[0]}80`
                     }, {
                       offset: 1,
-                      color: 'rgba(178, 165, 184, 0.1)'
+                      color: `${COLORS[0]}35`
                     }]
                   }
                 },
@@ -514,7 +544,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                       name: 'Average',
                       type: 'average',
                       lineStyle: {
-                        color: '#9E8FA1'
+                        color: COLORS[8]
                       }
                     }
                   ]

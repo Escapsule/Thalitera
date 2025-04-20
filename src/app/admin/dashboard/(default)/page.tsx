@@ -376,14 +376,17 @@ const DashboardPage = () => {
         if (JSON.stringify(rooms) !== JSON.stringify(newRooms)) {
           setRooms(newRooms);
           
-          // Count the number of meeting rooms in use
-          const activeBookings = newRooms.filter((room: Room) => room.status === 'using').length;
+          // Only calculate conference rooms whose status is not deleted
+          const activeRooms = newRooms.filter((room: Room) => room.status !== 'deleted');
           
-          // Calculate utilization rate: current number of meeting rooms in use divided by total number of meeting rooms
-          const utilizationRate = (activeBookings / newRooms.length) * 100;
+          // Count the number of meeting rooms in use
+          const activeBookings = activeRooms.filter((room: Room) => room.status === 'using').length;
+          
+          // Calculate utilization rate: current number of meeting rooms in use divided by total number of active meeting rooms
+          const utilizationRate = (activeBookings / activeRooms.length) * 100;
           
           setRoomStats({
-            totalRooms: newRooms.length,
+            totalRooms: activeRooms.length,
             activeBookings: activeBookings,
             utilizationRate: utilizationRate
           });
