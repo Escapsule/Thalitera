@@ -275,7 +275,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] animate-scaleCenter">
         <DialogHeader>
-          <DialogTitle className="text-xl text-[lch(17_23_133)]">
+          <DialogTitle className="text-xl text-[#163300]">
             {roomData?.name || booking.roomName}
           </DialogTitle>
           <DialogDescription>
@@ -286,7 +286,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <div className="grid gap-6 py-4">
           <div className="grid gap-4">
             <div className="flex items-center gap-3">
-              <CalendarIcon className="h-5 w-5 text-[lch(17_23_133)]" />
+              <CalendarIcon className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Date: </span>
                 {format(bookingDate, "EEEE, MMMM d, yyyy")}
@@ -294,7 +294,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
+              <Clock className="h-5 w-5 text-[#163300]" />
               <div className="grid grid-cols-2 gap-2 w-full">
                 <div className="space-y-2">
                   <Label htmlFor="startTime">Start Time</Label>
@@ -337,7 +337,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
+              <MapPin className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Location: </span>
                 {roomData?.building || "Unknown"}, Floor {roomData?.floor || "Unknown"}
@@ -345,7 +345,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-[lch(17_23_133)]" />
+              <Users className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Capacity: </span>
                 {roomData?.capacity_min || "?"} - {roomData?.capacity_max || "?"} people
@@ -379,11 +379,11 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               {coBookers.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {coBookers.map((email, index) => (
-                    <div key={index} className="flex items-center gap-1 bg-[lch(94_5_133)] rounded-full px-2 py-1 text-xs">
+                    <div key={index} className="flex items-center gap-1 bg-[#9FE870] rounded-full px-2 py-1 text-xs">
                       <span>{email}</span>
                       <button 
                         onClick={() => handleRemoveCoBooker(email)}
-                        className="hover:text-[lch(17_23_133)]"
+                        className="hover:text-[#163300]"
                         aria-label={`Remove ${email}`}
                         title={`Remove ${email}`}
                       >
@@ -415,7 +415,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
           
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
+              <Info className="h-5 w-5 text-[#163300] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
                 <p className="text-sm text-muted-foreground">
@@ -432,7 +432,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
                     .filter(([, value]) => value !== null && value !== undefined)
                     .map(([key], index) => (
                       <div key={index} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
+                        <CheckCircle2 className="h-4 w-4 text-[#9FE870]" />
                         <span>{key}</span>
                       </div>
                     ))}
@@ -475,7 +475,10 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <DialogFooter>
           <Button 
             onClick={handleBookRoom} 
-            className={`w-full bg-[lch(37_82_296)] ${bookButtonShake ? 'animate-shake' : ''}`}
+            className={`w-full bg-[#163300] hover:bg-[#0c1a00] text-white font-medium rounded-lg py-3 px-5 
+            transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 
+            focus:ring-4 focus:ring-[#9FE870]/50 focus:outline-none 
+            ${bookButtonShake ? 'animate-shake' : ''}`}
             disabled={
               isBooking || 
               bookingSuccess || 
@@ -484,7 +487,22 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               selectedStartTime >= selectedEndTime
             }
           >
-            {isBooking ? "Booking..." : bookingSuccess ? "Booked!" : "Book Room"}
+            {isBooking ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Booking...
+              </span>
+            ) : bookingSuccess ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                Booked!
+              </span>
+            ) : (
+              "Book Room"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

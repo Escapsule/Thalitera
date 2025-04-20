@@ -8,11 +8,11 @@ import useDeviceInfo from '@/hooks/use-device-info'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from '@/hooks/useAuth'
 import { useUserInfo, UserInfo } from '@/hooks/useUserInfo'
 import { useLoginHistory } from '@/hooks/useLoginHistory'
+import { useTrustedDevices, TrustedDevice } from '@/hooks/useTrustedDevices'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,6 +164,13 @@ const Page = () => {
     isLoading: isLoadingLoginHistory, 
     error: loginHistoryError,
   } = useLoginHistory(loginFilter.success !== undefined ? loginFilter : { start_time: loginFilter.start_time });
+
+  // Fetch trusted devices
+  const { 
+    data: trustedDevices = [], 
+    isLoading: isLoadingTrustedDevices,
+    error: trustedDevicesError,
+  } = useTrustedDevices();
 
   // 添加调试代码
   useEffect(() => {
@@ -595,6 +602,64 @@ const Page = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Trusted Devices</CardTitle>
+              <CardDescription>
+                Devices that are currently trusted to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingTrustedDevices ? (
+                <div className="py-6 text-center text-muted-foreground">
+                  Loading trusted devices...
+                </div>
+              ) : trustedDevicesError ? (
+                <div className="py-6 text-center text-red-500">
+                  Failed to load trusted devices
+                </div>
+              ) : trustedDevices.length > 0 ? (
+                <div className="space-y-5">
+                  {trustedDevices.map((device: TrustedDevice, index: number) => (
+                    <div key={index} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                      <div className="flex gap-3">
+                        <div className="mt-1">
+                          <div className="bg-blue-100 p-1.5 rounded-full">
+                            {device.browser.toLowerCase().includes('mobile') ? (
+                              <Smartphone className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Laptop className="h-4 w-4 text-blue-600" />
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium">{device.browser}</p>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <div className="grid grid-cols-1 gap-y-1">
+                              <p>OS: {device.os}</p>
+                              <p>Location: {device.location}</p>
+                              <p>IP: {device.ip || 'Unknown'}</p>
+                              <p className="font-mono text-xs mt-1">ID: {device.fingerprint}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="border-blue-300 text-blue-700">
+                        Trusted
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-muted-foreground">
+                  No trusted devices found
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
