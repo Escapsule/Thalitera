@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { subDays, format } from 'date-fns';
+import { subDays } from 'date-fns';
 
 type Reservation = {
   reservation_id: string;
@@ -284,22 +284,22 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
         }
       }
       
-      // Boolean facilities排在前面
+      // Boolean facilities are ranked first
       return aIndex === -1 ? 1 : -1;
     });
 
   // Color Configuration
   const COLORS = [
-    '#FFE4E1', // 浅玫瑰色
-    '#FFD6A5', // 杏色
-    '#FFEFD5', // 蜜桃色
-    '#E6F3FF', // 天蓝色
-    '#D4F0F0', // 薄荷绿
-    '#FFF0F5', // 淡紫红
-    '#E6E6FA', // 淡紫色
-    '#F0FFF0', // 蜜露橙
-    '#FFB5C2', // 粉红色
-    '#F0FFFF'  // 天蓝色
+    '#8cb4d4', // Dark blue
+    '#9bc7db', // Medium dark blue
+    '#b4d4e4', // Medium blue
+    '#a0d4e4', // Medium light blue
+    '#acd4e0', // Light blue
+    '#b8dde4', // Light cyan blue
+    '#c2e0e8', // Light blue
+    '#c9e4e4', // Light cyan
+    '#dbeef0', // Extremely light blue
+    '#e5f2f4'  // Lightest blue
   ];
 
   return (
@@ -519,7 +519,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                 smooth: true,
                 data: peakHoursData.map(item => item.value),
                 itemStyle: {
-                  color: `${COLORS[8]}95`
+                  color: `${COLORS[0]}95`
                 },
                 areaStyle: {
                   color: {
@@ -530,10 +530,10 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                     y2: 1,
                     colorStops: [{
                       offset: 0,
-                      color: `${COLORS[0]}80`
+                      color: `${COLORS[0]}60`
                     }, {
                       offset: 1,
-                      color: `${COLORS[0]}35`
+                      color: `${COLORS[2]}35`
                     }]
                   }
                 },
@@ -544,7 +544,7 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
                       name: 'Average',
                       type: 'average',
                       lineStyle: {
-                        color: COLORS[8]
+                        color: COLORS[0]
                       }
                     }
                   ]

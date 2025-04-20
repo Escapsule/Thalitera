@@ -31,7 +31,6 @@ type Room = {
   }
 }
 
-// 添加预订类型定义
 type Reservation = {
   reservation_id: string;
   room_id: string;
@@ -104,7 +103,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
   const fetchRoomStats = async () => {
     setLoading(true);
     try {
-      // 计算最近七天的日期范围
+      // Calculate the date range for the last seven days
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -116,7 +115,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
       );
       
       console.log('All stats:', allStats);
-      // 找到当前会议室的统计数据
+      // Find the statistical data of the current conference room
       const roomStats = allStats.find(stat => stat.room_id === room.room_id);
       console.log('Found room stats:', roomStats);
       setStats(roomStats || null);
@@ -130,7 +129,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
   const getTimestamp = (time: string | number): number => {
     try {
       if (time.toString().startsWith('+')) {
-        // 处理扩展ISO格式（如 +57267-09-26T08:00:00Z）
+        // Processing extended ISO format (such as+57267-09-26T08:00Z)
         const [year, month, day, hour, minute, second] = time.toString()
           .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
           .slice(1)
@@ -144,7 +143,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
         });
         return timestamp;
       } else {
-        // 处理标准ISO格式（如 2025-04-18T12:00:00Z）
+        // Processing standard ISO format (such as 2025-04-18T12:00:00Z)
         const date = new Date(time);
         const timestamp = Math.floor(date.getTime() / 1000);
         console.log('Standard ISO format:', {
@@ -174,7 +173,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
         const now = Math.floor(Date.now() / 1000);
         console.log('Current timestamp:', now);
         
-        // 找到该会议室的所有有效预订
+        // Find all valid bookings for this conference room
         const roomReservations = data.data
           .filter((reservation: Reservation) => {
             const isMatch = reservation.room_id === room.room_id && 
@@ -191,7 +190,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
 
         console.log('Filtered room reservations:', roomReservations);
 
-        // 计算每个预订与当前时间的距离，只考虑当前和未来的预订
+        // Calculate the distance between each booking and the current time, considering only current and future bookings
         const reservationsWithDistance = roomReservations
           .map((reservation: Reservation) => {
             const startTime = getTimestamp(reservation.start_time);
@@ -199,13 +198,13 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
             let distance: number;
 
             if (startTime <= now && endTime > now) {
-              // 当前正在进行的预订，距离为0
+              // Current booking in progress, distance 0
               distance = 0;
             } else if (startTime > now) {
-              // 未来的预订，距离为开始时间与当前时间的差值
+              // For future bookings, the distance is the difference between the start time and the current time
               distance = startTime - now;
             } else {
-              // 过去的预订，距离设为无穷大，这样会被排序到最后
+              // Previous bookings, set the distance to infinity, will be sorted to the end
               distance = Infinity;
             }
 
@@ -221,19 +220,19 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
               distance
             };
           })
-          // 过滤掉过去的预订（距离为无穷大的预订）
+          // Filter out past bookings (bookings with infinite distance)
           .filter((reservation: any) => reservation.distance !== Infinity);
 
         console.log('Reservations with distance:', reservationsWithDistance);
 
-        // 按距离排序，找到最近的预订
+        // Sort by distance to find the nearest booking
         const nearestReservation = reservationsWithDistance
           .sort((a: any, b: any) => a.distance - b.distance)[0];
 
         console.log('Nearest reservation:', nearestReservation);
 
         if (nearestReservation) {
-          // 根据预订时间判断是当前预订还是下一个预订
+          // Determine whether it is the current booking or the next booking based on the booking time
           const startTime = getTimestamp(nearestReservation.start_time);
           const endTime = getTimestamp(nearestReservation.end_time);
 
@@ -263,14 +262,14 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
     try {
       let date: Date;
       if (time.toString().startsWith('+')) {
-        // 处理扩展ISO格式（如 +57267-09-26T08:00:00Z）
+        // Processing extended ISO format (such as+57267-09-26T08:00Z)
         const [year, month, day, hour, minute, second] = time.toString()
           .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
           .slice(1)
           .map(Number);
         date = new Date(year, month - 1, day, hour, minute, second);
       } else {
-        // 处理标准ISO格式（如 2025-04-18T12:00:00Z）
+        // Processing standard ISO format (such as 2025-04-18T12:00:00Z)
         date = new Date(time);
       }
       

@@ -4,7 +4,6 @@ export async function GET(request: NextRequest) {
   try {
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
     
-    // 确保 backendUrl 格式正确
     const baseUrl = backendUrl.startsWith('http://') || backendUrl.startsWith('https://') 
       ? backendUrl 
       : `http://${backendUrl}`;
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         code: 500,
-        message: '获取会议室列表失败',
+        message: 'Failed to retrieve the list of meeting rooms',
         data: null,
         timestamp: Date.now(),
       },
