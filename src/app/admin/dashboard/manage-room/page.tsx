@@ -196,7 +196,7 @@ const ManageRoomPage = () => {
       const success = await addRoom(roomToAdd);
 
       if (success) {
-        alert('Meeting room modified successfully');
+        alert('Meeting room added successfully');
         setIsAddDialogOpen(false);
 
         setNewRoom({
@@ -258,37 +258,6 @@ const ManageRoomPage = () => {
     }
   }
 
-  const deleteRoom = async (roomId: string) => {
-      setLoading(true);
-      try {
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([roomId]),
-        }); 
-        const data = await response.json();
-        if (data.code === 200) {
-          fetchRooms();
-          return true; 
-        }
-        else {
-          console.error(data.message || 'Failed to delete meeting room');
-          alert(data.message || 'Failed to delete meeting room');
-          return false; 
-        }
-      } catch (error) {
-        console.error('Failed to delete meeting room', error);
-        alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    }
-
   const handleModifyRoom = async () => {
     if (!selectedRoom) return;
 
@@ -311,52 +280,100 @@ const ManageRoomPage = () => {
     }
   }
 
-  const handleDeleteRoom = async () => {
-    if (!selectedRoom) return
-
+  const deleteRoom = async (roomId: string, password: string) => {
+    setLoading(true);
     try {
-      setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
-      const success = await deleteRoom(selectedRoom.room_id);
+      const backendUrl = getBackendUrl();
+      const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'text/plain', 
+        },
+        body: password, 
+      });
+  
+      const confirmData = await confirmResponse.json();
+  
+      if (confirmData.code !== 200) {
+        alert('Password confirmation failed.');
+        return false;
+      }
+  
+      const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([roomId]),
+      });
+  
+      const data = await deleteResponse.json();
+      if (data.code === 200) {
+        fetchRooms();
+        return true;
+      } else {
+        alert(data.message || 'Failed to delete meeting room');
+        return false;
+      }
+    } catch (error) {
+      alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  
+
+  const handleDeleteRoom = async () => {
+    if (!selectedRoom) return;
+    if (!adminPassword) {
+      alert('Please enter the admin password.');
+      return;
+    }
+  
+    try {
+      const success = await deleteRoom(selectedRoom.room_id, adminPassword);
       if (success) {
         alert('Deleted successfully');
         setIsDeleteDialogOpen(false);
-        setAdminPassword(''); 
+        setAdminPassword('');
+        setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
       } else {
-        alert('Failed to delete meeting room'); 
+        alert('Failed to delete meeting room');
       }
     } catch (error) {
       alert('Failed to delete meeting room');
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
+  
 
-  // Apply filters function
+  // About filters
   const applyFilters = () => {
     let result = [...rooms];
 
     // Do not display deleted meeting rooms
     result = result.filter(room => room.status !== 'deleted');
 
-    // Filter by name
     if (filters.name) {
       result = result.filter(room =>
         room.name.toLowerCase().includes(filters.name.toLowerCase())
       );
     }
 
-    // Filter by building
     if (filters.building) {
       result = result.filter(room =>
         room.building.toLowerCase().includes(filters.building.toLowerCase())
       );
     }
 
-    // Filter by status
     if (filters.status && filters.status !== 'all') {
       result = result.filter(room => room.status === filters.status);
     }
 
-    // Filter by capacity - using single capacity field
     if (filters.capacity) {
       const capacity = parseInt(filters.capacity);
       result = result.filter(room =>
@@ -364,23 +381,19 @@ const ManageRoomPage = () => {
       );
     }
 
-    // Filter by projector availability
     if (filters.hasProjector) {
       result = result.filter(room => room.facilities.projector);
     }
 
-    // Filter by coffee break service
     if (filters.hasCoffeeBreak) {
       result = result.filter(room => room.facilities.coffee_break);
     }
 
-    // Filter by minimum whiteboard count
     if (filters.minWhiteboard) {
       const minWhiteboard = parseInt(filters.minWhiteboard);
       result = result.filter(room => room.facilities.whiteboard >= minWhiteboard);
     }
 
-    // Filter by minimum power sockets count
     if (filters.minPowerSockets) {
       const minPowerSockets = parseInt(filters.minPowerSockets);
       result = result.filter(room => room.facilities.power_sockets >= minPowerSockets);
@@ -389,7 +402,6 @@ const ManageRoomPage = () => {
     setFilteredRooms(result);
   }
 
-  // Reset all filters
   const resetFilters = () => {
     setFilters({
       name: '',
@@ -404,7 +416,6 @@ const ManageRoomPage = () => {
     setFilteredRooms(rooms);
   }
 
-  // Handle filter change
   const handleFilterChange = (field: string, value: string | boolean) => {
     setFilters(prev => ({
       ...prev,

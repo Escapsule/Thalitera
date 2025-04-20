@@ -3,29 +3,46 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
-    const { room_id } = await request.json();
+    const requestData = await request.json();
+    
+    const room_id = Array.isArray(requestData) ? requestData[0] : requestData.room_id;
+    const password = requestData.password;
+    // Verify password
+    const confirmResponse = await fetch(`http://${backendUrl}/admin/operation-confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: password,
+      credentials: 'include',
+    });
 
-    console.log('Forwarding delete request to backend:', `http://${backendUrl}/admin/meetingroom/delete`);
+    const confirmData = await confirmResponse.json();
 
-    const response = await fetch(`http://${backendUrl}/admin/meetingroom/delete`, {
+    if (confirmData.code !== 200) {
+      return NextResponse.json(
+        {
+          code: 401,
+          message: 'Password verification failed',
+          data: null,
+          timestamp: Date.now(),
+        },
+        { status: 401 }
+      );
+    }
+
+    // Delete meeting room
+    const deleteResponse = await fetch(`http://${backendUrl}/admin/meetingroom/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ room_id }),
+      body: JSON.stringify([room_id]),
       credentials: 'include',
     });
 
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('Error response body:', text);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    const deleteData = await deleteResponse.json();
+    return NextResponse.json(deleteData);
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(
