@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('Verifying your account...');
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
@@ -31,7 +31,7 @@ export default function VerifyPage() {
         // Keep status as loading but update message to inform user
         setMessage('Verification is taking longer than expected, still trying...');
       }
-    }, 5000); // Show feedback after 5 seconds
+    }, 5000);
 
     const verifyAccount = async () => {
       try {
@@ -197,48 +197,30 @@ export default function VerifyPage() {
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="space-y-6 p-6 text-center">
-            {verificationStatus === 'loading' && (
-              <div className="flex flex-col items-center space-y-4 py-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600"></div>
-                <p className="text-lg font-medium">{message}</p>
-                {isRetrying && (
-                  <div className="mt-2 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
-                    <p>Retrying verification...</p>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {verificationStatus === 'success' && (
-              <div className="space-y-4 py-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              {verificationStatus === 'loading' && (
+                <div className="h-16 w-16 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600"></div>
+              )}
+              
+              {verificationStatus === 'success' && (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                  <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                   </svg>
                 </div>
-                <p className="text-lg font-medium text-green-600">{message}</p>
-                <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
-                  {isAuthenticated 
-                    ? 'Redirecting you to the dashboard...'
-                    : 'Redirecting you to the login page...'}
-                </div>
-              </div>
-            )}
-            
-            {verificationStatus === 'error' && (
-              <div className="space-y-4 py-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              )}
+              
+              {verificationStatus === 'error' && (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
                 </div>
-                <p className="text-lg font-medium text-red-600">{message}</p>
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-                  You can try verifying again or contact support if the problem persists.
-                </div>
-              </div>
-            )}
+              )}
+              
+              <p className="text-lg font-semibold">{message}</p>
+            </div>
           </CardContent>
           
           <CardFooter className="flex justify-center gap-3 p-6 pt-0">
@@ -276,5 +258,20 @@ export default function VerifyPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto"></div>
+          <p>Loading verification page...</p>
+        </div>
+      </div>
+    }>
+      <VerifyPageContent />
+    </Suspense>
   );
 } 

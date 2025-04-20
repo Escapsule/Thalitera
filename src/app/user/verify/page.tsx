@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function VerifyRedirector() {
+function VerificationRedirector() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -30,5 +30,20 @@ export default function VerifyRedirector() {
         <p>Redirecting to verification page...</p>
       </div>
     </div>
+  );
+}
+
+export default function VerifyRedirector() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto"></div>
+          <p>Loading verification page...</p>
+        </div>
+      </div>
+    }>
+      <VerificationRedirector />
+    </Suspense>
   );
 } 

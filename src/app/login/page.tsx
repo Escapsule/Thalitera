@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,7 +18,7 @@ import FingerprintJS from '@fingerprintjs/fingerprintjs';
 // Types for auth steps - streamlined for combined login
 type AuthStep = 'login' | 'register';
 
-export default function LoginPage() {
+function LoginPageContent() {
   // Current step in the auth flow
   const [authStep, setAuthStep] = useState<AuthStep>('login');
   
@@ -438,5 +438,20 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }
