@@ -499,6 +499,7 @@ public class ReservationServiceImpl implements ReservationService {
                         meetingRoom.getFloor(),
                         userMapper.getUserById(userId).getUsername(),
                         userNames,
+                        reservation.getPurpose(),
                         userIds,
                         notifyType
                 )
