@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,7 +13,8 @@ const getBackendUrl = () => {
   return `http://${backendUrl}`;
 };
 
-export default function VerifyPage() {
+// 创建一个客户端组件，用于使用 useSearchParams
+function VerifyContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('Verifying your account...');
   const searchParams = useSearchParams();
@@ -56,6 +57,79 @@ export default function VerifyPage() {
   }, [searchParams]);
 
   return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-center text-2xl">
+          Account Verification
+        </CardTitle>
+        <CardDescription className="text-center">
+          {status === 'loading' ? 'Please wait while we verify your account' : ''}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="flex flex-col items-center justify-center space-y-4 p-6">
+        {status === 'loading' && (
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        )}
+        
+        {status === 'success' && (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+        
+        {status === 'error' && (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+        )}
+        
+        <p className="text-center text-lg">
+          {message}
+        </p>
+      </CardContent>
+      
+      <CardFooter className="flex justify-center p-6">
+        {(status === 'success' || status === 'error') && (
+          <Button asChild>
+            <Link href="/login">
+              {status === 'success' ? 'Proceed to Login' : 'Back to Login'}
+            </Link>
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
+
+// 加载时的 fallback 组件
+function VerifyFallback() {
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-center text-2xl">
+          Account Verification
+        </CardTitle>
+        <CardDescription className="text-center">
+          Loading verification page...
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center space-y-4 p-6">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        <p className="text-center text-lg">
+          Loading...
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function VerifyPage() {
+  return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="container flex flex-col items-center justify-center space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-2">
@@ -68,52 +142,9 @@ export default function VerifyPage() {
           <h1 className="text-2xl font-bold">Thalitera</h1>
         </div>
         
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">
-              Account Verification
-            </CardTitle>
-            <CardDescription className="text-center">
-              {status === 'loading' ? 'Please wait while we verify your account' : ''}
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="flex flex-col items-center justify-center space-y-4 p-6">
-            {status === 'loading' && (
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            )}
-            
-            {status === 'success' && (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-            
-            {status === 'error' && (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-            )}
-            
-            <p className="text-center text-lg">
-              {message}
-            </p>
-          </CardContent>
-          
-          <CardFooter className="flex justify-center p-6">
-            {(status === 'success' || status === 'error') && (
-              <Button asChild>
-                <Link href="/login">
-                  {status === 'success' ? 'Proceed to Login' : 'Back to Login'}
-                </Link>
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+        <Suspense fallback={<VerifyFallback />}>
+          <VerifyContent />
+        </Suspense>
       </div>
     </div>
   );

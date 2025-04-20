@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { format, addDays } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,7 +42,17 @@ type Booking = {
   roomData: MeetingRoom | null
 }
 
+// Main search page component
 export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="container min-w-[80vw] py-6 ml-12">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+// Content component that uses useSearchParams
+function SearchPageContent() {
   // Get current date and time
   const now = new Date()
   const currentHour = now.getHours()
@@ -691,11 +701,12 @@ export default function SearchPage() {
                   {filteredRooms.length} {filteredRooms.length === 1 ? 'room' : 'rooms'} available on {format(date, "EEEE, MMMM d")}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden">
-              <div className="h-full overflow-y-auto pr-2">
+            
+            <CardContent className="overflow-y-auto">
+              <div className="space-y-3">
                 {filteredRooms.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredRooms.map((room) => (
+                  <div className="grid grid-cols-1 gap-4">
+                    {filteredRooms.map(room => (
                       <div 
                         key={room.room_id} 
                         className="rounded-lg border p-3 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"

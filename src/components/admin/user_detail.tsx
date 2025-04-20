@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Calendar, Clock, Mail, UserRound } from 'lucide-react'
+import Image from 'next/image'
 
 type UserDetailProps = {
   user: {
@@ -29,7 +30,8 @@ const formatDate = (dateString: string): string => {
       return "Invalid date format";
     }
     return date.toLocaleString();
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("Error formatting date:", error);
     return "Invalid date format";
   }
 };
@@ -42,7 +44,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
           <DialogTitle className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+                <Image src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
               ) : (
                 <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
               )}
