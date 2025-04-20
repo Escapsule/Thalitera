@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, Users, CheckCircle, BarChart, Building } from "lucide-react"
+import { Marquee3D } from "@/components/Marquee3d"
 
 export default function LandingPage() {
   return (
@@ -52,13 +53,7 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <Image
-                src="/placeholder.jpg?height=550&width=550"
-                width={550}
-                height={550}
-                alt="Dashboard Preview"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last"
-              />
+              <Marquee3D/>
             </div>
           </div>
         </section>
@@ -206,9 +201,6 @@ export default function LandingPage() {
                     <CheckCircle className="mr-2 h-5 w-5 text-primary" /> Custom integrations
                   </li>
                 </ul>
-                <Button asChild variant="default" className="mt-auto">
-                  <Link href="/login">Contact Sales</Link>
-                </Button>
               </div>
             </div>
           </div>
