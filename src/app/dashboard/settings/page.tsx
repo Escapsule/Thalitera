@@ -14,6 +14,8 @@ import { useUserInfo, UserInfo } from '@/hooks/useUserInfo'
 import { useLoginHistory } from '@/hooks/useLoginHistory'
 import { useTrustedDevices, TrustedDevice } from '@/hooks/useTrustedDevices'
 import { usePasswordUpdate } from '@/hooks/usePasswordUpdate'
+import { useUsernameUpdate } from '@/hooks/useUsernameUpdate'
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +41,6 @@ interface PasswordFormData {
 interface StatusState {
   loading: boolean;
   error: string | null;
-  success: string | null;
 }
 
 // Sidebar component
@@ -119,6 +120,9 @@ const Page = () => {
   // Password update hook
   const { updatePassword, isUpdating, reset: resetPasswordUpdate } = usePasswordUpdate();
   
+  // Username update hook
+  const { updateUsername, isUpdating: isUpdatingUsername, error: usernameUpdateError, reset: resetUsernameUpdate } = useUsernameUpdate();
+  
   // Profile edit mode
   const [isEditing, setIsEditing] = useState(false);
   
@@ -143,7 +147,6 @@ const Page = () => {
   const [status, setStatus] = useState<StatusState>({
     loading: false,
     error: null,
-    success: null,
   });
 
   // Login history filter state
@@ -294,43 +297,33 @@ const Page = () => {
     const validationError = validateProfileForm();
     if (validationError) {
       setStatus(prev => ({ ...prev, error: validationError }));
+      toast.error(validationError);
+      return;
+    }
+
+    // Use error from hook if available
+    if (usernameUpdateError) {
+      setStatus(prev => ({ ...prev, error: usernameUpdateError }));
+      toast.error(usernameUpdateError);
       return;
     }
 
     try {
       setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const response = await fetch('/api/user/profile-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_name: profile.user_name,
-        }),
+      
+      await updateUsername({
+        username: profile.user_name,
       });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.code === 1073741824) {
-        // Refetch user info to update the data
-        refetchUserInfo();
-        
-        setIsEditing(false);
-        setStatus(prev => ({ ...prev, success: 'Information saved successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
-      } else {
-        throw new Error(result.message || 'Save failed, please try again');
-      }
+      
+      setIsEditing(false);
+      toast.success('Username updated successfully!');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Update failed, please try again';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Save failed, please try again'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
     }
@@ -343,6 +336,7 @@ const Page = () => {
       setProfile(userInfo as UserInfo);
     }
     setStatus(prev => ({ ...prev, error: null }));
+    resetUsernameUpdate();
   };
 
   // Handle avatar upload
@@ -352,11 +346,13 @@ const Page = () => {
 
     if (!file.type.startsWith('image/')) {
       setStatus(prev => ({ ...prev, error: 'Please upload an image file' }));
+      toast.error('Please upload an image file');
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
       setStatus(prev => ({ ...prev, error: 'The image size cannot exceed 2MB' }));
+      toast.error('The image size cannot exceed 2MB');
       return;
     }
 
@@ -386,18 +382,17 @@ const Page = () => {
         // Refetch user info to update the avatar
         refetchUserInfo();
         
-        setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
+        toast.success('Avatar uploaded successfully!');
       } else {
         throw new Error(result.message || 'Avatar upload failed');
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Avatar upload failed';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Avatar upload failed'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
       e.target.value = '';
@@ -409,6 +404,7 @@ const Page = () => {
     const validationError = validatePasswordForm();
     if (validationError) {
       setStatus(prev => ({ ...prev, error: validationError }));
+      toast.error(validationError);
       return;
     }
 
@@ -427,19 +423,14 @@ const Page = () => {
         confirmPassword: '',
       });
       
-      setStatus(prev => ({ 
-        ...prev, 
-        success: 'Password updated successfully!' 
-      }));
-      
-      setTimeout(() => {
-        setStatus(prev => ({ ...prev, success: null }));
-      }, 3000);
+      toast.success('Password updated successfully!');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Password update failed, please try again';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Password update failed, please try again'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
     }
@@ -572,36 +563,22 @@ const Page = () => {
                 </div>
               </form>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-3">
-              <div className="flex w-full justify-between">
-                <Button variant="outline" onClick={() => {
-                  setNewPasswords({
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: '',
-                  });
-                  resetPasswordUpdate();
-                }}>Cancel</Button>
-                <Button 
-                  onClick={handleUpdatePassword} 
-                  disabled={status.loading || isUpdating}
-                  className="cursor-pointer hover:bg-[lch(25_25_133)]"
-                >
-                  {status.loading || isUpdating ? 'Updating...' : 'Update Password'}
-                </Button>
-              </div>
-              
-              {/* Show password update status messages here */}
-              {status.error && status.error.includes('password') && (
-                <div className="text-red-500 text-sm w-full">
-                  {status.error}
-                </div>
-              )}
-              {status.success && status.success.includes('Password') && (
-                <div className="text-green-500 text-sm w-full">
-                  {status.success}
-                </div>
-              )}
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => {
+                setNewPasswords({
+                  currentPassword: '',
+                  newPassword: '',
+                  confirmPassword: '',
+                });
+                resetPasswordUpdate();
+              }}>Cancel</Button>
+              <Button 
+                onClick={handleUpdatePassword} 
+                disabled={status.loading || isUpdating}
+                className="cursor-pointer hover:bg-[lch(25_25_133)]"
+              >
+                {status.loading || isUpdating ? 'Updating...' : 'Update Password'}
+              </Button>
             </CardFooter>
           </Card>
         </div>
@@ -1006,15 +983,15 @@ const Page = () => {
                     <>
                       <Button 
                         onClick={handleSaveProfile}
-                        disabled={status.loading}
+                        disabled={status.loading || isUpdatingUsername}
                         className="bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)]"
                       >
-                        {status.loading ? 'Saving...' : 'Save Changes'}
+                        {status.loading || isUpdatingUsername ? 'Saving...' : 'Save Changes'}
                       </Button>
                       <Button 
                         variant="outline"
                         onClick={handleCancelProfile}
-                        disabled={status.loading}
+                        disabled={status.loading || isUpdatingUsername}
                         className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
                       >
                         Cancel
@@ -1196,18 +1173,6 @@ const Page = () => {
         {/* Main content area - can scroll independently */}
         <div className="flex-1 md:pl-12 overflow-y-auto">
           {renderContent()}
-
-          {/* Only show error/success messages not related to password updates */}
-          {status.error && !status.error.includes('password') && (
-            <div className="mt-4 text-red-500 text-sm">
-              {status.error}
-            </div>
-          )}
-          {status.success && !status.success.includes('Password') && (
-            <div className="mt-4 text-green-500 text-sm">
-              {status.success}
-            </div>
-          )}
         </div>
       </div>
     </div>

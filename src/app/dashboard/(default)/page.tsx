@@ -5,7 +5,6 @@ import { format } from "date-fns"
 import { Clock, ArrowUp, ArrowDown, Search } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDetail } from "@/components/user/reservation_detail"
 import Link from "next/link"
@@ -99,6 +98,27 @@ export default function Dashboard() {
       return userInfo.email;
     }
     return null;
+  }
+
+  // Function to get username
+  const getUserName = (): string => {
+    if (userInfo && typeof userInfo === 'object' && 'user_name' in userInfo && typeof userInfo.user_name === 'string') {
+      return userInfo.user_name;
+    }
+    return '';
+  }
+
+  // Function to get time-based greeting
+  const getGreeting = (): string => {
+    const currentHour = new Date().getHours();
+    
+    if (currentHour >= 5 && currentHour < 12) {
+      return 'Good morning';
+    } else if (currentHour >= 12 && currentHour < 18) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
+    }
   }
 
   // Add state to track if a date has been selected
@@ -572,11 +592,8 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen flex-col py-6 ml-12 overflow-hidden">
       <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <div className="ml-auto flex items-center gap-4">
-          <Avatar>
-            <AvatarImage src="/placeholder-user.jpg" alt="User" />
-            <AvatarFallback>TH</AvatarFallback>
-          </Avatar>
+        <div className="mr-auto flex items-center gap-4">
+          <h2 className="text-2xl font-medium">{getGreeting()}, {getUserName()}</h2>
         </div>
       </header>
       
