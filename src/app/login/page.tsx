@@ -118,7 +118,7 @@ function LoginPageContent() {
         const fingerprint = await getFingerprint();
         
         // Send admin login request
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/login`, {
+        const response = await fetch(`/api/admin/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
