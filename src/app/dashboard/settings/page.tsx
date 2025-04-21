@@ -3,25 +3,105 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Eye, EyeOff, Monitor, Smartphone, Laptop, User, Lock, Tablet, Shield, LogOut } from 'lucide-react'
+import { Eye, EyeOff, Monitor, Smartphone, Laptop, User, Lock, Tablet, Shield, LogOut, Check, X, Clock } from 'lucide-react'
 import useDeviceInfo from '@/hooks/use-device-info'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from '@/hooks/useAuth'
+import { useUserInfo, UserInfo } from '@/hooks/useUserInfo'
+import { useLoginHistory } from '@/hooks/useLoginHistory'
+import { useTrustedDevices, TrustedDevice } from '@/hooks/useTrustedDevices'
+import { usePasswordUpdate } from '@/hooks/usePasswordUpdate'
+import { useUsernameUpdate } from '@/hooks/useUsernameUpdate'
+import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
-interface UserProfile {
-  user_id: string;
-  user_name: string;
-  email: string;
-  avatar: string;
+interface PasswordFormData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }
+
+interface StatusState {
+  loading: boolean;
+  error: string | null;
+}
+
+// Sidebar component
+const SettingsSidebar = ({ 
+  activeSection, 
+  setActiveSection, 
+  handleLogout, 
+  loading 
+}: { 
+  activeSection: string; 
+  setActiveSection: (section: string) => void; 
+  handleLogout: () => Promise<void>; 
+  loading: boolean;
+}) => {
+  return (
+    <div className="w-52 space-y-1.5 fixed top-6 pl-2">
+      <div className="mb-8 mt-4">
+        <h1 className="text-xl font-bold text-[lch(17_23_133)] mb-2">Settings</h1>
+      </div>
+      <div 
+        className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'profile' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
+        onClick={() => setActiveSection('profile')}
+      >
+        <User className="h-4 w-4" />
+        <span className="font-medium text-sm">Profile</span>
+      </div>
+      <div 
+        className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'security' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
+        onClick={() => setActiveSection('security')}
+      >
+        <Lock className="h-4 w-4" />
+        <span className="font-medium text-sm">Security</span>
+      </div>
+      <div 
+        className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'device' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
+        onClick={() => setActiveSection('device')}
+      >
+        <Tablet className="h-4 w-4" />
+        <span className="font-medium text-sm">Device Info</span>
+      </div>
+      
+      {/* Logout button */}
+      <div className="mt-4">
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="w-full flex items-center gap-2 bg-[lch(0_0_0)] text-white hover:bg-[lch(10_0_0)] hover:text-white border-0" 
+          onClick={handleLogout}
+          disabled={loading}
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="text-xs">Logout</span>
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const Page = () => {
   // Profile state
-  const [profile, setProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState<UserInfo>({
     user_id: '',
     user_name: '',
     email: '',
@@ -31,8 +111,17 @@ const Page = () => {
   // Auth hook for logout functionality
   const { logout } = useAuth();
   
+  // Get user info from React Query
+  const { data: userInfo, isLoading: isLoadingUserInfo, error: userInfoError, refetch: refetchUserInfo } = useUserInfo();
+  
   // Get device info from hook
   const deviceInfo = useDeviceInfo();
+  
+  // Password update hook
+  const { updatePassword, isUpdating, reset: resetPasswordUpdate } = usePasswordUpdate();
+  
+  // Username update hook
+  const { updateUsername, isUpdating: isUpdatingUsername, error: usernameUpdateError, reset: resetUsernameUpdate } = useUsernameUpdate();
   
   // Profile edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +130,7 @@ const Page = () => {
   const [activeSection, setActiveSection] = useState('security');
   
   // New Password fields
-  const [newPasswords, setNewPasswords] = useState({
+  const [newPasswords, setNewPasswords] = useState<PasswordFormData>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -55,47 +144,95 @@ const Page = () => {
   });
 
   // Status management
-  const [status, setStatus] = useState({
+  const [status, setStatus] = useState<StatusState>({
     loading: false,
-    error: null as string | null,
-    success: null as string | null,
+    error: null,
   });
 
-  // Get user profile data
-  const fetchUserProfile = async () => {
-    try {
-      setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const response = await fetch('/api/user/info', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  // Login history filter state
+  const [loginFilter, setLoginFilter] = useState<{success?: boolean, start_time?: string}>(() => {
+    // 计算3天前的日期
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    return {
+      start_time: threeDaysAgo.toISOString()
+    };
+  });
+  
+  // 添加分别获取成功和失败登录记录的查询
+  const { 
+    data: failedLogins = [], 
+    isLoading: isLoadingFailedLogins,
+    error: failedLoginsError,
+  } = useLoginHistory({ ...loginFilter, success: false });
 
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
+  const { 
+    data: successfulLogins = [], 
+    isLoading: isLoadingSuccessfulLogins,
+    error: successfulLoginsError,
+  } = useLoginHistory({ ...loginFilter, success: true });
 
-      const result = await response.json();
-      if (result.data) {
-        setProfile({
-          user_id: result.data.user_id || '',
-          user_name: result.data.username || '',
-          email: result.data.email || '',
-          avatar: result.data.avatar || ''
-        });
-      } else {
-        throw new Error(result.message || 'Failed to obtain user information');
-      }
-    } catch (error) {
-      setStatus(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to obtain user information'
-      }));
-    } finally {
-      setStatus(prev => ({ ...prev, loading: false }));
+  // 默认登录记录，仅用于显示筛选后的数据
+  const { 
+    data,
+    isLoading: isLoadingLoginHistory, 
+    error: loginHistoryError,
+  } = useLoginHistory(loginFilter.success !== undefined ? loginFilter : { start_time: loginFilter.start_time });
+
+  // Fetch trusted devices
+  const { 
+    data: trustedDevices = [], 
+    isLoading: isLoadingTrustedDevices,
+    error: trustedDevicesError,
+    isRevoking,
+    deleteDevice,
+    isDeleting
+  } = useTrustedDevices();
+
+  // 添加调试代码
+  useEffect(() => {
+    console.log('Login filter state:', loginFilter);
+    console.log('Failed logins:', failedLogins);
+    console.log('Successful logins:', successfulLogins);
+    console.log('Filtered data:', data);
+  }, [loginFilter, failedLogins, successfulLogins, data]);
+
+  // 组合所有登录记录，按时间排序
+  const allLoginHistory = React.useMemo(() => {
+    // 如果设置了过滤器，直接使用过滤后的数据
+    if (loginFilter.success !== undefined) {
+      return data || [];
     }
-  };
+    
+    // 否则合并成功和失败的登录记录
+    const combinedHistory = [
+      ...(failedLogins || []),
+      ...(successfulLogins || [])
+    ];
+    
+    // 按登录时间排序（最新的在前）
+    return combinedHistory.sort((a, b) => 
+      new Date(b.login_time).getTime() - new Date(a.login_time).getTime()
+    );
+  }, [loginFilter, data, failedLogins, successfulLogins]);
+
+  // 登录记录是否正在加载
+  const isLoginHistoryLoading = loginFilter.success !== undefined
+    ? isLoadingLoginHistory
+    : isLoadingFailedLogins || isLoadingSuccessfulLogins;
+
+  // 登录记录是否有错误
+  const hasLoginHistoryError = loginFilter.success !== undefined
+    ? !!loginHistoryError
+    : (!!failedLoginsError || !!successfulLoginsError);
+
+  // Update profile state when user info is loaded
+  useEffect(() => {
+    if (userInfo) {
+      setProfile(userInfo as UserInfo);
+    }
+  }, [userInfo]);
 
   // Handle profile input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,40 +297,33 @@ const Page = () => {
     const validationError = validateProfileForm();
     if (validationError) {
       setStatus(prev => ({ ...prev, error: validationError }));
+      toast.error(validationError);
+      return;
+    }
+
+    // Use error from hook if available
+    if (usernameUpdateError) {
+      setStatus(prev => ({ ...prev, error: usernameUpdateError }));
+      toast.error(usernameUpdateError);
       return;
     }
 
     try {
       setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const response = await fetch('/api/user/profile-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_name: profile.user_name,
-        }),
+      
+      await updateUsername({
+        username: profile.user_name,
       });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.code === 1073741824) {
-        setIsEditing(false);
-        setStatus(prev => ({ ...prev, success: 'Information saved successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
-      } else {
-        throw new Error(result.message || 'Save failed, please try again');
-      }
+      
+      setIsEditing(false);
+      toast.success('Username updated successfully!');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Update failed, please try again';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Save failed, please try again'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
     }
@@ -202,8 +332,11 @@ const Page = () => {
   // Cancel profile editing
   const handleCancelProfile = () => {
     setIsEditing(false);
-    fetchUserProfile();
+    if (userInfo) {
+      setProfile(userInfo as UserInfo);
+    }
     setStatus(prev => ({ ...prev, error: null }));
+    resetUsernameUpdate();
   };
 
   // Handle avatar upload
@@ -213,11 +346,13 @@ const Page = () => {
 
     if (!file.type.startsWith('image/')) {
       setStatus(prev => ({ ...prev, error: 'Please upload an image file' }));
+      toast.error('Please upload an image file');
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
       setStatus(prev => ({ ...prev, error: 'The image size cannot exceed 2MB' }));
+      toast.error('The image size cannot exceed 2MB');
       return;
     }
 
@@ -244,22 +379,20 @@ const Page = () => {
 
       const result = await response.json();
       if (result.code === 1073741824) {
-        setProfile(prev => ({
-          ...prev,
-          avatar: result.data.avatar
-        }));
-        setStatus(prev => ({ ...prev, success: 'Avatar uploaded successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
+        // Refetch user info to update the avatar
+        refetchUserInfo();
+        
+        toast.success('Avatar uploaded successfully!');
       } else {
         throw new Error(result.message || 'Avatar upload failed');
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Avatar upload failed';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Avatar upload failed'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
       e.target.value = '';
@@ -271,45 +404,33 @@ const Page = () => {
     const validationError = validatePasswordForm();
     if (validationError) {
       setStatus(prev => ({ ...prev, error: validationError }));
+      toast.error(validationError);
       return;
     }
 
     try {
       setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const response = await fetch('/api/user/profile-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          current_password: newPasswords.currentPassword,
-          new_password: newPasswords.newPassword,
-        }),
+      
+      await updatePassword({
+        old_password: newPasswords.currentPassword,
+        new_password: newPasswords.newPassword,
       });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.code === 200) {
-        setNewPasswords({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        });
-        setStatus(prev => ({ ...prev, success: 'Password updated successfully!' }));
-        setTimeout(() => {
-          setStatus(prev => ({ ...prev, success: null }));
-        }, 3000);
-      } else {
-        throw new Error(result.message || 'Password update failed, please try again');
-      }
+      
+      // Reset form fields on success
+      setNewPasswords({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      
+      toast.success('Password updated successfully!');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Password update failed, please try again';
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Password update failed, please try again'
+        error: errorMessage
       }));
+      toast.error(errorMessage);
     } finally {
       setStatus(prev => ({ ...prev, loading: false }));
     }
@@ -331,11 +452,25 @@ const Page = () => {
     }
   };
 
-  // Initialize data on component mount
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
+  // Add state for delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<TrustedDevice | null>(null);
 
+  // Show loading state while fetching user info
+  if (isLoadingUserInfo) {
+    return <div className="flex h-screen items-center justify-center">Loading user information...</div>;
+  }
+
+  // Show error state if user info failed to load
+  if (userInfoError) {
+    return (
+      <div className="flex h-screen items-center justify-center flex-col">
+        <div className="text-red-500 mb-4">Failed to load user information</div>
+        <Button onClick={() => refetchUserInfo()}>Try Again</Button>
+      </div>
+    );
+  }
+  
   // Get device icon based on type
   const getDeviceIcon = (type: string) => {
     switch (type.toLowerCase()) {
@@ -367,10 +502,10 @@ const Page = () => {
             <CardContent>
               <form className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
+                  <Label htmlFor="currentPassword">Current Password</Label>
                   <div className="relative">
                     <Input 
-                      id="current-password" 
+                      id="currentPassword" 
                       type={showPasswords.currentPassword ? "text" : "password"} 
                       value={newPasswords.currentPassword}
                       onChange={handlePasswordChange}
@@ -387,10 +522,10 @@ const Page = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
+                  <Label htmlFor="newPassword">New Password</Label>
                   <div className="relative">
                     <Input 
-                      id="new-password" 
+                      id="newPassword" 
                       type={showPasswords.newPassword ? "text" : "password"} 
                       value={newPasswords.newPassword}
                       onChange={handlePasswordChange}
@@ -407,10 +542,10 @@ const Page = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <div className="relative">
                     <Input 
-                      id="confirm-password" 
+                      id="confirmPassword" 
                       type={showPasswords.confirmPassword ? "text" : "password"} 
                       value={newPasswords.confirmPassword}
                       onChange={handlePasswordChange}
@@ -435,9 +570,14 @@ const Page = () => {
                   newPassword: '',
                   confirmPassword: '',
                 });
+                resetPasswordUpdate();
               }}>Cancel</Button>
-              <Button onClick={handleUpdatePassword} disabled={status.loading}>
-                {status.loading ? 'Updating...' : 'Update Password'}
+              <Button 
+                onClick={handleUpdatePassword} 
+                disabled={status.loading || isUpdating}
+                className="cursor-pointer hover:bg-[lch(25_25_133)]"
+              >
+                {status.loading || isUpdating ? 'Updating...' : 'Update Password'}
               </Button>
             </CardFooter>
           </Card>
@@ -464,11 +604,93 @@ const Page = () => {
                       </p>
                     </div>
                   </div>
-                  <Link href="/dashboard/mfa-setup">
-                    <Button variant="outline">Setup MFA</Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-500">Active</Badge>
+                  </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Trusted Devices</CardTitle>
+              <CardDescription>
+                Devices that are currently trusted to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingTrustedDevices ? (
+                <div className="py-6 text-center text-muted-foreground">
+                  Loading trusted devices...
+                </div>
+              ) : trustedDevicesError ? (
+                <div className="py-6 text-center text-red-500">
+                  Failed to load trusted devices
+                </div>
+              ) : trustedDevices.length > 0 ? (
+                <div className="space-y-5">
+                  {trustedDevices.map((device: TrustedDevice, index: number) => (
+                    <div key={index} className={`flex items-start justify-between border-b pb-4 last:border-0 last:pb-0 ${device.isCurrentDevice ? 'bg-blue-50 p-3 rounded-md -mx-3' : ''}`}>
+                      <div className="flex gap-3">
+                        <div className="mt-1">
+                          <div className={`${device.isCurrentDevice ? 'bg-blue-200' : 'bg-blue-100'} p-1.5 rounded-full`}>
+                            {device.browser.toLowerCase().includes('mobile') ? (
+                              <Smartphone className={`h-4 w-4 ${device.isCurrentDevice ? 'text-blue-700' : 'text-blue-600'}`} />
+                            ) : (
+                              <Laptop className={`h-4 w-4 ${device.isCurrentDevice ? 'text-blue-700' : 'text-blue-600'}`} />
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium flex items-center gap-2">
+                            {device.browser}
+                            {device.isCurrentDevice && (
+                              <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                                Current Device
+                              </Badge>
+                            )}
+                          </p>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <div className="grid grid-cols-1 gap-y-1">
+                              <p>OS: {device.os}</p>
+                              <p>Location: {device.location}</p>
+                              <p>IP: {device.ip || 'Unknown'}</p>
+                              <p className="font-mono text-xs mt-1">ID: {device.fingerprint}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant={device.isCurrentDevice ? "default" : "outline"} className={device.isCurrentDevice ? "bg-blue-500" : "border-blue-300 text-blue-700"}>
+                          {device.isCurrentDevice ? 'This Device' : 'Trusted'}
+                        </Badge>
+                        
+                        {!device.isCurrentDevice && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            className="rounded-md bg-red-500 hover:bg-red-600 text-white"
+                            onClick={() => {
+                              setDeviceToDelete(device);
+                              setDeleteDialogOpen(true);
+                            }}
+                            disabled={isDeleting || isRevoking}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-muted-foreground">
+                  No trusted devices found
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -482,29 +704,182 @@ const Page = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[1, 2, 3].map((_, i) => (
-                  <div key={i} className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">
-                        {i === 0 ? 'Current Session' : `Login ${i}`}
-                      </p>
-                      <div className="text-sm text-muted-foreground">
-                        <p>IP: 192.168.1.{i + 1}</p>
-                        <p>{i === 0 ? 'Today, ' : 'Yesterday, '} 
-                          {new Date().toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant={i === 0 ? "default" : "secondary"} className={i === 0 ? "bg-green-500" : ""}>
-                      {i === 0 ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                ))}
+              <Tabs defaultValue="all" className="w-full mb-4" onValueChange={(value) => {
+                // 保持时间范围不变
+                const start_time = loginFilter.start_time;
+                
+                if (value === 'all') {
+                  setLoginFilter({ start_time });
+                } else if (value === 'success') {
+                  setLoginFilter({ success: true, start_time });
+                } else if (value === 'failed') {
+                  setLoginFilter({ success: false, start_time });
+                }
+              }}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all">All Logins</TabsTrigger>
+                  <TabsTrigger value="success">Successful</TabsTrigger>
+                  <TabsTrigger value="failed">Failed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            
+              <div className="mb-4 flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  Showing login records from {loginFilter.start_time 
+                    ? new Date(loginFilter.start_time).toLocaleDateString() 
+                    : 'all time'} to present
+                </div>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8">
+                      <Clock className="mr-2 h-4 w-4" />
+                      Time Range
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // 保持成功/失败过滤不变
+                        const success = loginFilter.success;
+                        const options = success !== undefined ? { success } : {};
+                        setLoginFilter(options); // 不设置时间，查看所有记录
+                      }}
+                    >
+                      All Time
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // 计算过去24小时
+                        const oneDayAgo = new Date();
+                        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                        
+                        // 保持成功/失败过滤不变
+                        const success = loginFilter.success;
+                        const options = success !== undefined ? { success, start_time: oneDayAgo.toISOString() } : { start_time: oneDayAgo.toISOString() };
+                        setLoginFilter(options);
+                      }}
+                    >
+                      Last 24 Hours
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // 计算过去3天
+                        const threeDaysAgo = new Date();
+                        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                        
+                        // 保持成功/失败过滤不变
+                        const success = loginFilter.success;
+                        const options = success !== undefined ? { success, start_time: threeDaysAgo.toISOString() } : { start_time: threeDaysAgo.toISOString() };
+                        setLoginFilter(options);
+                      }}
+                    >
+                      Last 3 Days
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // 计算过去7天
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        
+                        // 保持成功/失败过滤不变
+                        const success = loginFilter.success;
+                        const options = success !== undefined ? { success, start_time: sevenDaysAgo.toISOString() } : { start_time: sevenDaysAgo.toISOString() };
+                        setLoginFilter(options);
+                      }}
+                    >
+                      Last 7 Days
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // 计算过去30天
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        
+                        // 保持成功/失败过滤不变
+                        const success = loginFilter.success;
+                        const options = success !== undefined ? { success, start_time: thirtyDaysAgo.toISOString() } : { start_time: thirtyDaysAgo.toISOString() };
+                        setLoginFilter(options);
+                      }}
+                    >
+                      Last 30 Days
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
+            
+              {isLoginHistoryLoading ? (
+                <div className="py-6 text-center text-muted-foreground">
+                  Loading login history...
+                </div>
+              ) : hasLoginHistoryError ? (
+                <div className="py-6 text-center text-red-500">
+                  Failed to load login history
+                </div>
+              ) : allLoginHistory.length > 0 ? (
+                <div className="h-[430px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-4">
+                    {allLoginHistory.map((entry, index) => {
+                      const date = new Date(entry.login_time);
+                      const formattedDate = date.toLocaleDateString();
+                      const formattedTime = date.toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                      
+                      return (
+                        <div key={index} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                          <div className="flex gap-3">
+                            <div className="mt-1">
+                              {entry.success ? (
+                                <div className="bg-green-100 p-1 rounded-full">
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </div>
+                              ) : (
+                                <div className="bg-red-100 p-1 rounded-full">
+                                  <X className="h-4 w-4 text-red-600" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {index === 0 ? 'Latest Login' : `Login ${index + 1}`}
+                                {!entry.success && (
+                                  <span className="text-red-500 text-sm ml-2">Failed</span>
+                                )}
+                              </p>
+                              {!entry.success && entry.failure_reason && (
+                                <p className="text-sm text-red-500 mt-1">
+                                  {entry.failure_reason}
+                                </p>
+                              )}
+                              <div className="text-sm text-muted-foreground mt-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-1 gap-x-4">
+                                  <p>Browser: {entry.trust_device.browser}</p>
+                                  <p>OS: {entry.trust_device.os}</p>
+                                  <p>Location: {entry.trust_device.location}</p>
+                                  <p>IP: {entry.trust_device.ip || 'Unknown'}</p>
+                                </div>
+                                <p className="mt-1">{formattedDate}, {formattedTime}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge
+                            variant={entry.success ? "default" : "secondary"}
+                            className={entry.success ? "bg-green-500" : "bg-gray-200 text-gray-800"}
+                          >
+                            {entry.success ? 'Success' : 'Failed'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 text-center text-muted-foreground">
+                  No login history found
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -608,15 +983,15 @@ const Page = () => {
                     <>
                       <Button 
                         onClick={handleSaveProfile}
-                        disabled={status.loading}
+                        disabled={status.loading || isUpdatingUsername}
                         className="bg-[lch(17_23_133)] hover:bg-[lch(25_25_133)]"
                       >
-                        {status.loading ? 'Saving...' : 'Save Changes'}
+                        {status.loading || isUpdatingUsername ? 'Saving...' : 'Save Changes'}
                       </Button>
                       <Button 
                         variant="outline"
                         onClick={handleCancelProfile}
-                        disabled={status.loading}
+                        disabled={status.loading || isUpdatingUsername}
                         className="border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)]"
                       >
                         Cancel
@@ -686,67 +1061,118 @@ const Page = () => {
   };
 
   return (
-    <div className="container py-6 ml-12 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[lch(17_23_133)] mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your profile and security settings</p>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-12">
-        {/* Sidebar - made narrower with sharper edges */}
-        <div className="w-full md:w-52 space-y-1.5">
-          <div 
-            className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'profile' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
-            onClick={() => setActiveSection('profile')}
-          >
-            <User className="h-4 w-4" />
-            <span className="font-medium text-sm">Profile</span>
-          </div>
-          <div 
-            className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'security' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
-            onClick={() => setActiveSection('security')}
-          >
-            <Lock className="h-4 w-4" />
-            <span className="font-medium text-sm">Security</span>
-          </div>
-          <div 
-            className={`p-2 rounded-md flex items-center gap-2 cursor-pointer ${activeSection === 'device' ? 'bg-[lch(94_5_133)] text-[lch(17_23_133)]' : 'hover:bg-[lch(97_1_133)] text-[lch(17_23_133)]'}`}
-            onClick={() => setActiveSection('device')}
-          >
-            <Tablet className="h-4 w-4" />
-            <span className="font-medium text-sm">Device Info</span>
-          </div>
+    <div className="container py-6 max-w-6xl">
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Delete Trusted Device</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this trusted device?
+            </DialogDescription>
+          </DialogHeader>
           
-          {/* Logout button */}
-          <div className="mt-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full flex items-center gap-2 bg-[lch(0_0_0)] text-white hover:bg-[lch(10_0_0)] hover:text-white border-0" 
-              onClick={handleLogout}
-              disabled={status.loading}
+          {deviceToDelete && (
+            <div className="py-4">
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Browser:</span>
+                  <span>{deviceToDelete.browser}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">OS:</span>
+                  <span>{deviceToDelete.os}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Location:</span>
+                  <span>{deviceToDelete.location}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">IP:</span>
+                  <span>{deviceToDelete.ip || 'Unknown'}</span>
+                </div>
+              </div>
+              <p className="text-sm text-red-500">
+                This action cannot be undone. This device will need to be re-authenticated on next login.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeviceToDelete(null);
+              }}
             >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="text-xs">Logout</span>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deviceToDelete) {
+                  deleteDevice(deviceToDelete.fingerprint);
+                  setDeleteDialogOpen(false);
+                  setDeviceToDelete(null);
+                }
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex relative">
+        {/* Sidebar container - fixed width for positioning */}
+        <div className="hidden md:block w-52 flex-shrink-0">
+          <SettingsSidebar 
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
+            handleLogout={handleLogout}
+            loading={status.loading}
+          />
+        </div>
+
+        {/* Mobile sidebar - only shown on small screens */}
+        <div className="md:hidden w-full mb-6">
+          <div className="flex space-x-2">
+            <Button 
+              variant={activeSection === 'profile' ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => setActiveSection('profile')}
+              className="flex-1"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Button>
+            <Button 
+              variant={activeSection === 'security' ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => setActiveSection('security')}
+              className="flex-1"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Security
+            </Button>
+            <Button 
+              variant={activeSection === 'device' ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => setActiveSection('device')}
+              className="flex-1"
+            >
+              <Tablet className="h-4 w-4 mr-2" />
+              Device
             </Button>
           </div>
         </div>
 
-        {/* Main content area */}
-        <div className="flex-1">
+        {/* Main content area - can scroll independently */}
+        <div className="flex-1 md:pl-12 overflow-y-auto">
           {renderContent()}
-
-          {/* Error and success prompts */}
-          {status.error && (
-            <div className="mt-4 text-red-500 text-sm">
-              {status.error}
-            </div>
-          )}
-          {status.success && (
-            <div className="mt-4 text-green-500 text-sm">
-              {status.success}
-            </div>
-          )}
         </div>
       </div>
     </div>

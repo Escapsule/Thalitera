@@ -151,6 +151,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
       <div className="flex items-center gap-1">
         <span className="text-xs">page</span>
         <input
+          title="Page Number"
           type="text"
           value={inputPage}
           onChange={handleInputChange}

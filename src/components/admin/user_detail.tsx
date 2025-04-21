@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Calendar, Clock, Mail, UserRound, MapPin, Clock3 } from 'lucide-react'
+import Image from 'next/image'
 
 type Reservation = {
   reservation_id: string;
@@ -76,52 +77,10 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
         
         // Find all valid bookings for this user
         const userReservations = data.data.filter((reservation: Reservation) => {
-          // Handle time format
-          let startTime: number;
-          let endTime: number;
-          
-          if (reservation.start_time.toString().startsWith('+')) {
-            const [year, month, day, hour, minute, second] = reservation.start_time.toString()
-              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
-              .slice(1)
-              .map(Number);
-            const date = new Date(year, month - 1, day, hour, minute, second);
-            startTime = Math.floor(date.getTime() / 1000);
-          } else {
-            startTime = Math.floor(new Date(reservation.start_time).getTime() / 1000);
-          }
-
-          if (reservation.end_time.toString().startsWith('+')) {
-            const [year, month, day, hour, minute, second] = reservation.end_time.toString()
-              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
-              .slice(1)
-              .map(Number);
-            const date = new Date(year, month - 1, day, hour, minute, second);
-            endTime = Math.floor(date.getTime() / 1000);
-          } else {
-            endTime = Math.floor(new Date(reservation.end_time).getTime() / 1000);
-          }
-
           const isCurrentUser = reservation.user_id === user.user_id;
           const isConfirmed = reservation.status === 'confirmed';
-          const isCurrentBooking = startTime <= now && endTime > now;
-          const isFutureBooking = startTime > now;
-
-          console.log('Checking reservation:', {
-            reservation_user_id: reservation.user_id,
-            current_user_id: user.user_id,
-            status: reservation.status,
-            start_time: reservation.start_time,
-            start_time_timestamp: startTime,
-            end_time: reservation.end_time,
-            end_time_timestamp: endTime,
-            now: now,
-            isCurrentUser,
-            isConfirmed,
-            isCurrentBooking,
-            isFutureBooking,
-            shouldShow: isCurrentUser && isConfirmed && (isCurrentBooking || isFutureBooking)
-          });
+          const isCurrentBooking = reservation.start_time <= now && reservation.end_time > now;
+          const isFutureBooking = reservation.start_time > now;
 
           return isCurrentUser && isConfirmed && (isCurrentBooking || isFutureBooking);
         });
@@ -130,20 +89,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
         
         // Sort by start time to find the most recent booking
         const nextReservation = userReservations
-          .sort((a: Reservation, b: Reservation) => {
-            const getTimestamp = (time: string | number) => {
-              if (time.toString().startsWith('+')) {
-                const [year, month, day, hour, minute, second] = time.toString()
-                  .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
-                  .slice(1)
-                  .map(Number);
-                const date = new Date(year, month - 1, day, hour, minute, second);
-                return Math.floor(date.getTime() / 1000);
-              }
-              return Math.floor(new Date(time).getTime() / 1000);
-            };
-            return getTimestamp(a.start_time) - getTimestamp(b.start_time);
-          })[0];
+          .sort((a: Reservation, b: Reservation) => a.start_time - b.start_time)[0];
         
         console.log('Next reservation:', nextReservation);
         setNextReservation(nextReservation || null);
@@ -155,28 +101,11 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
     }
   };
 
-  const formatDate = (time: string | number): string => {
+  const formatDate = (timestamp: number): string => {
     try {
-      let date: Date;
-      if (typeof time === 'string') {
-        if (time.startsWith('+')) {
-          // Handle extended ISO format
-          const [year, month, day, hour, minute, second] = time
-            .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
-            .slice(1)
-            .map(Number);
-          date = new Date(year, month - 1, day, hour, minute, second);
-        } else {
-          // Processing standard ISO format
-          date = new Date(time);
-        }
-      } else {
-        // Handle timestamp
-        date = new Date(time * 1000);
-      }
-      
+      const date = new Date(timestamp * 1000);
       if (isNaN(date.getTime())) {
-        console.error('Invalid date format:', time);
+        console.error('Invalid date format:', timestamp);
         return "Invalid date format";
       }
       
@@ -202,7 +131,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
           <DialogTitle className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+                <Image src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
               ) : (
                 <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
               )}
@@ -305,7 +234,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-[lch(17_23_133)]" />
                     <div className="text-sm">
-                      <span>Created: {formatDate(user.created_at)}</span>
+                      <span>Created: {formatDate(Number(user.created_at))}</span>
                     </div>
                   </div>
                 )}
@@ -313,7 +242,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
                   <div className="flex items-center gap-2">
                     <Clock3 className="h-5 w-5 text-[lch(17_23_133)]" />
                     <div className="text-sm">
-                      <span>Last Updated: {formatDate(user.update_at)}</span>
+                      <span>Last Updated: {formatDate(Number(user.update_at))}</span>
                     </div>
                   </div>
                 )}
@@ -323,7 +252,7 @@ const UserDetail = ({ user, isOpen, onClose }: UserDetailProps) => {
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default UserDetail 
+export default UserDetail; 

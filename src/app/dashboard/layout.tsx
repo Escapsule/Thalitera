@@ -1,13 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { AppSidebar } from "@/components/user/app-sidebar"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
+import { ReactQueryProvider, UserInfoProvider } from '@/hooks/useUserInfo';
 
+// Main layout component that doesn't directly use useSearchParams
 export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <DashboardLayout>{children}</DashboardLayout>
+    </Suspense>
+  );
+}
+
+// Inner component that uses useSearchParams
+function DashboardLayout({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const forceBreak = searchParams.get('forceBreak') === 'true';
@@ -55,16 +66,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   // Show loading while checking auth
   if (isCheckingAuth) {
-    return <div className="flex h-screen items-center justify-center">Checking authentication...</div>;
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar/>
-      <main>
-        <SidebarTrigger className="ml-2 fixed"/>
-        {children}
-      </main>
-    </SidebarProvider>
+    <ReactQueryProvider>
+      <UserInfoProvider>
+        <SidebarProvider>
+          <AppSidebar/>
+          <main>
+            <SidebarTrigger className="ml-2 fixed"/>
+            {children}
+          </main>
+        </SidebarProvider>
+      </UserInfoProvider>
+    </ReactQueryProvider>
   )
 }

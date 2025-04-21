@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { useState, useEffect } from 'react';
 import { getRoomUtilizationStats } from '@/lib/admin/statistic';
+import Image from "next/image"
 
 // Define the type for the room data
 type Room = {
@@ -365,7 +366,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
 
         {roomData.image && (
           <div className="w-full h-48 overflow-hidden rounded-md mb-4">
-            <img 
+            <Image 
               src={roomData.image} 
               alt={roomData.name} 
               className="w-full h-full object-cover"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { format, addDays } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,13 +35,24 @@ import { MeetingRoom } from '@/types/meeting-room'
 type Booking = {
   id: number
   roomName: string
-  roomId: string | number  // Allow both string and number to match both types
+  roomId: string | number
   date: Date
   startTime: string
   endTime: string
+  roomData: MeetingRoom | null
 }
 
+// Main search page component
 export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="container min-w-[80vw] py-6 ml-12">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+// Content component that uses useSearchParams
+function SearchPageContent() {
   // Get current date and time
   const now = new Date()
   const currentHour = now.getHours()
@@ -62,16 +73,25 @@ export default function SearchPage() {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   }
   
-  // Set default start time to current rounded time or 08:00 if after 8 PM
-  const defaultStartTime = isAfter8PM ? "08:00" : formatTimeToString(roundedHour, roundedMinute)
-  // Set default end time to 8 PM
-  const defaultEndTime = "20:00"
+  // Set default start time to current rounded time or 08:00 if after 8 PM or if it's too late
+  const defaultStartTime = isAfter8PM || roundedHour >= 20 ? "08:00" : formatTimeToString(roundedHour, roundedMinute)
+  
+  // Calculate default end time (1 hour after start time)
+  const getDefaultEndTime = (startTimeStr: string) => {
+    const [hours, minutes] = startTimeStr.split(':').map(Number)
+    const endHour = hours + 1 > 20 ? 20 : hours + 1
+    return formatTimeToString(endHour, minutes)
+  }
+  
+  // Set default end time to 1 hour after start time
+  const defaultEndTime = getDefaultEndTime(defaultStartTime)
   
   // State for filters
   const [date, setDate] = useState<Date>(initialDate)
   const [startTime, setStartTime] = useState<string>(defaultStartTime)
   const [endTime, setEndTime] = useState<string>(defaultEndTime)
-  const [capacity, setCapacity] = useState<string>("")
+  const [capacityMin, setCapacityMin] = useState<string>("")
+  const [capacityMax, setCapacityMax] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
@@ -82,6 +102,57 @@ export default function SearchPage() {
   
   // Fetch rooms data
   const { rooms, loading, error } = useMeetingRooms()
+  
+  // Extract min and max capacity from rooms data
+  useEffect(() => {
+    if (rooms.length > 0) {
+      // Find minimum capacity_min across all rooms
+      const minCapacity = Math.min(...rooms.map(room => room.capacity_min))
+      // Find maximum capacity_max across all rooms
+      const maxCapacity = Math.max(...rooms.map(room => room.capacity_max))
+      
+      // Set capacity filters if they're not already set by user
+      if (capacityMin === "") {
+        setCapacityMin(minCapacity.toString())
+      }
+      if (capacityMax === "") {
+        setCapacityMax(maxCapacity.toString())
+      }
+    }
+  }, [rooms, capacityMin, capacityMax])
+  
+  // Get absolute min and max capacity from all rooms
+  const absoluteMinCapacity = rooms.length > 0 ? Math.min(...rooms.map(room => room.capacity_min)) : 1
+  const absoluteMaxCapacity = rooms.length > 0 ? Math.max(...rooms.map(room => room.capacity_max)) : 100
+  
+  // Increment or decrement capacity values
+  const incrementCapacityMin = () => {
+    const currentValue = parseInt(capacityMin)
+    if (currentValue < parseInt(capacityMax)) {
+      setCapacityMin((currentValue + 1).toString())
+    }
+  }
+  
+  const decrementCapacityMin = () => {
+    const currentValue = parseInt(capacityMin)
+    if (currentValue > absoluteMinCapacity) {
+      setCapacityMin((currentValue - 1).toString())
+    }
+  }
+  
+  const incrementCapacityMax = () => {
+    const currentValue = parseInt(capacityMax)
+    if (currentValue < absoluteMaxCapacity) {
+      setCapacityMax((currentValue + 1).toString())
+    }
+  }
+  
+  const decrementCapacityMax = () => {
+    const currentValue = parseInt(capacityMax)
+    if (currentValue > parseInt(capacityMin)) {
+      setCapacityMax((currentValue - 1).toString())
+    }
+  }
   
   // Generate available times from 8:00 to 20:00
   const allTimeOptions = Array.from({ length: 25 }, (_, i) => {
@@ -113,14 +184,16 @@ export default function SearchPage() {
     
     // If current start time is not available, set to first available
     if (availableOptions.length > 0 && !availableOptions.includes(startTime)) {
-      setStartTime(availableOptions[0])
+      const newStartTime = availableOptions[0];
+      setStartTime(newStartTime);
+      
+      // Always update end time when start time changes
+      setEndTime(getDefaultEndTime(newStartTime));
+    } else if (startTime && (!endTime || endTime <= startTime)) {
+      // If end time is missing or invalid (not after start time), reset it
+      setEndTime(getDefaultEndTime(startTime));
     }
-    
-    // If current end time is not valid, set to default end time
-    if (!availableOptions.includes(endTime) || endTime <= startTime) {
-      setEndTime(defaultEndTime)
-    }
-  }, [date])
+  }, [date, startTime])
 
   // Extract unique amenities and locations from rooms
   const allAmenities = Array.from(new Set(rooms.flatMap(room => 
@@ -139,7 +212,11 @@ export default function SearchPage() {
     }
     
     // Filter by capacity
-    if (capacity && room.capacity_max < parseInt(capacity)) {
+    if (capacityMin && room.capacity_max < parseInt(capacityMin)) {
+      return false
+    }
+    
+    if (capacityMax && room.capacity_min > parseInt(capacityMax)) {
       return false
     }
     
@@ -160,17 +237,18 @@ export default function SearchPage() {
     return true
   })
 
-  // Handle opening room detail with a fake booking
+  // Handle opening room detail with booking info and full room data
   const handleViewRoom = (room: MeetingRoom) => {
-    const fakeBooking: Booking = {
+    const bookingWithRoomData: Booking = {
       id: 0,
       roomName: room.name,
       roomId: room.room_id,
       date: date,
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      roomData: room
     }
-    setSelectedRoom(fakeBooking)
+    setSelectedRoom(bookingWithRoomData)
     setIsDetailOpen(true)
   }
 
@@ -195,7 +273,16 @@ export default function SearchPage() {
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm("")
-    setCapacity("")
+    
+    // Reset capacity to min/max values from rooms
+    if (rooms.length > 0) {
+      setCapacityMin(absoluteMinCapacity.toString())
+      setCapacityMax(absoluteMaxCapacity.toString())
+    } else {
+      setCapacityMin("")
+      setCapacityMax("")
+    }
+    
     setSelectedAmenities([])
     setSelectedLocations([])
     setDate(initialDate)
@@ -212,50 +299,40 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="container min-w-[80vw] py-6 ml-12">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[lch(17_23_133)] mb-2">Find a Meeting Room</h1>
+    <div className="container min-w-[80vw] py-4 ml-12 h-screen overflow-hidden">
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold text-[lch(17_23_133)] mb-1">Find a Meeting Room</h1>
         <p className="text-muted-foreground">Search for available meeting rooms based on your criteria</p>
       </div>
       
-      <div className="flex flex-col gap-6 md:flex-row">
+      <div className="flex flex-col gap-3 md:flex-row h-[calc(100%-5rem)] overflow-hidden">
         {/* Filters for larger screens */}
-        <div className="hidden md:flex flex-col gap-6 w-auto">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="hidden md:flex flex-col gap-4 w-[280px] overflow-y-auto pr-2">
+          <Card className="sticky top-0">
+            <CardContent className="space-y-4 px-3">
               {/* Date & Time Filters */}
-              <div className="space-y-3">
-                <Label>Date</Label>
+              <div className="space-y-2">
+                <Label className="text-sm">Date</Label>
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={(date) => date && setDate(date)}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="rounded-md border"
+                  className="rounded-md border scale-90 origin-top transform -ml-3 -mt-2 -mb-3"
                 />
                 
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="space-y-1">
                     <Label htmlFor="startTime">Start Time</Label>
                     <Select 
                       value={startTime} 
                       onValueChange={(value) => {
                         setStartTime(value);
-                        // If end time is before or equal to start time, reset it
-                        if (endTime <= value) {
-                          const startIndex = timeOptions.findIndex(t => t === value);
-                          if (startIndex < timeOptions.length - 1) {
-                            setEndTime(timeOptions[startIndex + 1]);
-                          } else {
-                            setEndTime(defaultEndTime);
-                          }
-                        }
+                        // Always set the end time to 1 hour after start time
+                        setEndTime(getDefaultEndTime(value));
                       }}
                     >
-                      <SelectTrigger id="startTime">
+                      <SelectTrigger id="startTime" className="h-8 text-xs">
                         <SelectValue placeholder="Start Time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -266,14 +343,14 @@ export default function SearchPage() {
                     </Select>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label htmlFor="endTime">End Time</Label>
                     <Select 
                       value={endTime} 
                       onValueChange={setEndTime}
                       disabled={!startTime}
                     >
-                      <SelectTrigger id="endTime">
+                      <SelectTrigger id="endTime" className="h-8 text-xs">
                         <SelectValue placeholder="End Time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -286,35 +363,86 @@ export default function SearchPage() {
                 </div>
               </div>
               
-              <Separator />
+              <Separator className="my-2" />
               
               {/* Capacity Filter */}
-              <div className="space-y-3">
-                <Label htmlFor="capacity">Minimum Capacity</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min="1"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  placeholder="Minimum people"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="capacity">Capacity</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="capacityMin" className="text-xs text-muted-foreground">Min</Label>
+                    <div className="flex">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="h-8 px-2 rounded-r-none border-r-0"
+                        onClick={decrementCapacityMin}
+                      >
+                        -
+                      </Button>
+                      <Input
+                        id="capacityMin"
+                        type="text"
+                        value={capacityMin}
+                        className="h-8 text-xs rounded-none border-x-0 text-center"
+                        readOnly
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="h-8 px-2 rounded-l-none border-l-0"
+                        onClick={incrementCapacityMin}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="capacityMax" className="text-xs text-muted-foreground">Max</Label>
+                    <div className="flex">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="h-8 px-2 rounded-r-none border-r-0"
+                        onClick={decrementCapacityMax}
+                      >
+                        -
+                      </Button>
+                      <Input
+                        id="capacityMax"
+                        type="text"
+                        value={capacityMax}
+                        className="h-8 text-xs rounded-none border-x-0 text-center"
+                        readOnly
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="h-8 px-2 rounded-l-none border-l-0"
+                        onClick={incrementCapacityMax}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              <Separator />
+              <Separator className="my-2" />
               
               {/* Amenities Filter */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                <div className="grid grid-cols-3 gap-1 max-h-24 overflow-y-auto pr-2">
                   {allAmenities.map((amenity) => (
-                    <div key={amenity} className="flex items-center space-x-2">
+                    <div key={amenity} className="flex items-center space-x-1">
                       <Checkbox 
                         id={`amenity-${amenity}`} 
                         checked={selectedAmenities.includes(amenity)}
                         onCheckedChange={() => toggleAmenity(amenity)}
+                        className="h-3 w-3"
                       />
-                      <Label htmlFor={`amenity-${amenity}`} className="text-sm font-normal">
+                      <Label htmlFor={`amenity-${amenity}`} className="text-xs font-normal truncate">
                         {amenity}
                       </Label>
                     </div>
@@ -322,20 +450,21 @@ export default function SearchPage() {
                 </div>
               </div>
               
-              <Separator />
+              <Separator className="my-2" />
               
               {/* Location Filter */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label>Location</Label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                <div className="grid grid-cols-3 gap-1 max-h-24 overflow-y-auto pr-2">
                   {allLocations.map((location) => (
-                    <div key={location} className="flex items-center space-x-2">
+                    <div key={location} className="flex items-center space-x-1">
                       <Checkbox 
                         id={`location-${location}`} 
                         checked={selectedLocations.includes(location)}
                         onCheckedChange={() => toggleLocation(location)}
+                        className="h-3 w-3"
                       />
-                      <Label htmlFor={`location-${location}`} className="text-sm font-normal">
+                      <Label htmlFor={`location-${location}`} className="text-xs font-normal truncate">
                         {location}
                       </Label>
                     </div>
@@ -356,7 +485,7 @@ export default function SearchPage() {
         </div>
         
         {/* Mobile Filters */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" className="w-full flex items-center gap-2">
@@ -372,34 +501,27 @@ export default function SearchPage() {
                 </SheetDescription>
               </SheetHeader>
               
-              <div className="space-y-6 py-6 overflow-y-auto h-[calc(100%-10rem)]">
+              <div className="space-y-4 py-4 overflow-y-auto h-[calc(100%-10rem)]">
                 {/* Date & Time Filters */}
-                <div className="space-y-3">
-                  <Label>Date</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm">Date</Label>
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={(date) => date && setDate(date)}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                    className="rounded-md border mx-auto"
+                    className="rounded-md border scale-90 origin-top transform -ml-3 -mt-2"
                   />
                   
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="space-y-1">
                       <Label htmlFor="startTime-mobile">Start Time</Label>
                       <Select 
                         value={startTime} 
                         onValueChange={(value) => {
                           setStartTime(value);
-                          // If end time is before or equal to start time, reset it
-                          if (endTime <= value) {
-                            const startIndex = timeOptions.findIndex(t => t === value);
-                            if (startIndex < timeOptions.length - 1) {
-                              setEndTime(timeOptions[startIndex + 1]);
-                            } else {
-                              setEndTime(defaultEndTime);
-                            }
-                          }
+                          // Always set the end time to 1 hour after start time
+                          setEndTime(getDefaultEndTime(value));
                         }}
                       >
                         <SelectTrigger id="startTime-mobile">
@@ -413,7 +535,7 @@ export default function SearchPage() {
                       </Select>
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="endTime-mobile">End Time</Label>
                       <Select 
                         value={endTime} 
@@ -436,32 +558,83 @@ export default function SearchPage() {
                 <Separator />
                 
                 {/* Capacity Filter */}
-                <div className="space-y-3">
-                  <Label htmlFor="capacity-mobile">Minimum Capacity</Label>
-                  <Input
-                    id="capacity-mobile"
-                    type="number"
-                    min="1"
-                    value={capacity}
-                    onChange={(e) => setCapacity(e.target.value)}
-                    placeholder="Minimum people"
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="capacity-mobile">Capacity</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="capacityMin-mobile" className="text-xs text-muted-foreground">Min</Label>
+                      <div className="flex">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="h-8 px-2 rounded-r-none border-r-0"
+                          onClick={decrementCapacityMin}
+                        >
+                          -
+                        </Button>
+                        <Input
+                          id="capacityMin-mobile"
+                          type="text"
+                          value={capacityMin}
+                          className="h-8 text-xs rounded-none border-x-0 text-center"
+                          readOnly
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="h-8 px-2 rounded-l-none border-l-0"
+                          onClick={incrementCapacityMin}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="capacityMax-mobile" className="text-xs text-muted-foreground">Max</Label>
+                      <div className="flex">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="h-8 px-2 rounded-r-none border-r-0"
+                          onClick={decrementCapacityMax}
+                        >
+                          -
+                        </Button>
+                        <Input
+                          id="capacityMax-mobile"
+                          type="text"
+                          value={capacityMax}
+                          className="h-8 text-xs rounded-none border-x-0 text-center"
+                          readOnly
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="h-8 px-2 rounded-l-none border-l-0"
+                          onClick={incrementCapacityMax}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <Separator />
                 
                 {/* Amenities Filter */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label>Amenities</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-1 max-h-24 overflow-y-auto pr-2">
                     {allAmenities.map((amenity) => (
-                      <div key={amenity} className="flex items-center space-x-2">
+                      <div key={amenity} className="flex items-center space-x-1">
                         <Checkbox 
                           id={`amenity-mobile-${amenity}`} 
                           checked={selectedAmenities.includes(amenity)}
                           onCheckedChange={() => toggleAmenity(amenity)}
+                          className="h-3 w-3"
                         />
-                        <Label htmlFor={`amenity-mobile-${amenity}`} className="text-sm font-normal">
+                        <Label htmlFor={`amenity-mobile-${amenity}`} className="text-xs font-normal truncate">
                           {amenity}
                         </Label>
                       </div>
@@ -472,17 +645,18 @@ export default function SearchPage() {
                 <Separator />
                 
                 {/* Location Filter */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label>Location</Label>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-1 max-h-24 overflow-y-auto pr-2">
                     {allLocations.map((location) => (
-                      <div key={location} className="flex items-center space-x-2">
+                      <div key={location} className="flex items-center space-x-1">
                         <Checkbox 
                           id={`location-mobile-${location}`} 
                           checked={selectedLocations.includes(location)}
                           onCheckedChange={() => toggleLocation(location)}
+                          className="h-3 w-3"
                         />
-                        <Label htmlFor={`location-mobile-${location}`} className="text-sm font-normal">
+                        <Label htmlFor={`location-mobile-${location}`} className="text-xs font-normal truncate">
                           {location}
                         </Label>
                       </div>
@@ -507,11 +681,10 @@ export default function SearchPage() {
         </div>
         
         {/* Search Results */}
-        <div className="flex-1">
-          <Card>
-            <CardHeader className="pb-3">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
-                <CardTitle>Available Rooms</CardTitle>
                 <div className="relative w-full max-w-sm">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -522,58 +695,62 @@ export default function SearchPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                <CardTitle>Available Rooms</CardTitle>
               </div>
-              <CardDescription>
-                {filteredRooms.length} {filteredRooms.length === 1 ? 'room' : 'rooms'} available on {format(date, "EEEE, MMMM d")} • {startTime} - {endTime}
-              </CardDescription>
+              <CardDescription className="flex justify-end">
+                  {filteredRooms.length} {filteredRooms.length === 1 ? 'room' : 'rooms'} available on {format(date, "EEEE, MMMM d")}
+                </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            
+            <CardContent className="overflow-y-auto">
+              <div className="space-y-3">
                 {filteredRooms.length > 0 ? (
-                  filteredRooms.map((room) => (
-                    <div 
-                      key={room.room_id} 
-                      className="rounded-lg border p-4 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
-                      onClick={() => handleViewRoom(room)}
-                    >
-                      <div className="flex justify-between mb-2">
-                        <h3 className="font-medium text-lg">{room.name}</h3>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{room.capacity_min} - {room.capacity_max}</span>
+                  <div className="grid grid-cols-1 gap-4">
+                    {filteredRooms.map(room => (
+                      <div 
+                        key={room.room_id} 
+                        className="rounded-lg border p-3 hover:bg-[lch(97_0_0)] cursor-pointer transition-colors"
+                        onClick={() => handleViewRoom(room)}
+                      >
+                        <div className="flex justify-between mb-1">
+                          <h3 className="font-medium text-lg">{room.name}</h3>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{room.capacity_min} - {room.capacity_max}</span>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 mb-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          {room.building}, Floor {room.floor}
+                        
+                        <div className="flex flex-col gap-1 mb-2">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            {room.building}, Floor {room.floor}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            {startTime} - {endTime}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          {startTime} - {endTime}
-                        </div>
-                      </div>
-                      
-                      {room.facilities && Object.entries(room.facilities).length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(room.facilities)
-                            .filter(([, value]) => value !== null && value !== undefined)
-                            .slice(0, 3)
-                            .map(([key], index) => (
-                              <span key={index} className="inline-flex items-center rounded-full bg-[lch(94_5_133)] px-2.5 py-0.5 text-xs text-[lch(17_23_133)]">
-                                {key}
+                        
+                        {room.facilities && Object.entries(room.facilities).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(room.facilities)
+                              .filter(([, value]) => value !== null && value !== undefined)
+                              .slice(0, 3)
+                              .map(([key], index) => (
+                                <span key={index} className="inline-flex items-center rounded-full bg-[lch(94_5_133)] px-2 py-0.5 text-xs text-[lch(17_23_133)]">
+                                  {key}
+                                </span>
+                              ))}
+                            {Object.entries(room.facilities).filter(([, value]) => value !== null && value !== undefined).length > 3 && (
+                              <span className="inline-flex items-center rounded-full bg-[lch(90_0_0)] px-2 py-0.5 text-xs text-muted-foreground">
+                                +{Object.entries(room.facilities).filter(([, value]) => value !== null && value !== undefined).length - 3} more
                               </span>
-                            ))}
-                          {Object.entries(room.facilities).filter(([, value]) => value !== null && value !== undefined).length > 3 && (
-                            <span className="inline-flex items-center rounded-full bg-[lch(90_0_0)] px-2.5 py-0.5 text-xs text-muted-foreground">
-                              +{Object.entries(room.facilities).filter(([, value]) => value !== null && value !== undefined).length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed">
                     <div className="text-center">

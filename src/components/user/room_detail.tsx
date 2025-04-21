@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MeetingRoom } from '@/types/meeting-room'
 
 // Define the type for the booking data
 type Booking = {
@@ -30,6 +31,7 @@ type Booking = {
   date: Date
   startTime: string
   endTime: string
+  roomData?: MeetingRoom | null
 }
 
 // Simplified room details component for booking creation only
@@ -42,12 +44,15 @@ type RoomDetailProps = {
 export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
   const [coBookers, setCoBookers] = useState<string[]>([])
   const [emailInput, setEmailInput] = useState("")
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [isBooking, setIsBooking] = useState(false)
   const [purpose, setPurpose] = useState("")
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [selectedStartTime, setSelectedStartTime] = useState<string>("")
   const [selectedEndTime, setSelectedEndTime] = useState<string>("")
+  const [showCapacityWarning, setShowCapacityWarning] = useState(false)
+  const [bookButtonShake, setBookButtonShake] = useState(false)
   
   // Get current date and time
   const now = new Date()
@@ -63,8 +68,12 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   }
   
-  // Calculate default start and end times
-  const defaultEndTime = "20:00" // 8 PM
+  // Calculate default end time (1 hour after start time)
+  const getDefaultEndTime = (startTimeStr: string) => {
+    const [hours, minutes] = startTimeStr.split(':').map(Number)
+    const endHour = hours + 1 > 20 ? 20 : hours + 1
+    return formatTimeToString(endHour, minutes)
+  }
   
   // Generate available times from 8:00 to 20:00
   const timeOptions = Array.from({ length: 25 }, (_, i) => {
@@ -92,49 +101,80 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
       
       if (availableOptions.length > 0) {
         // Set default start time (either from booking or first available)
-        if (booking.startTime && availableOptions.includes(booking.startTime)) {
-          setSelectedStartTime(booking.startTime)
-        } else {
-          setSelectedStartTime(availableOptions[0])
-        }
+        const newStartTime = booking.startTime && availableOptions.includes(booking.startTime)
+          ? booking.startTime
+          : availableOptions[0];
         
-        // Set default end time (either from booking or 8 PM)
-        if (booking.endTime && booking.endTime > selectedStartTime) {
-          setSelectedEndTime(booking.endTime)
+        setSelectedStartTime(newStartTime);
+        
+        // Set default end time (either from booking or 1 hour after start time)
+        if (booking.endTime && booking.endTime > newStartTime && availableOptions.includes(booking.endTime)) {
+          setSelectedEndTime(booking.endTime);
         } else {
-          setSelectedEndTime(defaultEndTime)
+          setSelectedEndTime(getDefaultEndTime(newStartTime));
         }
       }
     }
   }, [booking, isOpen])
 
+  // Reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setCoBookers([])
+      setEmailInput("")
+      setEmailError(null)
+      setPurpose("")
+      setBookingError(null)
+      setBookingSuccess(false)
+      setShowCapacityWarning(false)
+      setBookButtonShake(false)
+    }
+  }, [isOpen])
+
   if (!booking) return null
 
-  // Find the corresponding room data
-  const roomData = {
-    name: booking.roomName,
-    capacity_min: 8,
-    capacity_max: 12,
-    building: "Building A",
-    floor: "2",
-    facilities: {
-      whiteboard: 1,
-      projecter: true,
-      power_sockets: 4,
-      coffee_break: true,
-      special_notes: ["Standard amenities"]
-    }
-  }
-
-  // Format the date and time
   const bookingDate = booking.date
   const availableTimeOptions = getAvailableTimeOptions(bookingDate)
+  const roomData = booking.roomData
   
+  // Check if attendees count (including booker) is within room capacity
+  const isAttendeeCountValid = () => {
+    if (!roomData) return true;
+    
+    // Count includes the booker (1) + all co-bookers
+    const totalAttendees = 1 + coBookers.length;
+    
+    return totalAttendees >= roomData.capacity_min && totalAttendees <= roomData.capacity_max;
+  }
+  
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
   const handleAddCoBooker = () => {
-    if (emailInput && emailInput.includes('@') && !coBookers.includes(emailInput)) {
-      setCoBookers([...coBookers, emailInput])
-      setEmailInput("")
+    setEmailError(null);
+    
+    if (!emailInput.trim()) {
+      setEmailError("Please enter an email address");
+      return;
     }
+    
+    if (!validateEmail(emailInput)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
+    if (coBookers.includes(emailInput)) {
+      setEmailError("Email already added");
+      return;
+    }
+    
+    setCoBookers([...coBookers, emailInput]);
+    setEmailInput("");
+    
+    // Show capacity warning after successfully adding an attendee
+    setShowCapacityWarning(true);
   }
 
   const handleRemoveCoBooker = (email: string) => {
@@ -142,8 +182,17 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
   }
 
   const handleBookRoom = async () => {
-    setIsBooking(true)
-    setBookingError(null)
+    // Check if attendee count is valid before booking
+    if (!isAttendeeCountValid()) {
+      setShowCapacityWarning(true);
+      // Add shake animation to highlight the warning
+      setBookButtonShake(true);
+      setTimeout(() => setBookButtonShake(false), 500);
+      return;
+    }
+    
+    setIsBooking(true);
+    setBookingError(null);
     
     try {
       // Convert date and time strings to ISO format with timezone offset
@@ -226,7 +275,9 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] animate-scaleCenter">
         <DialogHeader>
-          <DialogTitle className="text-xl text-[lch(17_23_133)]">{roomData.name}</DialogTitle>
+          <DialogTitle className="text-xl text-[#163300]">
+            {roomData?.name || booking.roomName}
+          </DialogTitle>
           <DialogDescription>
             Booking details for your meeting
           </DialogDescription>
@@ -235,7 +286,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <div className="grid gap-6 py-4">
           <div className="grid gap-4">
             <div className="flex items-center gap-3">
-              <CalendarIcon className="h-5 w-5 text-[lch(17_23_133)]" />
+              <CalendarIcon className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Date: </span>
                 {format(bookingDate, "EEEE, MMMM d, yyyy")}
@@ -243,22 +294,14 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
+              <Clock className="h-5 w-5 text-[#163300]" />
               <div className="grid grid-cols-2 gap-2 w-full">
                 <div className="space-y-2">
                   <Label htmlFor="startTime">Start Time</Label>
                   <Select value={selectedStartTime} onValueChange={(value) => {
                     setSelectedStartTime(value);
-                    // If end time is before start time, reset it
-                    if (selectedEndTime <= value) {
-                      // Find next available time slot
-                      const startIndex = availableTimeOptions.findIndex(t => t === value);
-                      if (startIndex < availableTimeOptions.length - 1) {
-                        setSelectedEndTime(availableTimeOptions[startIndex + 1]);
-                      } else {
-                        setSelectedEndTime(defaultEndTime);
-                      }
-                    }
+                    // Always set end time to be 1 hour after start time
+                    setSelectedEndTime(getDefaultEndTime(value));
                   }}>
                     <SelectTrigger id="startTime">
                       <SelectValue placeholder="Start Time" />
@@ -294,32 +337,94 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
+              <MapPin className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Location: </span>
-                {roomData.building}, Floor {roomData.floor}
+                {roomData?.building || "Unknown"}, Floor {roomData?.floor || "Unknown"}
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-[lch(17_23_133)]" />
+              <Users className="h-5 w-5 text-[#163300]" />
               <div className="text-sm">
                 <span className="font-medium">Capacity: </span>
-                {roomData.capacity_min} - {roomData.capacity_max} people
+                {roomData?.capacity_min || "?"} - {roomData?.capacity_max || "?"} people
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="co-booker" className="text-sm font-medium">Add Co-Bookers</Label>
+              <div className="flex mt-1 mb-2 gap-2">
+                <div className="flex-1">
+                  <Input 
+                    id="co-booker"
+                    type="email" 
+                    placeholder="Enter email address" 
+                    value={emailInput}
+                    onChange={(e) => {
+                      setEmailInput(e.target.value);
+                      setEmailError(null);
+                    }}
+                    className={emailError ? "border-destructive" : ""}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-destructive mt-1">{emailError}</p>
+                  )}
+                </div>
+                <Button size="sm" variant="outline" onClick={handleAddCoBooker}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {coBookers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {coBookers.map((email, index) => (
+                    <div key={index} className="flex items-center gap-1 bg-[#9FE870] rounded-full px-2 py-1 text-xs">
+                      <span>{email}</span>
+                      <button 
+                        onClick={() => handleRemoveCoBooker(email)}
+                        className="hover:text-[#163300]"
+                        aria-label={`Remove ${email}`}
+                        title={`Remove ${email}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {showCapacityWarning && !isAttendeeCountValid() && roomData && (
+                <div className="flex items-start gap-1.5 text-xs text-destructive mt-1.5 bg-red-50 p-2 rounded-sm">
+                  <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  {1 + coBookers.length < roomData.capacity_min ? (
+                    <div>
+                      <p className="font-medium">Not enough attendees</p>
+                      <p>Add {roomData.capacity_min - (1 + coBookers.length)} more to meet minimum capacity of {roomData.capacity_min}.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-medium">Too many attendees</p>
+                      <p>Remove {(1 + coBookers.length) - roomData.capacity_max} to stay within maximum capacity of {roomData.capacity_max}.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-[lch(17_23_133)] mt-0.5" />
+              <Info className="h-5 w-5 text-[#163300] mt-0.5" />
               <div>
                 <div className="font-medium text-sm mb-1">Room Description</div>
-                <p className="text-sm text-muted-foreground">Conference room with standard amenities.</p>
+                <p className="text-sm text-muted-foreground">
+                  {roomData?.name || booking.roomName} - Conference room with standard amenities.
+                </p>
               </div>
             </div>
             
-            {roomData.facilities && Object.entries(roomData.facilities).length > 0 && (
+            {roomData?.facilities && Object.entries(roomData.facilities).length > 0 && (
               <div className="rounded-md border p-3">
                 <h4 className="text-sm font-medium mb-2">Amenities</h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -327,7 +432,7 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
                     .filter(([, value]) => value !== null && value !== undefined)
                     .map(([key], index) => (
                       <div key={index} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-[lch(83_56_130)]" />
+                        <CheckCircle2 className="h-4 w-4 text-[#9FE870]" />
                         <span>{key}</span>
                       </div>
                     ))}
@@ -344,40 +449,6 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
             />
-          </div>
-          
-          <div>
-            <Label htmlFor="co-booker" className="text-sm font-medium">Add Co-Bookers</Label>
-            <div className="flex mt-1 mb-2 gap-2">
-              <Input 
-                id="co-booker"
-                type="email" 
-                placeholder="Enter email address" 
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-              />
-              <Button size="sm" variant="outline" onClick={handleAddCoBooker}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {coBookers.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {coBookers.map((email, index) => (
-                  <div key={index} className="flex items-center gap-1 bg-[lch(94_5_133)] rounded-full px-2 py-1 text-xs">
-                    <span>{email}</span>
-                    <button 
-                      onClick={() => handleRemoveCoBooker(email)}
-                      className="hover:text-[lch(17_23_133)]"
-                      aria-label={`Remove ${email}`}
-                      title={`Remove ${email}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
           
           {/* Show error message if booking failed */}
@@ -404,10 +475,34 @@ export function RoomDetail({ booking, isOpen, onClose }: RoomDetailProps) {
         <DialogFooter>
           <Button 
             onClick={handleBookRoom} 
-            className="w-full bg-[lch(37_82_296)]" 
-            disabled={isBooking || bookingSuccess || !selectedStartTime || !selectedEndTime || selectedStartTime >= selectedEndTime}
+            className={`w-full bg-[#163300] hover:bg-[#0c1a00] text-white font-medium rounded-lg py-3 px-5 
+            transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 
+            focus:ring-4 focus:ring-[#9FE870]/50 focus:outline-none 
+            ${bookButtonShake ? 'animate-shake' : ''}`}
+            disabled={
+              isBooking || 
+              bookingSuccess || 
+              !selectedStartTime || 
+              !selectedEndTime || 
+              selectedStartTime >= selectedEndTime
+            }
           >
-            {isBooking ? "Booking..." : bookingSuccess ? "Booked!" : "Book Room"}
+            {isBooking ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Booking...
+              </span>
+            ) : bookingSuccess ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                Booked!
+              </span>
+            ) : (
+              "Book Room"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

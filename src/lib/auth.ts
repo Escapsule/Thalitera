@@ -195,13 +195,18 @@ export async function register(email: string, password: string): Promise<ApiResp
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ 
+        email: email, 
+        password: password 
+      }),
     });
 
     const result = await response.json();
     
+    console.log('Registration response:', result);
+    
     // The backend will send the verification link in the email
-    // The format is: https://thalitera.com/user/register/verify?{uuid}&{user_email}
+    // The format is: https://thalitera.com/register/verify?token={token}&email={email}
     
     return result;
   } catch (error) {

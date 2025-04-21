@@ -3,7 +3,35 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    console.log('Backend URL:', backendUrl);
+    
+    // Get the username from the request URL
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get('username');
+    
+    if (!username) {
+      return NextResponse.json(
+        {
+          code: 400,
+          message: 'Bad Request: Username is required',
+          data: null,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Validate username format
+    if (!/^[\w\u4e00-\u9fa5]{2,24}$/.test(username)) {
+      return NextResponse.json(
+        {
+          code: 400,
+          message: 'Bad Request: Username must be 2-24 characters and can only contain letters, numbers, underscores, or Chinese characters',
+          data: null,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 400 }
+      );
+    }
     
     // Get the session ID cookie from the request
     const cookie = request.headers.get('cookie') || '';
@@ -11,10 +39,7 @@ export async function GET(request: NextRequest) {
       .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
       ?.split('=')[1] || '';
     
-    console.log('Session ID from request:', sessionId ? 'Found' : 'Not found');
-    
     if (!sessionId) {
-      console.warn('No session ID found in request cookies');
       return NextResponse.json(
         {
           code: 401,
@@ -27,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Make the request to the backend
-    const response = await fetch(`${backendUrl}/user/info`, {
+    const response = await fetch(`${backendUrl}/user/update-info?username=${encodeURIComponent(username)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -36,13 +61,10 @@ export async function GET(request: NextRequest) {
       credentials: 'include',
     });
 
-    console.log('Response status:', response.status);
-
     if (!response.ok) {
       const text = await response.text();
       console.error('Error response body:', text);
       
-      // Return appropriate status code
       return NextResponse.json(
         {
           code: response.status,
@@ -74,11 +96,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         code: 500,
-        message: 'Failed to obtain user information',
+        message: 'Failed to update user information',
         data: null,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
-} 
+}
