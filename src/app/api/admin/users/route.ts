@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       ?.split('=')[1] || '';
     
     console.log('Session ID from request:', sessionId ? 'Found' : 'Not found');
-
+    
     if (!sessionId) {
       console.warn('No session ID found in request cookies');
       return NextResponse.json(
@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
+    // Make the request to the backend
+    const response = await fetch(`${backendUrl}/admin/users`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -40,29 +41,32 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       const text = await response.text();
       console.error('Error response body:', text);
+      
+      // Return appropriate status code
       return NextResponse.json(
         {
           code: response.status,
-          message: `Backend server error: ${response.status}`,
+          message: `Backend error: ${response.statusText}`,
           data: null,
-          timestamp: Date.now(),
+          timestamp: new Date().toISOString(),
         },
         { status: response.status }
       );
     }
 
     const data = await response.json();
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(
       {
         code: 500,
-        message: 'Failed to retrieve the list of meeting rooms',
+        message: 'Failed to obtain user information',
         data: null,
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
-}
+} 

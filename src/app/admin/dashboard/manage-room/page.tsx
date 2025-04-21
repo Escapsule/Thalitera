@@ -111,7 +111,7 @@ const ManageRoomPage = () => {
       const backendUrl = getBackendUrl();
       console.log('Request backend URL:', backendUrl);
       
-      const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
+      const response = await fetch(`/api/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -135,8 +135,7 @@ const ManageRoomPage = () => {
 
   const addRoom = async (roomData: Partial<MeetingRoom>) => {
     setLoading(true);
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`${backendUrl}/admin/meetingroom/add`, {
+    const response = await fetch(`/api/admin/meetingroom/add`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -224,8 +223,7 @@ const ManageRoomPage = () => {
 
   const modifyRoom = async (roomData: MeetingRoom) => {
     setLoading(true);
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`${backendUrl}/admin/meetingroom/modify`, {
+    const response = await fetch(`/api/admin/meetingroom/modify`, {
       method: 'POST',
       credentials: 'include',
       headers: {

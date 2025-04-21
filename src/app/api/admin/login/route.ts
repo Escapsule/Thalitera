@@ -4,100 +4,127 @@ export async function POST(request: NextRequest) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const body = await request.json();
-    const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
 
-    console.log('Admin login request body:', body);
-    
-    // 确保 backendUrl 格式正确
-    const baseUrl = backendUrl?.startsWith('http') 
-      ? backendUrl 
-      : `http://${backendUrl}`;
-    
-    // 创建后端请求的 headers 对象
+    console.log(body);
+
+    // Create headers object for the backend request
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Accept': '*/*',
     };
 
-    // 如果存在指纹，则转发
+    // Forward fingerprint if present in the request headers
+    const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
     if (fingerprint) {
       headers['THALITERA_FINGERPRINT'] = fingerprint;
-      console.log('Forwarding fingerprint:', fingerprint);
+      console.log('Forwarding fingerprint to backend:', fingerprint);
     }
 
-    console.log('Forwarding request to backend:', `${baseUrl}/admin/login`);
+    console.log(headers);
 
-    // 转发请求到后端
-    const response = await fetch(`${baseUrl}/admin/login`, {
+    // Forward the request to the backend
+    const response = await fetch(`${backendUrl}/admin/login`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
-      credentials: 'include', // 添加这一行，确保包含凭据
     });
 
-    console.log('Backend response status:', response.status);
+    // Get the response data
+    const data = await response.json();
 
-    // 获取响应数据
-    let data;
-    try {
-      data = await response.json();
-      console.log('Backend response data:', data);
-    } catch (jsonError) {
-      console.error('Failed to parse JSON response:', jsonError);
-      const text = await response.text();
-      console.error('Raw response:', text);
-      throw new Error('Invalid JSON response from backend');
-    }
+    console.log('Backend response:', data);
 
-    // 创建带有后端数据的响应
-    const nextResponse = NextResponse.json(data);
+    // Create a new response with the data
+    // For non-200 codes, use an appropriate HTTP status
+    const httpStatus = data.code === 200 ? 200 : 401;
+    const nextResponse = NextResponse.json(data, { status: httpStatus });
 
-    // 如果登录成功，设置会话 cookie
-    if (data.code === 200) {
-      console.log('Admin login successful, setting cookies');
+    // Log all headers for debugging
+    console.log('All response headers:');
+    response.headers.forEach((value, key) => {
+      console.log(`${key}: ${value}`);
+    });
+
+    // CRITICAL: For non-200 status codes, explicitly clear any session cookies
+    // before forwarding anything from the backend
+    if (data.code !== 200) {
+      console.log(`Non-success status code ${data.code} - FORCIBLY clearing session cookies`);
       
-      // 转发后端的 cookies（如果存在）
-      const setCookieHeader = response.headers.get('set-cookie');
-      if (setCookieHeader) {
-        console.log('Backend set-cookie header:', setCookieHeader);
+      // First, clear any existing cookies multiple ways to ensure they're gone
+      const clearCookies = [
+        'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+        'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+        'THALITERA_SESSION_ID=; Path=/; Domain=localhost; Max-Age=0',
+        'thalitera_session=; Path=/; Max-Age=0',
+        'thalitera_auth=; Path=/; Max-Age=0'
+      ];
+      
+      clearCookies.forEach(cookie => {
+        nextResponse.headers.set('Set-Cookie', cookie);
+      });
+      
+      // Don't forward any Set-Cookie headers from the backend for non-success response.
+      console.log('Intercepted and blocked backend cookies for non-success response.');
+      
+      return nextResponse;
+    }
+    
+    // Only for status code 200, forward backend cookies:
+    console.log('Success login with code 200 - forwarding session cookies');
+    
+    // Check for cookies in the response headers
+    let hasForwardedCookies = false;
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        // Log the cookie we received
+        console.log('Original cookie from backend:', value);
         
-        // 分割多个 cookie（如果有）
-        const cookies = setCookieHeader.split(/,(?=[^,]*=)/);
-        cookies.forEach(cookie => {
-          nextResponse.headers.append('Set-Cookie', cookie.trim());
-          console.log('Forwarded backend cookie:', cookie.trim().split(';')[0]);
-        });
-      } else {
-        console.log('No backend cookies found');
+        // Forward the cookie as-is
+        nextResponse.headers.append('Set-Cookie', value);
+        hasForwardedCookies = true;
       }
+    });
 
-      // 设置我们自己的会话 cookie
-      const sessionId = `${Date.now()}_${fingerprint || 'unknown'}`;
-      nextResponse.headers.append(
-        'Set-Cookie',
-        `THALITERA_SESSION_ID=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`
-      );
-      
-      console.log("Admin cookie set:", sessionId);
+    // Log whether cookies were found and forwarded
+    if (hasForwardedCookies) {
+      console.log('Successfully forwarded cookies from backend');
     } else {
-      console.log('Admin login failed with code:', data.code);
+      console.log('No cookies found in backend response to forward');
     }
 
+    // Add a special header to make session visible to client-side JS for debugging
+    nextResponse.headers.set('X-Session-Debug', 'session-active');
+    
     return nextResponse;
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('API route error:', error);
     
-    return NextResponse.json(
+    // On error, make sure to clear any session cookies
+    const errorResponse = NextResponse.json(
       {
         code: 500,
-        message: "An error occurred during admin login",
+        message: 'An error occurred during login',
         data: null,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
+    
+    // Clear all possible cookies
+    const clearCookies = [
+      'THALITERA_SESSION_ID=; Path=/; HttpOnly; Max-Age=0',
+      'THALITERA_SESSION_ID=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'thalitera_session=; Path=/; Max-Age=0',
+      'thalitera_auth=; Path=/; Max-Age=0'
+    ];
+    
+    clearCookies.forEach(cookie => {
+      errorResponse.headers.set('Set-Cookie', cookie);
+    });
+    
+    return errorResponse;
   }
 }
+
 
 // Handle OPTIONS requests for CORS preflight
 export async function OPTIONS() {

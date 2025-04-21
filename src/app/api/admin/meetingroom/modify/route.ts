@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
-    const roomData = await request.json();
+    const headersList = await headers();
+    const cookie = headersList.get('cookie') || '';
+    const sessionId = cookie.split(';')
+      .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
+      ?.split('=')[1] || '';
 
-    console.log('Forwarding request to backend:', `http://${backendUrl}/admin/meetingroom/modify`);
+    // Get query parameters from request body (all optional)
+    const body = await request.json().catch(() => ({}));
+    
+    console.log("add meeting room:", body);
 
-    const response = await fetch(`http://${backendUrl}/admin/meetingroom/modify`, {
+    console.log('Forwarding request to backend:', `${backendUrl}/admin/meetingroom/modify`);
+
+    const response = await fetch(`${backendUrl}/admin/meetingroom/modify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
       },
-      body: JSON.stringify(roomData),
+      body: JSON.stringify(body),
       credentials: 'include',
     });
 
