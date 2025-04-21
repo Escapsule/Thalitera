@@ -12,6 +12,15 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     };
 
+    const headersToForward = [
+      'User-Agent',
+      'THALITERA_FINGERPRINT',
+      'X-Forwarded-For',
+      'Proxy-Client-IP',
+      'WL-Proxy-Client-IP',
+      // Add any other headers your backend needs
+    ];
+
     // Forward fingerprint if present in the request headers
     const fingerprint = request.headers.get('THALITERA_FINGERPRINT');
     if (fingerprint) {
@@ -19,7 +28,19 @@ export async function POST(request: NextRequest) {
       console.log('Forwarding fingerprint to backend:', fingerprint);
     }
 
-    console.log(headers);
+    headersToForward.forEach(header => {
+      const value = request.headers.get(header);
+      if (value) {
+        headers[header] = value;
+      }
+    });
+
+    const ip = request.ip || request.headers.get('x-real-ip');
+    if (ip) {
+      headers['X-Real-IP'] = ip;
+    }
+
+    console.log('Forwarding headers:', headers);
 
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/user/login`, {

@@ -271,8 +271,7 @@ const DashboardPage = () => {
   const fetchRoomStats = async () => {
     try {
       // Call API to retrieve conference room data
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
+      const response = await fetch(`/api/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -352,8 +351,7 @@ const DashboardPage = () => {
   const fetchUserStats = async () => {
     try {
       // Call API to retrieve user data
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/admin/users`, {
+      const response = await fetch(`/api/admin/users`, {
         method: 'GET',
         credentials: 'include',
         headers: {
