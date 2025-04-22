@@ -30,14 +30,24 @@ interface Attendee {
   updated_at: string;
 }
 
+interface MeetingRoom {
+  room_id?: string;
+  room_name?: string;
+  building?: string;
+  floor?: string | number;
+  capacity?: number;
+  status?: string;
+}
+
 interface Reservation {
   reservation_id: string;
   room_id: string;
-  room_name: string;
+  room_name?: string;
+  meeting_room?: MeetingRoom;
   user_id: string;
   user_name: string;
-  building: string;
-  floor: string | number;
+  building?: string;
+  floor?: string | number;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -386,7 +396,9 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
       <Dialog open={isOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-[500px] animate-scaleCenter transition-all duration-200">
           <DialogHeader>
-            <DialogTitle className="text-xl text-[lch(17_23_133)]">{localReservation.room_name}</DialogTitle>
+            <DialogTitle className="text-xl text-[lch(17_23_133)]">
+              {localReservation.meeting_room?.room_name || localReservation.room_name || "Meeting Room"}
+            </DialogTitle>
             <DialogDescription>
               {isEditMode ? "Edit reservation details" : "Reservation details"}
             </DialogDescription>
@@ -416,7 +428,10 @@ export function ReservationDetail({ reservation, isOpen, onClose, onCancel, canC
                   <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
                   <div className="text-sm">
                     <span className="font-medium">Location: </span>
-                    {localReservation.building}, Floor {localReservation.floor}
+                    {localReservation.meeting_room ? 
+                      `${localReservation.meeting_room.building || 'Unknown'}, Floor ${localReservation.meeting_room.floor || 'Unknown'}` :
+                      `${localReservation.building || 'Unknown'}, Floor ${localReservation.floor || 'Unknown'}`
+                    }
                   </div>
                 </div>
                 
