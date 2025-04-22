@@ -46,6 +46,9 @@ interface MeetingRoom {
 
 const getBackendUrl = () => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
+  if (backendUrl.startsWith('http://') || backendUrl.startsWith('https://')) {
+    return backendUrl;
+  }
   return `http://${backendUrl}`;
 };
 
@@ -58,61 +61,25 @@ const statusMap = {
   deleted: { label: 'Deleted', color: 'bg-gray-100 text-gray-800' }
 }
 
-// Mock data
-const mockRooms: MeetingRoom[] = [
-  {
-    room_id: "room-001",
-    name: "Main Conference Room",
-    capacity_min: 10,
-    capacity_max: 30,
-    building: "Headquarters",
-    floor: 3,
-    status: "active",
-    facilities: {
-      projector: true,
-      whiteboard: 2,
-      power_sockets: 12,
-      coffee_break: true,
-      special_notes: ["HD Projection System", "Video Conference Equipment"]
-    }
-  },
-  {
-    room_id: "room-002",
-    name: "Small Discussion Room A",
-    capacity_min: 2,
-    capacity_max: 8,
-    building: "R&D Center",
-    floor: 2,
-    status: "active",
-    facilities: {
-      projector: false,
-      whiteboard: 1,
-      power_sockets: 6,
-      coffee_break: false,
-      special_notes: ["Suitable for small group discussions"]
-    }
-  }
-];
-
 const ManageRoomPage = () => {
   // State definitions
-  const [rooms, setRooms] = useState<MeetingRoom[]>(mockRooms) // Initialize with mock data
-  const [loading, setLoading] = useState(false) // Set to false because loading is not needed
+  const [rooms, setRooms] = useState<MeetingRoom[]>([]) 
+  const [loading, setLoading] = useState(true) 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  // 将 isEditDialogOpen 改为 isModifyDialogOpen
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false)
   
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('') 
 
   // Add filtering states
-  const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>(mockRooms)
+  const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>([])
   const [filters, setFilters] = useState({
     name: '',
     building: '',
     status: 'all',
-    capacity: '', // Single capacity field instead of min/max
+    capacity: '', 
     hasProjector: false,
     hasCoffeeBreak: false,
     minWhiteboard: '',
@@ -136,12 +103,15 @@ const ManageRoomPage = () => {
     }
   })
 
-  // Get meeting room list - modified to use mock data
+  // Get meeting room list
   const fetchRooms = async () => {
     setLoading(true)
     try {
       console.log(`${localStorage.getItem('cookie')}`, `${localStorage.getItem('token')}`)
-      const response = await fetch(`${getBackendUrl()}/admin/meetingroom/all`, {
+      const backendUrl = getBackendUrl();
+      console.log('Request backend URL:', backendUrl);
+      
+      const response = await fetch(`/api/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -149,7 +119,9 @@ const ManageRoomPage = () => {
       const data = await response.json()
       console.log(data)
       if (data.code === 200) {
-        setRooms(data.data || [])
+        const activeRooms = (data.data || []).filter((room: MeetingRoom) => room.status !== 'deleted');
+        setRooms(activeRooms)
+        setFilteredRooms(activeRooms)
         console.log("get room list successfully!")
       } else {
         console.error(data.message || 'Failed to get meeting room list')
@@ -163,31 +135,22 @@ const ManageRoomPage = () => {
 
   const addRoom = async (roomData: Partial<MeetingRoom>) => {
     setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-    try {
-      const response = await fetch(`http://${backendUrl}/admin/meetingroom/add`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(roomData),
-      });
-      const data = await response.json();
-      if (data.code === 200) {
-        fetchRooms();
-        return true;
-      } else {
-        console.error(data.message || 'Failed to add meeting room');
-        alert(data.message || 'Failed to add meeting room');
-        return false;
-      }
-    } catch (error) {
-      console.error('Failed to add meeting room', error);
-      alert('Failed to add meeting room, please check your network connection');
+    const response = await fetch(`/api/admin/meetingroom/add`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(roomData),
+    });
+    const data = await response.json();
+    if (data.code === 200) {
+      fetchRooms();
+      return true;
+    } else {
+      console.error(data.message || 'Failed to add meeting room');
+      alert(data.message || 'Failed to add meeting room');
       return false;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -233,7 +196,7 @@ const ManageRoomPage = () => {
       const success = await addRoom(roomToAdd);
 
       if (success) {
-        alert('Meeting room modified successfully');
+        alert('Meeting room added successfully');
         setIsAddDialogOpen(false);
 
         setNewRoom({
@@ -260,46 +223,38 @@ const ManageRoomPage = () => {
 
   const modifyRoom = async (roomData: MeetingRoom) => {
     setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'localhost:8080';
-    try {
-      const response = await fetch(`http://${backendUrl}/admin/meetingroom/modify`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`/api/admin/meetingroom/modify`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        room_id: roomData.room_id,
+        name: roomData.name,
+        capacity_min: roomData.capacity_min,
+        capacity_max: roomData.capacity_max,
+        building: roomData.building,
+        floor: roomData.floor,
+        status: roomData.status,
+        facilities: {
+          projector: roomData.facilities.projector,
+          whiteboard: roomData.facilities.whiteboard,
+          power_sockets: roomData.facilities.power_sockets,
+          coffee_break: roomData.facilities.coffee_break,
+          special_notes: roomData.facilities.special_notes,
         },
-        body: JSON.stringify({
-          room_id: roomData.room_id,
-          name: roomData.name,
-          capacity_min: roomData.capacity_min,
-          capacity_max: roomData.capacity_max,
-          building: roomData.building,
-          floor: roomData.floor,
-          status: roomData.status,
-          facilities: {
-            projector: roomData.facilities.projector,
-            whiteboard: roomData.facilities.whiteboard,
-            power_sockets: roomData.facilities.power_sockets,
-            coffee_break: roomData.facilities.coffee_break,
-            special_notes: roomData.facilities.special_notes,
-          },
-        }),
-      });
-      const data = await response.json();
-      if (data.code === 200) {
-        fetchRooms();
-        return true;
-      } else {
-        console.error(data.message || 'Failed to modify meeting room');
-        alert(data.message || 'Failed to modify meeting room');
-        return false;
-      }
-    } catch (error) {
-      console.error('Failed to modify meeting room', error);
-      alert('Failed to modify meeting room, please check your network connection');
+      }),
+    });
+    const data = await response.json();
+    if (data.code === 200) {
+      fetchRooms();
+      return true;
+    } else {
+      console.error(data.message || 'Failed to modify meeting room');
+      alert(data.message || 'Failed to modify meeting room');
       return false;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -325,45 +280,103 @@ const ManageRoomPage = () => {
     }
   }
 
-  const handleDeleteRoom = async () => {
-    if (!selectedRoom) return
+  const deleteRoom = async (roomId: string, password: string) => {
+      setLoading(true);
+      try {
+        const backendUrl = getBackendUrl();
+        const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'text/plain', 
+          },
+          body: password, 
+        });
+    
+        const confirmData = await confirmResponse.json();
+    
+        if (confirmData.code !== 200) {
+          // Password error reminder
+          setPasswordError('Incorrect password. Please try again.');
+          setLoading(false);
+          return false;
+        }
+        setPasswordError('');
+        
+        const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([roomId]),
+        });
 
+      
+        const data = await deleteResponse.json();
+        if (data.code === 200) {
+          fetchRooms();
+          return true;
+        } else {
+          alert(data.message || 'Failed to delete meeting room');
+          return false;
+        }
+      } catch (error) {
+        alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    
+  const handleDeleteRoom = async () => {
+    if (!selectedRoom) return;
+    if (!adminPassword) {
+      alert('Please enter the admin password.');
+      return;
+    }
+  
     try {
-      setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
-      alert('Deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setAdminPassword('');
+      const success = await deleteRoom(selectedRoom.room_id, adminPassword);
+      if (success) {
+        alert('Deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setAdminPassword('');
+        setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
+      } else {
+        alert('Failed to delete meeting room');
+      }
     } catch (error) {
       alert('Failed to delete meeting room');
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
+  
 
-  // Apply filters function
+  // About filters
   const applyFilters = () => {
     let result = [...rooms];
 
-    // Filter by name
+    // Do not display deleted meeting rooms
+    result = result.filter(room => room.status !== 'deleted');
+
     if (filters.name) {
       result = result.filter(room =>
         room.name.toLowerCase().includes(filters.name.toLowerCase())
       );
     }
 
-    // Filter by building
     if (filters.building) {
       result = result.filter(room =>
         room.building.toLowerCase().includes(filters.building.toLowerCase())
       );
     }
 
-    // Filter by status
     if (filters.status && filters.status !== 'all') {
       result = result.filter(room => room.status === filters.status);
     }
 
-    // Filter by capacity - using single capacity field
-    // This finds rooms that can accommodate the specified number of people
     if (filters.capacity) {
       const capacity = parseInt(filters.capacity);
       result = result.filter(room =>
@@ -371,23 +384,19 @@ const ManageRoomPage = () => {
       );
     }
 
-    // Filter by projector availability
     if (filters.hasProjector) {
       result = result.filter(room => room.facilities.projector);
     }
 
-    // Filter by coffee break service
     if (filters.hasCoffeeBreak) {
       result = result.filter(room => room.facilities.coffee_break);
     }
 
-    // Filter by minimum whiteboard count
     if (filters.minWhiteboard) {
       const minWhiteboard = parseInt(filters.minWhiteboard);
       result = result.filter(room => room.facilities.whiteboard >= minWhiteboard);
     }
 
-    // Filter by minimum power sockets count
     if (filters.minPowerSockets) {
       const minPowerSockets = parseInt(filters.minPowerSockets);
       result = result.filter(room => room.facilities.power_sockets >= minPowerSockets);
@@ -396,7 +405,6 @@ const ManageRoomPage = () => {
     setFilteredRooms(result);
   }
 
-  // Reset all filters
   const resetFilters = () => {
     setFilters({
       name: '',
@@ -411,7 +419,6 @@ const ManageRoomPage = () => {
     setFilteredRooms(rooms);
   }
 
-  // Handle filter change
   const handleFilterChange = (field: string, value: string | boolean) => {
     setFilters(prev => ({
       ...prev,
@@ -426,7 +433,8 @@ const ManageRoomPage = () => {
 
   // Update filtered results when rooms data changes
   useEffect(() => {
-    setFilteredRooms(rooms);
+    const activeRooms = rooms.filter(room => room.status !== 'deleted');
+    setFilteredRooms(activeRooms);
   }, [rooms]);
 
   return (
@@ -668,7 +676,13 @@ const ManageRoomPage = () => {
       </div>
 
       {/* Delete confirmation dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+        setIsDeleteDialogOpen(open);
+        if (!open) {
+          setAdminPassword('');
+          setPasswordError('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
@@ -684,6 +698,9 @@ const ManageRoomPage = () => {
                 onChange={(e) => setAdminPassword(e.target.value)}
                 className="mt-2"
               />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
           </div>
           <DialogFooter>

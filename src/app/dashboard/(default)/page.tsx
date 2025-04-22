@@ -48,14 +48,24 @@ interface Attendee {
   updated_at: string;
 }
 
+interface MeetingRoom {
+  room_id?: string;
+  room_name?: string;
+  building?: string;
+  floor?: string | number;
+  capacity?: number;
+  status?: string;
+}
+
 interface Reservation {
   reservation_id: string;
   room_id: string;
-  room_name: string;
+  room_name?: string;
+  meeting_room?: MeetingRoom;
   user_id: string;
   user_name: string;
-  building: string;
-  floor: string | number;
+  building?: string;
+  floor?: string | number;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -199,7 +209,9 @@ export default function Dashboard() {
         });
     
     // Extract unique buildings from filtered reservations
-    const buildings = Array.from(new Set(relevantReservations.map(r => r.building)))
+    const buildings = Array.from(new Set(relevantReservations.map(r => 
+      r.meeting_room?.building || r.building || 'Unknown'
+    )))
     setFilteredBuildings(buildings)
     
     // Extract unique attendee emails from filtered reservations
@@ -365,7 +377,10 @@ export default function Dashboard() {
         
     // Filter by buildings if any are active
     if (activeBuildings.length > 0) {
-      filtered = filtered.filter(reservation => activeBuildings.includes(reservation.building));
+      filtered = filtered.filter(reservation => {
+        const building = reservation.meeting_room?.building || reservation.building;
+        return building && activeBuildings.includes(building);
+      });
     }
     
     // Filter by attendee email if any are active
@@ -892,9 +907,12 @@ export default function Dashboard() {
                           onClick={() => handleOpenDetail(reservation)}
                         >
                           <div className="space-y-1">
-                            <h3 className="font-medium">{reservation.room_name}</h3>
+                            <h3 className="font-medium">{reservation.meeting_room?.room_name || reservation.room_name || "Meeting Room"}</h3>
                             <div className="text-xs text-muted-foreground">
-                              {reservation.building}, Floor {reservation.floor}
+                              {reservation.meeting_room ? 
+                                `${reservation.meeting_room.building || 'Unknown'}, Floor ${reservation.meeting_room.floor || 'Unknown'}` :
+                                `${reservation.building || 'Unknown'}, Floor ${reservation.floor || 'Unknown'}`
+                              }
                             </div>
                             <div className="flex items-center text-sm text-muted-foreground">
                               <Clock className="mr-1 h-4 w-4" />

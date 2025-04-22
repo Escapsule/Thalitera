@@ -1,56 +1,69 @@
-import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
-    const headersList = await headers();
-    const cookie = headersList.get('cookie') || '';
-    const sessionId = cookie.split(';')
-      .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
-      ?.split('=')[1] || '';
+    const headers = req.headers;
+    
+    console.log('Backend URL in API route:', backendUrl);
 
-    console.log('Backend URL:', backendUrl);
-    console.log('Session ID:', sessionId);
+    if (!backendUrl) {
+      return NextResponse.json(
+        {
+          code: 500,
+          message: 'Backend URL is not defined',
+          data: [],
+          timestamp: Date.now(),
+        },
+        { status: 500 }
+      );
+    }
 
-    const response = await fetch(`${backendUrl}/admin/meetingroom/all`, {
+    const baseUrl = backendUrl.startsWith('http://') || backendUrl.startsWith('https://') 
+      ? backendUrl 
+      : `http://${backendUrl}`;
+
+    console.log('Fetching from:', `${baseUrl}/admin/meetingroom/all`);
+
+    const response = await fetch(`${baseUrl}/admin/meetingroom/all`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
+        cookie: headers.get('cookie') || '', 
       },
       credentials: 'include',
+      cache: 'no-store',
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('API route response status:', response.status);
 
     if (!response.ok) {
       const text = await response.text();
-      console.error('Error response body:', text);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      console.error('Unexpected content type:', contentType);
-      console.error('Response body:', text);
-      throw new Error('Expected JSON response but got: ' + contentType);
+      console.log('Error response body:', text);
+      return NextResponse.json(
+        {
+          code: response.status,
+          message: `Backend server error: ${response.statusText}`,
+          data: [],
+          timestamp: Date.now(),
+        },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
+
   } catch (error) {
-    console.error('API route error:', error);
+    console.log('API route error:', error);
     return NextResponse.json(
       {
         code: 500,
-        message: 'Internal Server Error',
+        message: `Internal server error: ${error instanceof Error ? error.message : String(error)}`,
         data: [],
         timestamp: Date.now(),
       },
       { status: 500 }
     );
   }
-} 
+}

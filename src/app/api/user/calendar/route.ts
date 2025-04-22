@@ -12,15 +12,26 @@ interface Attendee {
   updated_at?: string;
 }
 
+// Define meeting room interface
+interface MeetingRoom {
+  room_id?: string;
+  room_name?: string;
+  building?: string;
+  floor?: string | number;
+  capacity?: number;
+  status?: string;
+}
+
 // Define interfaces for the API response
 interface CalendarItem {
   reservation_id: string;
   room_id: string;
-  room_name: string;
-  building: string;
-  floor: string | number;
+  room_name?: string;
+  meeting_room?: MeetingRoom;
   user_id: string;
   user_name: string;
+  building?: string;
+  floor?: string | number;
   start_time: string;
   end_time: string;
   created_at: string;
@@ -134,12 +145,18 @@ export async function GET() {
           const normalizedStartTime = normalizeDate(item.start_time);
           const normalizedEndTime = normalizeDate(item.end_time);
           
+          // 处理新的API响应结构，可能包含meeting_room对象
+          const room_name = item.meeting_room?.room_name || item.room_name;
+          const building = item.meeting_room?.building || item.building;
+          const floor = item.meeting_room?.floor || item.floor;
+          
           return {
             reservation_id: item.reservation_id,
             room_id: item.room_id,
-            room_name: item.room_name,
-            building: item.building,
-            floor: item.floor,
+            room_name,
+            building,
+            floor,
+            meeting_room: item.meeting_room,
             user_id: item.user_id,
             user_name: item.user_name,
             start_time: normalizedStartTime,
