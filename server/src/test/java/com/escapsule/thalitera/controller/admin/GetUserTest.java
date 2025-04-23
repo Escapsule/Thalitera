@@ -35,7 +35,6 @@ public class GetUserTest {
 
     @Test
     void testGetAllUsers() throws Exception {
-        // 模拟登录用户（必须放入 session）
         User mockUser = new User();
         mockUser.setUserId(UUID.randomUUID());
         mockUser.setEmail("admin@example.com");

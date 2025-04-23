@@ -30,7 +30,7 @@ public class MeetingRoomStatisticsServiceImpl implements MeetingRoomStatisticsSe
 
         if (roomId != null) {
             MeetingRoom room = meetingRoomMapper.getMeetingRoomByRoomId(roomId);
-            if (room == null) return List.of(); // 可改为抛出自定义异常
+            if (room == null) return List.of();
             rooms = List.of(room);
         } else {
             rooms = meetingRoomMapper.getAllMeetingRooms();
