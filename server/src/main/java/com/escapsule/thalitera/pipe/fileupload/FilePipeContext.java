@@ -14,6 +14,7 @@ public class FilePipeContext {
     private final String bucket;
     private FileMetadata metadata;
     private FileUploadResponseVO vo;
+    private boolean isUploaded;
 
     public FilePipeContext(FileUploadRequestDTO dto, MinioClient client, String bucket) {
         this.dto = dto;

@@ -63,6 +63,9 @@ public class UploadChunksStep implements FilePipeStep {
     @Override
     @Transactional
     public void execute(FilePipeContext ctx) throws Exception {
+        if (ctx.isUploaded()) {
+            return;
+        }
         final String objectKey = ctx.getMetadata().getObjectKey();
         final UUID fileKey = ctx.getMetadata().getFileKey();
         final String bucket = ctx.getBucket();
