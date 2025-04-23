@@ -6,10 +6,19 @@ type Reservation = {
   reservation_id: string;
   room_id: string;
   room_name: string;
-  building: string;
-  floor: number;
-  user_id: string;
-  user_name: string;
+  meeting_room: {
+    building: string;
+    floor: number;
+    capacity_min: number;
+    capacity_max: number;
+    facilities: {
+      projector: boolean;
+      whiteboard: number;
+      power_sockets: number;
+      coffee_break: boolean;
+      special_notes: string[];
+    };
+  };
   start_time: string;
   end_time: string;
   created_at: string;
@@ -61,8 +70,8 @@ const RoomCharts = ({ rooms }: RoomChartsProps) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-        const response = await fetch(`${backendUrl}/admin/reservations`, {
+
+        const response = await fetch(`/api/admin/reservations`, {
           method: 'GET',
           credentials: 'include',
         });

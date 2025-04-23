@@ -4,8 +4,7 @@
  */
 export const getBookingStats = async (): Promise<{ bookingsToday: number }> => {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/admin/reservations`, {
+    const response = await fetch(`/api/admin/reservations`, {
       method: 'GET',
       credentials: 'include',
     });
@@ -93,16 +92,23 @@ export const getRoomUtilizationStats = async (
   utilization_rate: number;
 }[]> => {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    
     // Verify date format
     if (!startDate || !endDate) {
       throw new Error('The start date and end date cannot be empty');
     }
 
+    // Clean up spaces in the date string to ensure proper formatting
+    const cleanDate = (dateStr: string) => {
+      // Replace spaces with T
+      return dateStr.replace(/\s+/, 'T');
+    };
+
+    const cleanStartDate = cleanDate(startDate);
+    const cleanEndDate = cleanDate(endDate);
+
     // Verification date range
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(cleanStartDate);
+    const end = new Date(cleanEndDate);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       throw new Error('Invalid date format');
     }
@@ -119,51 +125,73 @@ export const getRoomUtilizationStats = async (
     }
 
     console.log('Fetching room utilization stats:', {
-      url: `${backendUrl}/admin/statistics/meeting-room-utilization`,
-      params: { startDate, endDate }
+      startDate: cleanStartDate,
+      endDate: cleanEndDate
     });
 
-    const response = await fetch(
-      `${backendUrl}/admin/statistics/meeting-room-utilization?startDate=${startDate}&endDate=${endDate}`,
-      {
-        method: 'GET',
-        credentials: 'include',
-      }
-    );
+    const response = await fetch(`/api/admin/statistics?startDate=${encodeURIComponent(cleanStartDate)}&endDate=${encodeURIComponent(cleanEndDate)}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
     if (!response.ok) {
-      // Attempt to obtain error details
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        errorMessage += ` - ${errorData.message || 'unknown error'}`;
-      } catch (e) {
-        // If unable to parse error response, use default error message
-      }
-      throw new Error(errorMessage);
+      const errorText = await response.text();
+      console.error('Failed to fetch statistics:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to get statistics: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log('Room utilization stats response:', data);
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse response as JSON:', error);
+      throw new Error('Invalid response format from server');
+    }
+    
+    if (!data) {
+      console.error('API returned empty response');
+      throw new Error('API returned empty response');
+    }
 
-    // If the returned value is an array, use it directly
+    // Check response format
+    if (typeof data !== 'object') {
+      console.error('Invalid response format:', data);
+      throw new Error('Invalid response format from server');
+    }
+
+    // If the backend returns an array of data directly, wrap it in a standard format
     if (Array.isArray(data)) {
       return data;
     }
 
-    // If the returned object is a packaging object, check the code
-    if (data.code === 200) {
-      return data.data;
+    // Check standard response format
+    if (data.code === undefined || data.message === undefined) {
+      console.error('Invalid response structure:', data);
+      throw new Error('Invalid response structure from server');
     }
 
-    throw new Error(data.message || 'Unknown response format');
+    if (data.code !== 200) {
+      console.error('API returned error:', {
+        code: data.code,
+        message: data.message,
+        data: data.data
+      });
+      throw new Error(data.message || `API error: ${data.code}`);
+    }
+
+    // Ensure that the returned data is an array
+    if (!Array.isArray(data.data)) {
+      console.error('Invalid data format:', data.data);
+      throw new Error('Invalid data format from server');
+    }
+
+    return data.data;
   } catch (error) {
-    console.error('Error fetching room utilization statistics:', {
-      error,
-      startDate,
-      endDate
-    });
-    // Return an empty array instead of throwing an error, so that the component can continue rendering
-    return [];
+    console.error('Error fetching room utilization statistics:', error);
+    throw error;
   }
 };

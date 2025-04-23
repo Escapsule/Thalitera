@@ -161,8 +161,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
 
   const fetchReservations = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/admin/reservations`, {
+      const response = await fetch(`/api/admin/reservations`, {
         method: 'GET',
         credentials: 'include',
       });

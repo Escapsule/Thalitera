@@ -146,10 +146,10 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
         disabled={currentPage === 1}
         className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        previous page
+        Previous
       </button>
       <div className="flex items-center gap-1">
-        <span className="text-xs">page</span>
+        <span className="text-xs">Page</span>
         <input
           title="Page Number"
           type="text"
@@ -159,14 +159,14 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
           onBlur={handleInputSubmit}
           className="w-8 px-1 py-0.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <span className="text-xs">, total {totalPages} pages</span>
+        <span className="text-xs"> of {totalPages} </span>
       </div>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        next page
+        Next
       </button>
     </div>
   )
@@ -525,8 +525,7 @@ const DashboardPage = () => {
 
   const fetchUserReservations = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/admin/reservations`, {
+      const response = await fetch(`/api/admin/reservations`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -575,15 +574,7 @@ const DashboardPage = () => {
           if (isConfirmed && (isCurrentBooking || isFutureBooking)) {
             const currentReservation = reservationsMap[userId];
             if (!currentReservation || startTime < new Date(currentReservation.start_time).getTime() / 1000) {
-              reservationsMap[userId] = {
-                room_name: reservation.room_name,
-                building: reservation.building,
-                floor: reservation.floor,
-                start_time: reservation.start_time,
-                end_time: reservation.end_time,
-                purpose: reservation.purpose,
-                status: reservation.status
-              };
+              reservationsMap[userId] = reservation;
             }
           }
         });
@@ -597,8 +588,7 @@ const DashboardPage = () => {
 
   const fetchRoomReservations = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/admin/reservations`, {
+      const response = await fetch(`/api/admin/reservations`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -903,7 +893,7 @@ const DashboardPage = () => {
                                 {userReservations[user.user_id] && (
                                   <div className="mt-2 text-xs pl-10">
                                     <span className="text-gray-500">Current/Next Booking: </span>
-                                    <span className="font-medium">{userReservations[user.user_id].room_name}</span>
+                                    <span className="font-medium">{userReservations[user.user_id].meeting_room.name}</span>
                                     <span className="text-gray-500"> ({formatDate(userReservations[user.user_id].start_time)})</span>
                                   </div>
                                 )}
