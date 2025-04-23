@@ -51,6 +51,9 @@ public class RecordMetadataStep implements FilePipeStep {
     @Override
     @Transactional
     public void execute(FilePipeContext ctx) throws Exception {
+        if (ctx.isUploaded()) {
+            return;
+        }
         FileMetadata fm = ctx.getMetadata();
         fm.setUploadedBy(ctx.getDto().getUploadedBy());
         fileMetadataMapper.insert(fm);

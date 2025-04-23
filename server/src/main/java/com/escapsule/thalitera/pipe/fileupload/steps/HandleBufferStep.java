@@ -60,6 +60,9 @@ public class HandleBufferStep implements FilePipeStep {
      */
     @Override
     public void execute(FilePipeContext ctx) throws Exception {
+        if (ctx.isUploaded()) {
+            return;
+        }
         MultipartFile file = ctx.getDto().getFile();
         if (file.getSize() < MAX_BUFFER_SIZE) {
             ctx.getMetadata().setObjectKey(IN_MEMORY_PREFIX + ctx.getMetadata().getFileKey());

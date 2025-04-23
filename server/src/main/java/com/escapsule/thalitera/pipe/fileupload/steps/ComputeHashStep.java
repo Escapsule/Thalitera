@@ -1,8 +1,11 @@
 package com.escapsule.thalitera.pipe.fileupload.steps;
 
+import com.escapsule.thalitera.entity.FileMetadata;
+import com.escapsule.thalitera.mapper.FileMetadataMapper;
 import com.escapsule.thalitera.pipe.fileupload.FilePipeContext;
 import com.escapsule.thalitera.pipe.fileupload.FilePipeStep;
 import jakarta.xml.bind.DatatypeConverter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -25,11 +28,12 @@ import java.security.MessageDigest;
  */
 @Component
 @Order(3)
+@RequiredArgsConstructor
 public class ComputeHashStep implements FilePipeStep {
 
     /** Buffer size (8KB) for efficient stream reading */
     private static final int BUFFER_SIZE = 8192;
-
+    private final FileMetadataMapper fileMetadataMapper;
 
     /**
      * Executes file hashing and metadata collection process.
@@ -66,6 +70,14 @@ public class ComputeHashStep implements FilePipeStep {
                 digest.update(buf, 0, len);
             }
             String hash = DatatypeConverter.printHexBinary(digest.digest()).toLowerCase();
+
+            FileMetadata fileMetadata = fileMetadataMapper.getDataByHash(hash);
+            if (fileMetadata != null) {
+                ctx.setMetadata(fileMetadata);
+                ctx.setUploaded(true);
+                return;
+            }
+
             ctx.getMetadata().setSha256Hash(hash);
             ctx.getMetadata().setSize(ctx.getDto().getFile().getSize());
             ctx.getMetadata().setContentType(ctx.getDto().getFile().getContentType());

@@ -20,6 +20,8 @@ public class WebConfiguration implements WebMvcConfigurer {
                         "/user/verify",
                         "/user/forget-password/**",
                         "/user/mfa/**",
+                        "/user/check-auth",
+                        "/admin/check-auth",
                         "/admin/login",
                         "/public/**",
                         "/error",

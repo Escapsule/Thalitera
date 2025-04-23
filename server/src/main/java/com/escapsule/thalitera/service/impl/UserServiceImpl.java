@@ -577,9 +577,12 @@ public class UserServiceImpl implements UserService {
         return trustedDevice == null || trustedDevice.stream()
                 .noneMatch(deviceFingerprint ->
                         deviceFingerprint.getPrint().equals(df.getPrint())
-                                && deviceFingerprint.getOs().equals(df.getOs())
-                                && deviceFingerprint.getBrowser().equals(df.getBrowser())
-                                && deviceFingerprint.getIp().equals(df.getIp())
+                                && deviceFingerprint.getOs()
+                                    .equals(df.getOs())
+                                && deviceFingerprint.getBrowser()
+                                    .equals(df.getBrowser())
+                                && IPInfoUtils.getIpInfo(deviceFingerprint.getIp()).getAddress()
+                                    .equals(IPInfoUtils.getIpInfo(df.getIp()).getAddress())
                 );
     }
 

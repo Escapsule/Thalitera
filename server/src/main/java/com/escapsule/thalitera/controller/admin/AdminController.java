@@ -170,4 +170,21 @@ public class AdminController {
         return ApiResult.success(true);
     }
 
+    /**
+     * Admin logout
+     *
+     * @param session The HTTP session object
+     * @return ApiResult with success message
+     */
+    @Operation(summary = "Admin logout",
+            description = "Admin logout.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Admin logout successfully"),
+    })
+    @GetMapping("/logout")
+    public ApiResult<?> logout(HttpSession session) {
+        session.invalidate();
+        log.info("User logout: {}", session.getId());
+        return ApiResult.success();
+    }
 }
