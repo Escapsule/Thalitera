@@ -537,6 +537,18 @@ const ManageBookingPage = () => {
     }
   }
 
+  // Modify time option generation function
+  const generateTimeOptions = () => {
+    return Array.from({ length: 48 }, (_, i) => {
+      const hour = Math.floor(i / 2)
+      const minute = (i % 2) * 30
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    })
+  }
+
+  // Add time option status
+  const timeOptions = generateTimeOptions()
+
   return (
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
       <div className="flex flex-1 justify-center">
@@ -573,24 +585,36 @@ const ManageBookingPage = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="filter-start-time">Start Time</Label>
-                  <Input
-                    id="filter-start-time"
-                    type="time"
-                    value={filters.startTime}
-                    onChange={(e) => handleFilterChange('startTime', e.target.value)}
-                    className="w-[120px]"
-                  />
+                  <Select 
+                    value={filters.startTime} 
+                    onValueChange={(value) => handleFilterChange('startTime', value)}
+                  >
+                    <SelectTrigger id="filter-start-time" className="h-9">
+                      <SelectValue placeholder="Select start time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.slice(0, -1).map((time) => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="filter-end-time">End Time</Label>
-                  <Input
-                    id="filter-end-time"
-                    type="time"
-                    value={filters.endTime}
-                    onChange={(e) => handleFilterChange('endTime', e.target.value)}
-                    className="w-[120px]"
-                  />
+                  <Select 
+                    value={filters.endTime} 
+                    onValueChange={(value) => handleFilterChange('endTime', value)}
+                  >
+                    <SelectTrigger id="filter-end-time" className="h-9">
+                      <SelectValue placeholder="Select end time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.filter(time => time > filters.startTime).map((time) => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -649,7 +673,7 @@ const ManageBookingPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="h-[700px] overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -744,51 +768,59 @@ const ManageBookingPage = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        currentBookings.map((booking, index) => (
-                          <TableRow key={`${booking.reservation_id}-${index}`}>
-                            <TableCell>{booking.meeting_room.name}</TableCell>
-                            <TableCell>
-                              <span className="font-medium">{booking.user_name}</span>
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(booking.start_time.toString())} - {formatDate(booking.end_time.toString())}
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(booking.created_at.toString())}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={statusMap[booking.status]?.color || ''}>
-                                {statusMap[booking.status]?.label || booking.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-start gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedBooking(booking)
-                                    setIsDetailDialogOpen(true)
-                                  }}
-                                >
-                                  Details
-                                </Button>
-                                {booking.status === 'pending' && (
+                        <>
+                          {currentBookings.map((booking, index) => (
+                            <TableRow key={`${booking.reservation_id}-${index}`}>
+                              <TableCell>{booking.meeting_room.name}</TableCell>
+                              <TableCell>
+                                <span className="font-medium">{booking.user_name}</span>
+                              </TableCell>
+                              <TableCell>
+                                {formatDate(booking.start_time.toString())} - {formatDate(booking.end_time.toString())}
+                              </TableCell>
+                              <TableCell>
+                                {formatDate(booking.created_at.toString())}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={statusMap[booking.status]?.color || ''}>
+                                  {statusMap[booking.status]?.label || booking.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-start gap-2">
                                   <Button
-                                    variant="destructive"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => {
                                       setSelectedBooking(booking)
-                                      setIsCancelDialogOpen(true)
+                                      setIsDetailDialogOpen(true)
                                     }}
                                   >
-                                    Cancel
+                                    Details
                                   </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                  {booking.status === 'pending' && (
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedBooking(booking)
+                                        setIsCancelDialogOpen(true)
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Add blank lines*/}
+                          {currentBookings.length < 10 && Array(10 - currentBookings.length).fill(0).map((_, index) => (
+                            <TableRow key={`empty-${index}`} className="h-[64px]">
+                              <TableCell colSpan={6}></TableCell>
+                            </TableRow>
+                          ))}
+                        </>
                       )}
                     </TableBody>
                   </Table>
