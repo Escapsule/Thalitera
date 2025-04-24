@@ -32,7 +32,6 @@ public class TaskSchedulerConfig {
         this.taskConfig = taskConfig;
         this.taskBeans = taskBeans;
         this.taskScheduler = taskScheduler;
-        scheduleTasks();
     }
 
     /**

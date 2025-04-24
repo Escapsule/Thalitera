@@ -65,4 +65,6 @@ public interface ReservationMapper {
     List<ReservationVO> getUserRelatedReservationDetailsByUserId(UUID userId);
 
     List<ReservationVO> getAllReservationDetails();
+
+    List<ReservationVO> getReservationsByExactTime(OffsetDateTime targetTime);
 }

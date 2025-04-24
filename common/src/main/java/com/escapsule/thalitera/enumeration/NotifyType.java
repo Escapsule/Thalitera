@@ -35,6 +35,12 @@ public enum NotifyType {
             "reservation-cancel-notification-template",
             ReservationInitAndCancelNotifyVariables.class
             ),
+    RESERVATION_REMIND_EMAIL(
+            "[Thalitera] Your reservation is about to start",
+            NotifyChannel.EMAIL,
+            "reservation-remind-notification-template",
+            ReservationRemindNotifyVariables.class
+            ),
     ;
 
     private final String displayName;

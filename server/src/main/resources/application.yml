@@ -53,5 +53,8 @@ timer:
   scheduled-tasks:
     tasks:
       - name: Delete Expired Pending User Task
-        cron: "0 * * * * *"
+        cron: "0 */30 * * * *"
+        enabled: true
+      - name: Remind User Meeting is About to Start Task
+        cron: "0 */10 * * * *"
         enabled: true

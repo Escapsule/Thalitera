@@ -1,9 +1,6 @@
 package com.escapsule.thalitera.handler;
 
-import com.escapsule.thalitera.event.ForgetPasswordVerifyEvent;
-import com.escapsule.thalitera.event.RegisterVerifyEvent;
-import com.escapsule.thalitera.event.ReservationInitAndCancelNotifyEvent;
-import com.escapsule.thalitera.event.ReservationUpdateNotifyEvent;
+import com.escapsule.thalitera.event.*;
 import com.escapsule.thalitera.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +52,17 @@ public class NotificationEventHandler {
     @EventListener
     public void handleReservationUpdateNotifyEvent(ReservationUpdateNotifyEvent event) {
         log.info("Successfully handle the reservation update notification event: {}", event);
+        notificationService.sendNotification(
+                event.getNotifyType(),
+                event.getTargetUser(),
+                event.buildVariables()
+        );
+    }
+
+    @Async("notificationThreadPool")
+    @EventListener
+    public void handleReservationRemindNotifyEvent(ReservationRemindNotifyEvent event) {
+        log.info("Successfully handle the reservation remind notification event: {}", event);
         notificationService.sendNotification(
                 event.getNotifyType(),
                 event.getTargetUser(),
