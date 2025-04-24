@@ -5,6 +5,7 @@ target/
 
 tmp/
 
+logs/
 ### STS ###
 .apt_generated
 .classpath
