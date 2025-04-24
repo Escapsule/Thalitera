@@ -1,6 +1,6 @@
 package com.escapsule.thalitera.constant;
 
-public class BookingStatusConstant {
+public class ReservationStatusConstant {
 
     /**
      * Default

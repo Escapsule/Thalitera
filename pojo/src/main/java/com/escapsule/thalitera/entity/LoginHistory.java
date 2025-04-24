@@ -6,7 +6,6 @@ import com.escapsule.thalitera.handler.GeographyPointTypeHandler;
 import com.escapsule.thalitera.handler.GsonTypeHandler;
 import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import com.escapsule.thalitera.json.DeviceFingerprint;
-import com.google.gson.JsonObject;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +14,6 @@ import org.locationtech.jts.geom.Point;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Data

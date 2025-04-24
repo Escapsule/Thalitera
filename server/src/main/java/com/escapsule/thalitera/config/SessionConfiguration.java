@@ -27,7 +27,7 @@ public class SessionConfiguration {
         // security setting
         serializer.setUseHttpOnlyCookie(true);
         // TODO: NO HTTPS in dev env
-        // serializer.setUseSecureCookie(true);   // Only transfer under HTTPS
+        serializer.setUseSecureCookie(true);   // Only transfer under HTTPS
         serializer.setSameSite("Lax");
 
         return serializer;

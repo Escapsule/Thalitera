@@ -11,29 +11,71 @@ public enum ErrorCode {
 
 
     // 2000 ~ 2999 business logic related
+
+    // User 2000 ~ 2199
     USER_NOT_FOUND(2001, "User does not exist."),
-    EMAIL_ERROR(2002, "Email error."),
-    INVALID_PASSWORD_FORMAT(2003, "Invalid encoded password."),
-    USER_EXIST(2004, "User exist."),
-    USER_EMAIL_OR_TOKEN_INVALID(2005, "User email error or token expired."),
-    USER_TOKEN_MISMATCH(2006, "User email verification token not equal."),
-    USER_REGISTER_FAILED(2007, "User register failed, please try again."),
-    USER_NOT_ACTIVE(2008, "User not active."),
-    USER_PASSWORD_INCORRECT(2009, "User password incorrect."),
-    USER_IP_ADDRESS_INVALID(2010, "User ip address invalid."),
-    USER_AGENT_INVALID(2011, "User agent invalid."),
-    USER_REGIESTER_FAILED(2012, "User register failed, please try again"),
-    USER_NOT_LOGIN(2013, "User not login"),
+    INVALID_PASSWORD_FORMAT(2002, "Invalid encoded password."),
+    USER_EXIST(2003, "User exist."),
+    USER_EMAIL_OR_TOKEN_INVALID(2004, "User email error or token expired."),
+    USER_TOKEN_MISMATCH(2005, "User email verification token not equal."),
+    USER_REGISTER_FAILED(2006, "User register failed, please try again."),
+    USER_NOT_ACTIVE(2007, "User not active."),
+    USER_PASSWORD_INCORRECT(2008, "User password incorrect."),
+    USER_IP_ADDRESS_INVALID(2009, "User ip address invalid."),
+    USER_AGENT_INVALID(2010, "User agent invalid."),
+    USER_NOT_LOGIN(2011, "User not login"),
+    EMAIL_VERIFICATION_FAILED(2012, "Email verification failed"),
+    USER_NEW_PASSWORD_SAME_TO_OLD(2013, "New password cannot be the same as the old password."),
+    INVALID_STATUS(2014, "Invalid user status."),
+    USER_STATUS_SAME_TO_OLD(2015, "New status cannot be the same as the old status."),
+    PERMISSION_DENIED(2016, "Permission denied."),
+    USER_NOT_ADMIN(2017, "User is not admin."),
+    USER_NOT_MFA(2018, "User is not MFA, please enable MFA."),
+    DEVICE_NOT_FOUND(2019, "Device not found."),
+    USER_DONT_HAVE_LOGIN_HISTORY(2020, "User does not have login history."),
+
+    // 2201 ~ 2399 meeting room related
+    INVALID_TIME_RANGE(2201, "The start time should be before the end time."),
+    CONFLICT_RESERVATION(2202, "The meeting room has been reserved during this time."),
+    RESERVATION_NOT_FOUND(2203, "Reservation not found."),
+    MEETING_ROOM_NOT_FOUND(2204, "Meeting room not found."),
+    CAPACITY_ERROR(2205, "Invalid capacity setting."),
+    MISSING_ROOM_ID(2206, "Missing room id."),
+    MISSING_RESERVATION_ID(2207, "Missing reservation id."),
+    MISSING_ATTENDEES(2208, "Missing attendees."),
+    INVALID_ATTENDEES_COUNT(2209, "Too many or too few attendees."),
+    INVALID_TIME_INTERVAL(2210, "Invalid time interval."),
+
+    //2401 ~ 2599 notification system related
+
+    NOTIFICATION_CHANNEL_UNSUPPORTED(2401, "Notification channel unsupported."),
+    EMAIL_ERROR(2402, "Email error."),
 
 
+    // 2601 ~ 2699 security related
+    CAPTCHA_GENERATION_FAILED(2601, "Captcha generation failed."),
+    CAPTCHA_EXPIRED(2602, "Captcha expired."),
+    CAPTCHA_INCORRECT(2603, "Captcha incorrect."),
+    TOTP_QR_CODE_GENERATION_FAILED(2604, "TOTP QR code generation failed."),
+    TOTP_CODE_INCORRECT(2605, "MFA code incorrect."),
+    TOTP_SECRET_NOT_FOUND(2606, "TOTP secret not found"),
+    TOTP_RECOVERY_CODES_NOT_FOUND(2607, "TOTP recovery codes not found"),
+    USER_HAS_NEW_DEVICE(2608, "User has new device, please give MFA code"),
+    CLAM_AV_SERVICE_UNAVAILABLE(2609, "ClamAV service unavailable"),
+    VIRUS_INFECTION_FILE_DETECTED(2709, "Virus infection file detected"),
 
-    INVALID_TIME_RANGE(2014, "The start time should be before the end time."),
-    CONFLICT_RESERVATION(2015, "The meeting room has been reserved during this time."),
-    RESERVATION_NOT_FOUND(2016, "Reservation not found."),
-    MEETING_ROOM_NOT_FOUND(2017, "Meeting room not found."),
+    // 2701 ~ 2799 file upload related
+    THIS_FILE_TYPE_IS_NOT_ALLOWED(2701, "This file type is not allowed, please try again."),
+    FILE_IS_EMPTY(2702, "File is empty."),
+    FILE_SIZE_EXCEEDS_LIMIT(2703, "File size exceeds limit."),
+    FILE_NAME_IS_NOT_VALID(2704, "File name is not valid."),
+    FILE_HEADER_VERIFICATION_FAILED(2705, "File header verification failed."),
+    INVALID_FILE_UPLOAD_ACTION(2706, "Invalid file upload action."),
+    AVATAR_UPDATE_FAILED(2707, "Avatar update failed."),
+    MEETING_ROOM_IMAGE_UPDATE_FAILED(2708, "Meeting room image update failed."),
 
-    // 3000 ~ 3999 database related
-
+    // 3001 ~ 3999 database related
+    DATABASE_CONNECTION_ERROR(3001, "Database connection error, please try again later."),
 
     // 5000 ~ 5999 system level error
     SYSTEM_BUSY(5000, "The system is busy, please try again later."),

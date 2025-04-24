@@ -1,5 +1,8 @@
 package com.escapsule.thalitera.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.constant.ReservationStatusConstant;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,25 +18,28 @@ import java.util.List;
 @AllArgsConstructor
 public class Reservation {
 
-    private String reservationId;
+    @TableField(value = "reservation_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID reservationId;
 
-    private String userId;
+    @TableField(value = "user_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID userId;
 
-    private String roomId;
+    @TableField(value = "room_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID roomId;
 
     private OffsetDateTime startTime;
 
     private OffsetDateTime endTime;
 
     /**
-     * Email address
+     * userId
      */
-    private List<String> attendees;
+    private List<UUID> attendees;
 
     private String purpose;
 
     /**
-     * See {@link com.escapsule.thalitera.constant.BookingStatusConstant}
+     * See {@link ReservationStatusConstant}
      */
     private String status;
 

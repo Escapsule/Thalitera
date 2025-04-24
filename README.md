@@ -3,8 +3,9 @@
 ```yaml
 spring:
   config:
+    base-url: http://xxxxx.xxx # Temporary hardcoding
     activate:
-      on-profile: dev # active environment
+      on-profile: dev
   datasource:
     url: jdbc:postgresql://PROD_DB_HOST:PORT/DB_NAME  # turn to your database
     username: PROD_USERNAME  # database username
@@ -24,6 +25,11 @@ spring:
       host: localhost
       password:
       database: 0
+oss:
+  endpoint:  # console address
+  access-key: # access-key
+  secret-key: # secret-key
+  bucket: # bucket
 ```
 
 # env

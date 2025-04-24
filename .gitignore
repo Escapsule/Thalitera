@@ -3,6 +3,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+tmp/
+
+logs/
 ### STS ###
 .apt_generated
 .classpath
@@ -35,3 +38,6 @@ build/
 
 application-dev.yml
 application-prod.yml
+
+
+/server/src/main/resources/ssl/

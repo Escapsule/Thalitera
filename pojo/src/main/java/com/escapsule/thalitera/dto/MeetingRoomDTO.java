@@ -1,36 +1,44 @@
 package com.escapsule.thalitera.dto;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.UUID;
 
 @Data
 public class MeetingRoomDTO {
 
-    public String roomId;
+    @TableField(value = "room_id", typeHandler = PgUUIDTypeHandler.class)
+    private UUID roomId;
 
-    public String name;
+    @NotBlank
+    private String name;
 
     @Positive
-    public int capacityMin;
+    private int capacityMin;
 
     @Positive
-    public int capacityMax;
+    private int capacityMax;
 
-    public String building;
+    @NotBlank
+    private String building;
 
-    public int floor;
+    @NotNull
+    private Integer floor;
 
-    public String status;
+    private String status;
 
-    public Object facilities;
+    private Map<String, Object> facilities;
 
-    public String createdBy;
+    private OffsetDateTime createdAt;
 
-    public OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
-    public OffsetDateTime updatedAt;
-
-    public String image;
+    private String image;
 }

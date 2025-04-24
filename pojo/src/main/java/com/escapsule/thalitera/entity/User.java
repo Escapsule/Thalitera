@@ -1,16 +1,13 @@
 package com.escapsule.thalitera.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.escapsule.thalitera.handler.PgUUIDTypeHandler;
-import com.escapsule.thalitera.json.TrustedDevice;
+import com.escapsule.thalitera.json.DeviceFingerprint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.ibatis.type.JdbcType;
 
 
 import java.io.Serializable;
@@ -51,9 +48,11 @@ public class User implements Serializable {
     /**
      * When "Trusted Device" is enabled, add a new record to the table
      * and skip MFA verification for this device.<br>
-     * See {@link com.escapsule.thalitera.json.TrustedDevice}
+     * See {@link com.escapsule.thalitera.json.DeviceFingerprint}
      */
-    private List<TrustedDevice> trustedDevice;
+    private List<DeviceFingerprint> trustedDevice;
+
+    private boolean mfaEnable;
 
     private OffsetDateTime createdAt;
 

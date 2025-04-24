@@ -13,7 +13,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class MeetingRoomVO {
 
-    private  String image;
+    private String roomId;
+
+    private String image;
 
     /**
      * Readable name of the meeting room
@@ -27,6 +29,11 @@ public class MeetingRoomVO {
     private String building;
 
     private String floor;
+
+    /**
+     * See {@link com.escapsule.thalitera.constant.MeetingRoomStatusConstant}
+     */
+    private String status;
 
     private Map<String, Object> facilities;
 

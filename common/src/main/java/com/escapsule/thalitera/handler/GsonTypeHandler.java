@@ -1,7 +1,9 @@
 package com.escapsule.thalitera.handler;
 
+import com.escapsule.thalitera.adapter.LocalDateTimeTypeAdapter;
 import com.escapsule.thalitera.json.Jsonb;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedTypes;
@@ -11,10 +13,13 @@ import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 
 @MappedTypes({Jsonb.class})
 public class GsonTypeHandler extends BaseTypeHandler<Jsonb> {
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
+            .create();
 
     @Override
     public void setNonNullParameter(PreparedStatement preparedStatement, int i, Jsonb o, JdbcType jdbcType)

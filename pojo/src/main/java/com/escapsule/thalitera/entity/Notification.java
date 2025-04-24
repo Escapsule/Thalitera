@@ -1,11 +1,13 @@
 package com.escapsule.thalitera.entity;
 
+import com.escapsule.thalitera.json.Jsonb;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -13,25 +15,25 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class Notification {
 
-    private String notificationId;
+    private Long notificationId;
 
     /**
      * See {@link com.escapsule.thalitera.constant.NotificationTypeConstant}
      */
     private String type;
 
-    private String recipient;
+    private UUID recipient;
 
-    private String content;
+    private Jsonb content;
 
     /**
      * See {@link com.escapsule.thalitera.constant.NotificationStatusConstant}
      */
     private String status;
 
-    private OffsetDateTime sentAt;
-
     private short retries;
 
     private OffsetDateTime createdAt;
+
+    private String failureReason;
 }

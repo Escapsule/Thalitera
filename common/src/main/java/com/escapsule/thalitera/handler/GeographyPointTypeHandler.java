@@ -1,6 +1,5 @@
 package com.escapsule.thalitera.handler;
 
-// common/src/main/java/com/escapsule/thalitera/handler/GeographyPointTypeHandler.java
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;

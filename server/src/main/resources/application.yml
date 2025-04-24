@@ -3,6 +3,10 @@ spring:
     property-naming-strategy: SNAKE_CASE
   profiles:
     active: dev  # active profile
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   application:
     name: Thalitera-Backend
 #  autoconfigure:
@@ -38,7 +42,19 @@ mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.escapsule.thalitera.entity
   type-handlers-package: com.escapsule.thalitera.handler
-
+oss:
+server:
+  tomcat:
+    max-swallow-size: 100MB
 logging:
   level:
     com.escapsule.thalitera.mapper: debug
+timer:
+  scheduled-tasks:
+    tasks:
+      - name: Delete Expired Pending User Task
+        cron: "0 */30 * * * *"
+        enabled: true
+      - name: Remind User Meeting is About to Start Task
+        cron: "0 */10 * * * *"
+        enabled: true

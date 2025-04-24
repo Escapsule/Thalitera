@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Secure Verification | Thalitera</title>
+    <title>Password Reset | Thalitera</title>
+    <!-- 保留原有全部样式 -->
     <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        a {
+            text-decoration: none;
         }
         body {
             margin: 0;
@@ -94,6 +98,61 @@
             margin: 16px 0;
             transition: background 0.3s ease;
         }
+        /* 在原有样式基础上新增 */
+        .code-card {
+            padding: 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(74,144,226,0.15);
+            box-shadow: 0 8px 24px rgba(74,144,226,0.1);
+            margin: 40px auto;
+            max-width: 360px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .code-card:hover {
+            transform: translateY(-2px);
+        }
+        .captcha-image {
+            border: 2px solid #e3ecf7;
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            margin: 20px auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .expiry-tag {
+            display: inline-block;
+            padding: 6px 16px;
+            background: #fff3d6;
+            color: #d48a00;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .info-card {
+            padding: 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(74,144,226,0.15);
+            box-shadow: 0 8px 24px rgba(74,144,226,0.1);
+            margin: 40px auto;
+            max-width: 480px;
+            text-align: left;
+            position: relative;
+        }
+        .info-item {
+            margin: 16px 0;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .time-remaining {
+            color: #d48a00;
+            font-weight: 600;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -105,88 +164,72 @@
     </div>
 
     <div class="content">
-        <div class="security-badge">
-            🔒 Secure Verification Required
+        <div class="security-badge" style="background:#e3fcef;color:#2d9d78;">
+            ⏰ Meeting Reminder
         </div>
 
         <h2 style="margin:0 0 8px 0;font-weight:700;color:#2d3436">
-            Welcome to Thalitera!
+            <span class="time-remaining" th:text="'Your meeting starts in ' + ${target_time} + ' minutes'"></span>
         </h2>
 
-        <p style="color:#636e72;margin-bottom:32px">
-            Thank you for using our platform. To ensure your account security,
-            please verify your email address within the next 5 minutes.
-        </p>
+        <!-- 会议信息卡片 -->
+        <div class="info-card">
+            <div class="info-item">
+                <strong>📅 Time:</strong>
+                <span th:text="${#temporals.format(start_time, 'yyyy-MM-dd HH:mm')} + ' - ' + ${#temporals.format(start_time, 'yyyy-MM-dd HH:mm')}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>📍 Location:</strong>
+                <span th:text="${building} + ' ' + ${floor} + 'F · ' + ${room_name}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>👤 Organizer:</strong>
+                <span th:text="${creator}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>👥 Attendees (</span><span th:text="${attendees.size()}"></span>):</strong>
+                <div th:each="attendee : ${attendees}" th:text="${attendee}"
+                     style="margin:4px 0;color:#636e72;"></div>
+            </div>
+
+            <div class="info-item">
+                <strong>🎯 Purpose:</strong>
+                <p th:text="${purpose}" style="margin:4px 0;color:#636e72;"></p>
+            </div>
+        </div>
 
         <div class="cta-wrapper">
-            <a th:href="${verification_url}" class="cta-button">
-                <span style="margin-right:12px">👉</span>
-                Verify Email Now
+            <a th:href="${base_url}" class="cta-button">
+                🚪 Join Meeting
             </a>
         </div>
 
         <div class="feature-list">
             <div style="display:flex;align-items:center;margin:12px 0">
-                <span style="font-size:20px;margin-right:12px">⏳</span>
+                <span style="font-size:20px;margin-right:12px">📌</span>
                 <div>
-                    <h3 style="margin:0;font-size:15px">Temporary Access</h3>
+                    <h3 style="margin:0;font-size:15px">Need to modify?</h3>
                     <p style="margin:4px 0;color:#636e72;font-size:14px">
-                        Verification link expires in 5 minutes
+                        <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none;">
+                            Update reservation details
+                        </a>
                     </p>
                 </div>
             </div>
-            <hr style="border-color:#eee">
-            <div style="display:flex;align-items:center;margin:12px 0">
-                <span style="font-size:20px;margin-right:12px">🔑</span>
-                <div>
-                    <h3 style="margin:0;font-size:15px">Security Assurance</h3>
-                    <p style="margin:4px 0;color:#636e72;font-size:14px">
-                        Encrypted connection with 256-bit SSL protection
-                    </p>
-                </div>
-            </div>
-            <hr style="border-color:#eee">
-            <div style="display:flex;align-items:center;margin:12px 0">
-                <span style="font-size:20px;margin-right:12px">🚀</span>
-                <div>
-                    <h3 style="margin:0;font-size:15px">Fast Platform Access</h3>
-                    <p style="margin:4px 0;color:#636e72;font-size:14px">
-                        Unlock and enjoy a convenient and fast interactive experience
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div style="margin:40px 0">
-            <p style="color:#636e72;font-size:14px">
-                Having trouble? Try copy this URL and paste into your browser:
-            </p>
-            <div class="dynamic-link">
-                <a th:href="${verification_url}"
-                   style="color:#4a90e2;text-decoration:none;word-break:break-all"
-                   th:text="${verification_url}"></a>
-            </div>
-            <p style="color:#636e72;font-size:14px;margin-top:16px">
-                📩 Didn't request this?
-                <span style="color:#636e72;text-decoration:none">
-                    Ignore this email
-                </span>
-            </p>
         </div>
     </div>
 
     <div class="footer">
         <div style="padding:24px;border-top:1px solid #eee">
-            <p style="margin:8px 0;color:#636e72;font-size:13px">
-                This email was sent to <span style="color:#4a90e2">
-                <span th:text="${email}"></span>
-            </span>
-            </p>
+
             <p style="margin:8px 0;color:#636e72;font-size:13px">
                 © 2025 Thalitera Technologies ·
-                <a href="#" style="color:#4a90e2;text-decoration:none">Privacy Policy</a>
+                <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none">Privacy Policy</a>
                 ·
-                <a href="#" style="color:#4a90e2;text-decoration:none">Support</a>
+                <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none">Support</a>
             </p>
             <p style="margin:16px 0 0 0;color:#b2bec3;font-size:12px">
                 Please do not reply to this automated message
@@ -194,5 +237,6 @@
         </div>
     </div>
 </div>
+</body>
 </body>
 </html>
