@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
     const headersList = await headers();
     const cookie = headersList.get('cookie') || '';

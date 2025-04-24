@@ -282,45 +282,36 @@ const ManageRoomPage = () => {
   const deleteRoom = async (roomId: string, password: string) => {
       setLoading(true);
       try {
-        const backendUrl = getBackendUrl();
-        const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'text/plain', 
-          },
-          body: password, 
-        });
-    
-        const confirmData = await confirmResponse.json();
-    
-        if (confirmData.code !== 200) {
-          // Password error reminder
-          setPasswordError('Incorrect password. Please try again.');
-          setLoading(false);
-          return false;
-        }
-        setPasswordError('');
+        console.log('Sending delete request with data:', [roomId], password);
         
-        const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
+        const response = await fetch(`/api/admin/meetingroom/delete`, {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify([roomId]),
+          body: JSON.stringify({
+            room_ids: [roomId], 
+            adminPassword: password
+          }),
         });
-
-      
-        const data = await deleteResponse.json();
+        
+        const data = await response.json();
+        console.log('Delete response:', data);
+        
         if (data.code === 200) {
           fetchRooms();
           return true;
         } else {
-          alert(data.message || 'Failed to delete meeting room');
+          if (data.message && data.message.includes('password')) {
+            setPasswordError('Incorrect password. Please try again.');
+          } else {
+            alert(data.message || 'Failed to delete meeting room');
+          }
           return false;
         }
       } catch (error) {
+        console.error('Delete room error:', error);
         alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
         return false;
       } finally {
@@ -328,29 +319,27 @@ const ManageRoomPage = () => {
       }
     };
     
-    
-  const handleDeleteRoom = async () => {
-    if (!selectedRoom) return;
-    if (!adminPassword) {
-      alert('Please enter the admin password.');
-      return;
-    }
-  
-    try {
-      const success = await deleteRoom(selectedRoom.room_id, adminPassword);
-      if (success) {
-        alert('Deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setAdminPassword('');
-        setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
-      } else {
-        alert('Failed to delete meeting room');
+    const handleDeleteRoom = async () => {
+      if (!selectedRoom) return;
+      if (!adminPassword) {
+        setPasswordError('Please enter admin password');
+        return;
       }
-    } catch (error) {
-      alert('Failed to delete meeting room');
-      console.error(error);
-    }
-  };
+    
+      try {
+        const success = await deleteRoom(selectedRoom.room_id, adminPassword);
+        if (success) {
+          setIsDeleteDialogOpen(false);
+          setAdminPassword('');
+          setPasswordError('');
+          setTimeout(() => {
+            alert('Meeting room deleted successfully');
+          }, 100);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
   
 
   // About filters
