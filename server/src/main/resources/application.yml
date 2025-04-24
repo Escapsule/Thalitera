@@ -49,3 +49,9 @@ server:
 logging:
   level:
     com.escapsule.thalitera.mapper: debug
+timer:
+  scheduled-tasks:
+    tasks:
+      - name: Delete Expired Pending User Task
+        cron: "0 * * * * *"
+        enabled: true

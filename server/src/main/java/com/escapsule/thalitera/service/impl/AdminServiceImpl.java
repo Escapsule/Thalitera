@@ -104,9 +104,9 @@ public class AdminServiceImpl implements AdminService {
                 IPInfoUtils.getIpInfo(ip).getLat()
         );
 
-        // verify if user status active
+        // verify if admin
         if (!user.getStatus().equals(UserStatusConstant.ADMIN)) {
-            log.error("User status is not active: {}", user.getEmail());
+            log.error("User status is not admin: {}", user.getEmail());
             logLoginAttempt(user, ip, df, location, false, ErrorCode.USER_NOT_ADMIN);
             throw new BaseException(ErrorCode.USER_NOT_ADMIN);
         }

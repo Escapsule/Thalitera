@@ -6,13 +6,9 @@ import com.escapsule.thalitera.handler.DFListTypeHandler;
 import com.escapsule.thalitera.handler.PGUUIDListTypeHandler;
 import com.escapsule.thalitera.json.DeviceFingerprint;
 import jakarta.validation.constraints.NotNull;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.Results;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -163,4 +159,7 @@ public interface UserMapper {
      */
     @Result(property = "trustedDevice", column = "trusted_devices", typeHandler = DFListTypeHandler.class)
     List<User> getUsersByIds(List<UUID> ids);
+
+    @Delete("DELETE FROM users WHERE created_at < #{offsetDateTime} and status = 'pending'")
+    void deleteExpiredPendingUser(OffsetDateTime offsetDateTime);
 }
