@@ -6,7 +6,7 @@
                     disableAnsi="false"
                     noConsoleNoAnsi="false"
                     pattern="%style{%d{yyyy-MM-dd HH:mm:ss.SSS}}{bright_cyan bold} \
-%style{[%t]}{magenta underline} \
+%style{[%20.20t]}{magenta underline} \
 %highlight{%-5level}{ERROR=white bg_red bold, WARN=black bg_yellow, INFO=green bold, DEBUG=bright_blue, TRACE=white bg_blue} \
 %style{%-46c{1.}}{bright_yellow bold} \
 %style{▶}{bright_green bold} \

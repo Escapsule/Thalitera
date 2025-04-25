@@ -30,7 +30,7 @@ springdoc:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.log4j2.Log4j2Impl
     auto-mapping-behavior: full
     jdbc-type-for-null: 'null'
   global-config:
@@ -57,4 +57,7 @@ timer:
         enabled: true
       - name: Remind User Meeting is About to Start Task
         cron: "0 */10 * * * *"
+        enabled: true
+      - name: Mark the completed meeting
+        cron: "0 * * * * *"
         enabled: true

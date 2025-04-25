@@ -67,4 +67,11 @@ public interface ReservationMapper {
     List<ReservationVO> getAllReservationDetails();
 
     List<ReservationVO> getReservationsByExactTime(OffsetDateTime targetTime);
+
+    /**
+     * Update reservation status to completed if start_time is before now and status is confirmed
+     * @param now current time
+     * @param status completed
+     */
+    void updateReservationCompletedBefore(OffsetDateTime now, String status);
 }

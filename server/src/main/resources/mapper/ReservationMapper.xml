@@ -71,6 +71,21 @@
         WHERE
         reservation_id = #{reservationId}
     </update>
+    <update id="updateReservationCompletedBefore">
+        UPDATE
+            reservations
+        SET
+            status = #{status},
+            updated_at = now()
+        WHERE
+            end_time &lt;= #{now}
+          AND
+            status = 'confirmed'
+          AND
+            start_time &gt;= #{now} - INTERVAL '500 milliseconds'
+          AND
+            start_time &lt;= #{now} + INTERVAL '500 milliseconds'
+    </update>
 
     <select id="getUserRelatedReservationDetailsByUserId" resultMap="ReservationDetailMap">
         SELECT
