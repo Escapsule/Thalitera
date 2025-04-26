@@ -1,8 +1,9 @@
-package com.escapsule.thalitera.service.impl;
+package com.escapsule.thalitera.service;
 
 import com.escapsule.thalitera.enumeration.ErrorCode;
 import com.escapsule.thalitera.exception.EmailException;
 import com.escapsule.thalitera.properties.EmailProperties;
+import com.escapsule.thalitera.service.impl.EmailServiceImpl;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;
