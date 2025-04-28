@@ -42,7 +42,7 @@ const fetchUserInfo = async (): Promise<UserInfo> => {
 
   return {
     user_id: result.data.user_id || '',
-    user_name: result.data.username || '',
+    user_name: result.data.username || result.data.user_name || '',
     email: result.data.email || '',
     avatar: result.data.avatar || ''
   };

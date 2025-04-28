@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useUpdateAvatar } from '@/hooks/useUpdateAvatar'
 
 interface PasswordFormData {
   currentPassword: string;
@@ -198,6 +199,19 @@ const Page = () => {
     console.log('Filtered data:', data);
   }, [loginFilter, failedLogins, successfulLogins, data]);
 
+  // Update profile state when user info is loaded
+  useEffect(() => {
+    if (userInfo) {
+      const userInfoData = userInfo as UserInfo;
+      setProfile({
+        user_id: userInfoData.user_id || '',
+        user_name: userInfoData.user_name || '',
+        email: userInfoData.email || '',
+        avatar: userInfoData.avatar || ''
+      });
+    }
+  }, [userInfo]);
+
   // 组合所有登录记录，按时间排序
   const allLoginHistory = React.useMemo(() => {
     // 如果设置了过滤器，直接使用过滤后的数据
@@ -226,13 +240,6 @@ const Page = () => {
   const hasLoginHistoryError = loginFilter.success !== undefined
     ? !!loginHistoryError
     : (!!failedLoginsError || !!successfulLoginsError);
-
-  // Update profile state when user info is loaded
-  useEffect(() => {
-    if (userInfo) {
-      setProfile(userInfo as UserInfo);
-    }
-  }, [userInfo]);
 
   // Handle profile input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,63 +347,24 @@ const Page = () => {
   };
 
   // Handle avatar upload
+  const { updateAvatar, isUpdating: isUpdatingAvatar } = useUpdateAvatar();
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setStatus(prev => ({ ...prev, error: 'Please upload an image file' }));
-      toast.error('Please upload an image file');
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setStatus(prev => ({ ...prev, error: 'The image size cannot exceed 2MB' }));
-      toast.error('The image size cannot exceed 2MB');
-      return;
-    }
-
-    try {
-      setStatus(prev => ({ ...prev, loading: true, error: null }));
-      const base64String = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('File read failed'));
-        reader.readAsDataURL(file);
-      });
-
-      const response = await fetch('/api/user/profile-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ avatar: base64String }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.code === 1073741824) {
-        // Refetch user info to update the avatar
-        refetchUserInfo();
-        
-        toast.success('Avatar uploaded successfully!');
-      } else {
-        throw new Error(result.message || 'Avatar upload failed');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Avatar upload failed';
-      setStatus(prev => ({
+    const result = await updateAvatar(file);
+    if (result) {
+      // Update local profile state with new avatar URL
+      setProfile(prev => ({
         ...prev,
-        error: errorMessage
+        avatar: result.data.url
       }));
-      toast.error(errorMessage);
-    } finally {
-      setStatus(prev => ({ ...prev, loading: false }));
-      e.target.value = '';
+      // Refetch user info to ensure consistency
+      refetchUserInfo();
+      toast.success('Avatar uploaded successfully!');
     }
+    e.target.value = '';
   };
 
   // Update password
@@ -920,21 +888,18 @@ const Page = () => {
                       className="hidden"
                       accept="image/*"
                       onChange={handleAvatarUpload}
-                      disabled={status.loading}
+                      disabled={isUpdatingAvatar}
+                      aria-label="Upload avatar"
+                      title="Upload avatar"
                     />
-                    <label 
-                      htmlFor="avatar-upload" 
-                      className="w-full block"
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)] hover:text-[lch(17_23_133)]" 
+                      disabled={isUpdatingAvatar}
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
                     >
-                      <Button 
-                        variant="outline" 
-                        className="w-full border-[lch(17_23_133)] text-[lch(17_23_133)] hover:bg-[lch(94_5_133)] hover:text-[lch(17_23_133)]" 
-                        disabled={status.loading}
-                        type="button"
-                      >
-                        {status.loading ? 'Uploading...' : 'Change Avatar'}
-                      </Button>
-                    </label>
+                      {isUpdatingAvatar ? 'Uploading...' : 'Change Avatar'}
+                    </Button>
                   </div>
                 </div>
               </div>

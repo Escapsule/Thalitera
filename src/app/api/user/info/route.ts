@@ -36,7 +36,9 @@ export async function GET(request: NextRequest) {
       credentials: 'include',
     });
 
+
     console.log('Response status:', response.status);
+    console.log('Response:', response);
 
     if (!response.ok) {
       const text = await response.text();
@@ -65,6 +67,12 @@ export async function GET(request: NextRequest) {
       // Make sure username is available if user_name exists
       else if (data.data.user_name && !data.data.username) {
         data.data.username = data.data.user_name;
+      }
+      
+      // Ensure avatar is properly handled
+      // If avatar is null, set it to an empty string to avoid issues in the frontend
+      if (data.data.avatar === null) {
+        data.data.avatar = '';
       }
     }
     
