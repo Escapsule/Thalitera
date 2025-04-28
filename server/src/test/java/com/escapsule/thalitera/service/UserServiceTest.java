@@ -97,12 +97,13 @@ class UserServiceTest {
     }
 
     @Test
-    void register_whenUserExists_thenThrowException() {
-        when(userMapper.getUserByEmail(anyString())).thenReturn(user);
+    void register_whenUserAlreadyExists_thenThrowException() {
+        when(userMapper.getUserByEmail(anyString())).thenReturn(this.user);
 
         BaseException ex = assertThrows(BaseException.class, () -> userService.register(registerDTO));
         assertEquals(ErrorCode.USER_EXIST.getCode(), ex.getCode());
     }
+
 
     @Test
     void login_whenUserNotFound_thenThrowException() {
