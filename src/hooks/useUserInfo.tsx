@@ -13,8 +13,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 30, // 30 minutes
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      staleTime: 1000 * 30, // 30 seconds (reduced from 5 minutes)
+      cacheTime: 1000 * 60 * 5, // 5 minutes (reduced from 30 minutes)
     }
   }
 });
@@ -54,6 +56,8 @@ const useUserInfoQuery = () => {
     queryKey: ['userInfo'],
     queryFn: fetchUserInfo,
     retry: 1,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
     onError: (error) => {
       console.error('Error fetching user info:', error);
     },

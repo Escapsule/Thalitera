@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UpdateAvatarResponse {
   code: number;
@@ -16,6 +17,7 @@ interface UpdateAvatarResponse {
 export const useUpdateAvatar = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const updateAvatar = async (file: File): Promise<UpdateAvatarResponse | null> => {
     if (!file) {
@@ -70,6 +72,12 @@ export const useUpdateAvatar = () => {
       if (!updateProfileResponse.ok) {
         throw new Error('Failed to update profile with new avatar');
       }
+
+      // Invalidate userInfo query
+      queryClient.invalidateQueries({ queryKey: ['userInfo'] });
+      
+      // Force a refetch of userInfo data
+      queryClient.refetchQueries({ queryKey: ['userInfo'] });
 
       return data;
     } catch (err) {

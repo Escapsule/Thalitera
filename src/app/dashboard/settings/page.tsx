@@ -360,8 +360,7 @@ const Page = () => {
         ...prev,
         avatar: result.data.url
       }));
-      // Refetch user info to ensure consistency
-      refetchUserInfo();
+      // The userInfo query will be automatically invalidated by the hook
       toast.success('Avatar uploaded successfully!');
     }
     e.target.value = '';
@@ -870,6 +869,7 @@ const Page = () => {
                   <Avatar className="w-40 h-40 border-4 border-[lch(94_5_133)]">
                     {profile.avatar ? (
                       <AvatarImage 
+                      
                         src={profile.avatar} 
                         alt="User profile picture"
                         className="w-full h-full object-cover"

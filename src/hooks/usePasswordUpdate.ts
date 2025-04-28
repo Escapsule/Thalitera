@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PasswordUpdateData {
   old_password: string;
@@ -23,6 +24,7 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const queryClient = useQueryClient();
 
   const reset = () => {
     setError(null);
@@ -51,6 +53,12 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
 
       if (result.code === 200) {
         setSuccess(true);
+        
+        // Invalidate user info query to refetch the updated data
+        queryClient.invalidateQueries({ queryKey: ['userInfo'] });
+        
+        // Force a refetch of userInfo data
+        queryClient.refetchQueries({ queryKey: ['userInfo'] });
       } else {
         throw new Error(result.message || 'Password update failed');
       }

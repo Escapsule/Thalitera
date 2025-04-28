@@ -29,6 +29,10 @@ export function useUsernameUpdate() {
     onSuccess: () => {
       // Invalidate user info query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['userInfo'] });
+      
+      // Force a refetch of userInfo data
+      queryClient.refetchQueries({ queryKey: ['userInfo'] });
+      
       setError(null);
     },
     onError: (error: Error) => {
