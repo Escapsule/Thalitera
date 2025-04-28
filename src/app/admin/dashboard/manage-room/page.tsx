@@ -459,11 +459,64 @@ const ManageRoomPage = () => {
                     Add Meeting Room
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Add New Meeting Room</DialogTitle>
                   </DialogHeader>
-                  <RoomForm room={newRoom} setRoom={setNewRoom} />
+                  <div className="grid gap-4 py-4 overflow-y-auto pr-2">
+                    <RoomForm room={newRoom} setRoom={setNewRoom} />
+                    
+                    {/* upload pictures */}
+                    <div className="mt-4 border-t border-gray-200 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-room-image">Image</Label>
+                        <div className="flex flex-col gap-4">
+                          <div className="border rounded-md p-2 w-32 h-32 flex items-center justify-center bg-gray-50">
+                            {newRoom?.image ? (
+                              <img 
+                                src={newRoom.image} 
+                                alt="Meeting room image" 
+                                className="max-w-full max-h-full object-cover"
+                              />
+                            ) : (
+                              <div className="text-gray-400 text-center text-sm">Null</div>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <Button variant="outline" size="sm" className="w-32 h-10 text-sm px-4">
+                              Upload pictures
+                            </Button>
+                            <input
+                              type="file"
+                              id="new-room-image"
+                              accept="image/*"
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    if (newRoom) {
+                                      setNewRoom({
+                                        ...newRoom,
+                                        image: event.target?.result as string
+                                      });
+                                    } else {
+                                      setNewRoom({
+                                        image: event.target?.result as string
+                                      });
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <DialogFooter>
                     <Button onClick={handleAddRoom}>Confirm</Button>
                   </DialogFooter>
