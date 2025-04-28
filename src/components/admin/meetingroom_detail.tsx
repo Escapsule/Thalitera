@@ -110,18 +110,25 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
       startDate.setDate(startDate.getDate() - 7);
 
       console.log('Fetching stats for room:', room.room_id);
-      const allStats = await getRoomUtilizationStats(
+      // Pass the room_id parameter to get the data of the current conference room
+      const statsArr = await getRoomUtilizationStats(
         startDate.toISOString(),
-        endDate.toISOString()
+        endDate.toISOString(),
+        String(room.room_id) 
       );
+      console.log('Room stats array:', statsArr);
       
-      console.log('All stats:', allStats);
-      // Find the statistical data of the current conference room
-      const roomStats = allStats.find(stat => stat.room_id === room.room_id);
-      console.log('Found room stats:', roomStats);
-      setStats(roomStats || null);
+      // Check the returned data
+      if (statsArr && statsArr.length > 0) {
+        console.log('Setting room stats:', statsArr[0]);
+        setStats(statsArr[0]);
+      } else {
+        console.log('No stats data returned for room:', room.room_id);
+        setStats(null);
+      }
     } catch (error) {
       console.error('Failed to fetch room stats:', error);
+      setStats(null);
     } finally {
       setLoading(false);
     }

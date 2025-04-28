@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const roomId = searchParams.get('roomId');
 
     console.log('Received dates:', { startDate, endDate });
 
@@ -97,9 +98,13 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Call backend API with formatted dates
+      // Call backend API with formatted dates and roomId
+      let backendApiUrl = `${backendUrl}/admin/statistics/meeting-room-utilization?startDate=${encodeURIComponent(formattedStartDate)}&endDate=${encodeURIComponent(formattedEndDate)}`;
+      if (roomId) {
+        backendApiUrl += `&roomId=${encodeURIComponent(roomId)}`;
+      }
       const response = await fetch(
-        `${backendUrl}/admin/statistics/meeting-room-utilization?startDate=${encodeURIComponent(formattedStartDate)}&endDate=${encodeURIComponent(formattedEndDate)}`,
+        backendApiUrl,
         {
           method: 'GET',
           headers: {

@@ -79,11 +79,13 @@ export const getBookingStats = async (): Promise<{ bookingsToday: number }> => {
  * Get meeting room statistics
  * @param startDate start date
  * @param endDate end date
+ * @param roomId room ID (optional)
  * @returns meeting room statistics data array
  */
 export const getRoomUtilizationStats = async (
   startDate: string,
-  endDate: string
+  endDate: string,
+  roomId?: string
 ): Promise<{
   room_id: string;
   room_name: string;
@@ -126,10 +128,17 @@ export const getRoomUtilizationStats = async (
 
     console.log('Fetching room utilization stats:', {
       startDate: cleanStartDate,
-      endDate: cleanEndDate
+      endDate: cleanEndDate,
+      roomId
     });
 
-    const response = await fetch(`/api/admin/statistics?startDate=${encodeURIComponent(cleanStartDate)}&endDate=${encodeURIComponent(cleanEndDate)}`, {
+    // Build API parameters
+    let url = `/api/admin/statistics?startDate=${encodeURIComponent(cleanStartDate)}&endDate=${encodeURIComponent(cleanEndDate)}`;
+    if (roomId) {
+      url += `&roomId=${encodeURIComponent(roomId)}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
     });
