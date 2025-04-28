@@ -42,6 +42,7 @@ interface MeetingRoom {
     special_notes: string[]
   }
   created_by?: ''
+  image?: string
 }
 
 const getBackendUrl = () => {
@@ -359,8 +360,7 @@ const ManageRoomPage = () => {
         console.error(error);
       }
     };
-  
-
+    
   // About filters
   const applyFilters = () => {
     let result = [...rooms];
@@ -716,11 +716,11 @@ const ManageRoomPage = () => {
 
       {/* Edit meeting room dialog */}
       <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Meeting Room</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 overflow-y-auto pr-2">
             <div className="space-y-2">
               <Label htmlFor="edit-room_id">Room ID</Label>
               <Input
@@ -915,6 +915,51 @@ const ManageRoomPage = () => {
                     }}
                   />
                   <p className="text-xs text-gray-500">Separate multiple notes with commas</p>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-2"></div>
+
+                {/* Upload meeting room pictures */}
+                <div className="space-y-2">
+                  <Label htmlFor="room-image">Image</Label>
+                  <div className="flex flex-col gap-4">
+                    <div className="border rounded-md p-2 w-32 h-32 flex items-center justify-center bg-gray-50">
+                      {selectedRoom?.image ? (
+                        <img 
+                          src={selectedRoom.image} 
+                          alt="Meeting room image" 
+                          className="max-w-full max-h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-gray-400 text-center text-sm">Null</div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Button variant="outline" size="sm" className="w-32 h-10 text-sm px-4">
+                        Upload pictures
+                      </Button>
+                      <input
+                        type="file"
+                        id="room-image"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setSelectedRoom(selectedRoom ? {
+                                ...selectedRoom,
+                                image: event.target?.result as string
+                              } : null);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
