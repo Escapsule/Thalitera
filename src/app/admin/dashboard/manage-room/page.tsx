@@ -119,7 +119,26 @@ const ManageRoomPage = () => {
       const data = await response.json()
       console.log(data)
       if (data.code === 200) {
-        const activeRooms = (data.data || []).filter((room: MeetingRoom) => room.status !== 'deleted');
+        const processedRooms = (data.data || []).map((room: any) => {
+          return {
+            room_id: room.roomId || room.room_id,
+            name: room.name,
+            capacity_min: room.capacityMin || room.capacity_min,
+            capacity_max: room.capacityMax || room.capacity_max,
+            building: room.building,
+            floor: room.floor,
+            status: room.status,
+            facilities: {
+              projector: room.facilities?.projector || false,
+              whiteboard: room.facilities?.whiteboard || room.facilities?.whiteBoard || 0,
+              power_sockets: room.facilities?.powerSockets || room.facilities?.power_sockets || 0,
+              coffee_break: room.facilities?.coffeeBreak || room.facilities?.coffee_break || false,
+              special_notes: room.facilities?.specialNotes || room.facilities?.special_notes || [],
+            },
+            created_by: room.createdBy || room.created_by,
+          };
+        });  
+        const activeRooms = processedRooms.filter((room: MeetingRoom) => room.status !== 'deleted');
         setRooms(activeRooms)
         setFilteredRooms(activeRooms)
         console.log("get room list successfully!")
@@ -607,11 +626,11 @@ const ManageRoomPage = () => {
                                 {room.facilities?.projector && (
                                   <Badge variant="outline">Projector</Badge>
                                 )}
-                                {room.facilities?.whiteboard > 0 && (
-                                  <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
-                                )}
                                 {room.facilities?.coffee_break && (
                                   <Badge variant="outline">Coffee Break</Badge>
+                                )}
+                                {room.facilities?.whiteboard > 0 && (
+                                  <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
                                 )}
                                 {room.facilities?.power_sockets > 0 && (
                                   <Badge variant="outline">Power Sockets x{room.facilities.power_sockets}</Badge>
