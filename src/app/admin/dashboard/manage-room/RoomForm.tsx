@@ -55,7 +55,7 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
           />
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor={`${idPrefix}floor`}>Floor</Label>
@@ -68,9 +68,9 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${idPrefix}status`}>Status</Label>
-          <Select 
-            value={room.status} 
-            onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') => 
+          <Select
+            value={room.status}
+            onValueChange={(value: 'active' | 'maintenance' | 'using' | 'booked' | 'deleted') =>
               setRoom({ ...room, status: value })
             }
           >
@@ -86,7 +86,7 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
           </Select>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor={`${idPrefix}capacity_min`}>Minimum Capacity</Label>
@@ -107,18 +107,18 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
           />
         </div>
       </div>
-      
+
       <div className="mt-4">
         <div className="flex flex-col gap-4">
           <div className="border-t border-gray-200 my-2"></div>
-          
+
           {/* Projector and Coffee break options */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id={`${idPrefix}projector`} 
+              <Checkbox
+                id={`${idPrefix}projector`}
                 checked={room.facilities?.projector}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setRoom({
                     ...room,
                     facilities: {
@@ -130,12 +130,12 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
               />
               <Label htmlFor={`${idPrefix}projector`}>Projector</Label>
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id={`${idPrefix}coffee_break`} 
+              <Checkbox
+                id={`${idPrefix}coffee_break`}
                 checked={room.facilities?.coffee_break}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setRoom({
                     ...room,
                     facilities: {
@@ -148,10 +148,10 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
               <Label htmlFor={`${idPrefix}coffee_break`}>Coffee Break Service</Label>
             </div>
           </div>
-          
+
           {/* Divider */}
           <div className="border-t border-gray-200 my-2"></div>
-          
+
           {/* Whiteboard and Power sockets counts */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
@@ -163,7 +163,7 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
                 max="20"
                 className="w-20 h-8"
                 value={room.facilities?.whiteboard || 0}
-                onChange={(e) => 
+                onChange={(e) =>
                   setRoom({
                     ...room,
                     facilities: {
@@ -174,7 +174,7 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
                 }
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Label htmlFor={`${idPrefix}power_sockets`} className="min-w-[100px]">Power Sockets:</Label>
               <Input
@@ -184,7 +184,7 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
                 max="20"
                 className="w-20 h-8"
                 value={room.facilities?.power_sockets || 0}
-                onChange={(e) => 
+                onChange={(e) =>
                   setRoom({
                     ...room,
                     facilities: {
@@ -196,10 +196,10 @@ const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) =>
               />
             </div>
           </div>
-          
+
           {/* Divider */}
           <div className="border-t border-gray-200 my-2"></div>
-          
+
           {/* Special notes */}
           <div className="space-y-2">
             <Label htmlFor={`${idPrefix}special_notes`}>Special Notes</Label>

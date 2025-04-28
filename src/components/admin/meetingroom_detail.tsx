@@ -114,10 +114,10 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
       const statsArr = await getRoomUtilizationStats(
         startDate.toISOString(),
         endDate.toISOString(),
-        String(room.room_id) 
+        String(room.room_id)
       );
       console.log('Room stats array:', statsArr);
-      
+
       // Check the returned data
       if (statsArr && statsArr.length > 0) {
         console.log('Setting room stats:', statsArr[0]);
@@ -175,16 +175,16 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
 
       const data = await response.json();
       console.log('All reservations:', data);
-      
+
       if (data.code === 200) {
         const now = Math.floor(Date.now() / 1000);
         console.log('Current timestamp:', now);
-        
+
         // Find all valid bookings for this conference room
         const roomReservations = data.data
           .filter((reservation: Reservation) => {
-            const isMatch = reservation.room_id === room.room_id && 
-                          reservation.status !== 'canceled';
+            const isMatch = reservation.room_id === room.room_id &&
+              reservation.status !== 'canceled';
             console.log('Checking reservation:', {
               room_id: reservation.room_id,
               status: reservation.status,
@@ -279,7 +279,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
         // Processing standard ISO format (such as 2025-04-18T12:00:00Z)
         date = new Date(time);
       }
-      
+
       if (isNaN(date.getTime())) {
         console.error('Invalid date format:', time);
         return "Invalid date format";
@@ -327,7 +327,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
   // Generate facility list
   const generateFacilitiesList = () => {
     const facilitiesList = [];
-    
+
     // Add facilities of boolean type
     if (roomData.facilities.projector) {
       facilitiesList.push("Projector");
@@ -335,7 +335,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
     if (roomData.facilities.coffee_break) {
       facilitiesList.push("Coffee Break");
     }
-    
+
     // Add facilities of numerical type
     if (roomData.facilities.whiteboard && roomData.facilities.whiteboard > 0) {
       facilitiesList.push(`${roomData.facilities.whiteboard} Whiteboard${roomData.facilities.whiteboard > 1 ? 's' : ''}`);
@@ -343,12 +343,12 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
     if (roomData.facilities.power_sockets && roomData.facilities.power_sockets > 0) {
       facilitiesList.push(`${roomData.facilities.power_sockets} Power Socket${roomData.facilities.power_sockets > 1 ? 's' : ''}`);
     }
-    
+
     // Add special notes
     if (roomData.facilities.special_notes && roomData.facilities.special_notes.length > 0) {
       facilitiesList.push(...roomData.facilities.special_notes);
     }
-    
+
     return facilitiesList;
   }
 
@@ -372,17 +372,21 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
 
         {roomData.image && (
           <div className="w-full h-48 overflow-hidden rounded-md mb-4">
-            <Image 
-              src={roomData.image} 
-              alt={roomData.name} 
+            <Image
+              src={roomData.image}
+              alt={roomData.name}
+              width={600}
+              height={250}
               className="w-full h-full object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = "https://via.placeholder.com/400x200?text=No+Image";
+                target.src = "/placeholder-room.jpg";
               }}
+              unoptimized={true}
             />
           </div>
         )}
+
 
         <div className="grid gap-6 py-4">
           {/* Basic Information */}
@@ -394,7 +398,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
                 {roomData.building}, Floor {roomData.floor}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-[lch(17_23_133)]" />
               <div className="text-sm">
@@ -403,7 +407,7 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
               </div>
             </div>
           </div>
-          
+
           {/* Facilities */}
           {facilitiesList.length > 0 && (
             <div className="rounded-md border p-3">
@@ -483,12 +487,11 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
                   </div>
                   <div className="text-sm">
                     <span className="font-medium">Status: </span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      currentReservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-2 py-1 rounded-full text-xs ${currentReservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                       currentReservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      currentReservation.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        currentReservation.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {currentReservation.status.charAt(0).toUpperCase() + currentReservation.status.slice(1)}
                     </span>
                   </div>
@@ -517,12 +520,11 @@ export function RoomDetail({ room, isOpen, onClose }: RoomDetailProps) {
                   </div>
                   <div className="text-sm">
                     <span className="font-medium">Status: </span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      nextReservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-2 py-1 rounded-full text-xs ${nextReservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                       nextReservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      nextReservation.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        nextReservation.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {nextReservation.status.charAt(0).toUpperCase() + nextReservation.status.slice(1)}
                     </span>
                   </div>
