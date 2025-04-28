@@ -599,14 +599,14 @@ const ManageRoomPage = () => {
                         <TableHead className="w-[15%]">Location</TableHead>
                         <TableHead className="w-[10%]">Capacity</TableHead>
                         <TableHead className="w-[15%]">Status</TableHead>
-                        <TableHead className="w-[25%]">Facilities</TableHead>
-                        <TableHead className="w-[15%]">Feedback</TableHead>
+                        <TableHead className="w-[35%]">Facilities</TableHead>
+                        <TableHead className="w-[10%]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredRooms.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                             No meeting room data available
                           </TableCell>
                         </TableRow>
@@ -638,14 +638,7 @@ const ManageRoomPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="text-sm">
-                                <a href="#" className="text-blue-600 hover:text-blue-800 underline">
-                                  View
-                                </a>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
