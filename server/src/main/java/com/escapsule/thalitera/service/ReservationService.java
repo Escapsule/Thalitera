@@ -3,6 +3,7 @@ package com.escapsule.thalitera.service;
 import com.escapsule.thalitera.dto.ReservationDTO;
 import com.escapsule.thalitera.dto.TimeRangeDTO;
 import com.escapsule.thalitera.entity.MeetingRoom;
+import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.vo.ReservationVO;
 
 import java.time.OffsetDateTime;
@@ -48,10 +49,10 @@ public interface ReservationService {
      * Cancel a meeting room reservation.
      *
      * @param reservationId The ID of the reservation to cancel.
-     * @param userId Operator
+     * @param user Operator
      * @return True if the cancellation is successful, throw an exception otherwise.
      */
-    boolean cancelReservation(UUID reservationId, UUID userId);
+    boolean cancelReservation(UUID reservationId, User user);
 
 
     /**

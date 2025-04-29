@@ -295,12 +295,12 @@ public class ReservationServiceImpl implements ReservationService {
      * Cancel a meeting room reservation.
      *
      * @param reservationId The ID of the reservation to cancel.
-     * @param userId Operator
+     * @param user Operator
      * @return True if the cancellation is successful, throw an exception otherwise.
      */
     @Override
     @Transactional
-    public boolean cancelReservation(UUID reservationId, UUID userId) {
+    public boolean cancelReservation(UUID reservationId, User user) {
         // Check if the reservation ID is provided
         if (reservationId == null) {
             throw new BaseException(ErrorCode.MISSING_RESERVATION_ID);
@@ -311,7 +311,7 @@ public class ReservationServiceImpl implements ReservationService {
         if (reservation == null) {
             throw new BaseException(ErrorCode.RESERVATION_NOT_FOUND);
         }
-        if (!reservation.getUserId().equals(userId)) {
+        if (!(reservation.getUserId().equals(user.getUserId()) || UserStatusConstant.ADMIN.equals(user.getStatus()))) {
             throw new BaseException(
                     ErrorCode.PERMISSION_DENIED.getCode(), "Cannot cancel reservation created by other."
             );
@@ -321,7 +321,7 @@ public class ReservationServiceImpl implements ReservationService {
         initAndCancelNotify(
                 userMapper.getUsersByIds(reservation.getAttendees()),
                 reservation,
-                userId,
+                user.getUserId(),
                 NotifyType.RESERVATION_CANCEL_EMAIL
         );
         return true;

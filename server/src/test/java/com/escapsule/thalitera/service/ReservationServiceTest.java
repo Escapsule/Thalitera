@@ -114,7 +114,8 @@ class ReservationServiceTest {
 
     @Test
     void cancelReservation_missingReservationId_throwsException() {
-        BaseException ex = assertThrows(BaseException.class, () -> service.cancelReservation(null, userId));
+        BaseException ex = assertThrows(BaseException.class, () ->
+                service.cancelReservation(null, userMapper.getUserById(userId)));
         assertEquals(ErrorCode.MISSING_RESERVATION_ID.getCode(), ex.getCode());
     }
 
