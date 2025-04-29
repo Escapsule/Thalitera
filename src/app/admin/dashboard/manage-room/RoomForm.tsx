@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 
-// Meeting room type definition (可以考虑移到单独的types文件中)
+// Meeting room type definition
 interface MeetingRoom {
   room_id: string
   name: string
@@ -30,7 +30,6 @@ interface RoomFormProps {
 }
 
 const RoomForm: React.FC<RoomFormProps> = ({ room, setRoom, isEdit = false }) => {
-  // 生成唯一ID前缀，用于区分添加和编辑表单的字段ID
   const idPrefix = isEdit ? 'edit-' : '';
 
   return (

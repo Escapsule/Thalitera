@@ -532,7 +532,7 @@ const ManageBookingPage = () => {
       const data = await response.json();
 
       if (data.code === 200 && data.data === "Cancel successful.") {
-        // 更新本地状态
+        // Update local status
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking.reservation_id === selectedBooking.reservation_id
@@ -555,7 +555,7 @@ const ManageBookingPage = () => {
         });
       }
 
-      // 重置状态
+      // Reset dialog state
       setIsCancelDialogOpen(false)
       setAdminPassword('')
       setSelectedBooking(null)
