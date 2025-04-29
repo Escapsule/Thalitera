@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { Trash2 } from "lucide-react"
 
 interface Booking {
   reservation_id: string
@@ -810,6 +811,16 @@ const ManageBookingPage = () => {
                                       Cancel
                                     </Button>
                                   )}
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedBooking(booking)
+                                      setIsCancelDialogOpen(true)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
