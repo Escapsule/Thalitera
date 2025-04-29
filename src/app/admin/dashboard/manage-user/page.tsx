@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 const PAGE_SIZE = 10;
 const ALL_STATUS_OPTIONS = ["all", "active", "locked", "disabled", "admin", "pending"];
 const STATUS_OPTIONS = ["active", "locked", "disabled"];
-const backendUrl = "localhost:8080";
 
 interface User {
   user_id: string;
@@ -47,9 +46,8 @@ const ManageUserPage = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://${backendUrl}/admin/users`, {
+        const response = await fetch(`/api/admin/users`, {
           method: 'GET',
-          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -139,9 +137,8 @@ const ManageUserPage = () => {
     if (!pendingChange) return;
     
     try {
-      const response = await fetch(`http://${backendUrl}/admin/edit`, {
+      const response = await fetch(`/api/admin/users/edit-user`, {
         method: "POST",
-        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -157,9 +154,8 @@ const ManageUserPage = () => {
   
       const result = await response.json();
       
-      const refreshResponse = await fetch(`http://${backendUrl}/admin/users`, {
+      const refreshResponse = await fetch(`/api/admin/users`, {
         method: 'GET',
-        credentials: 'include',
       });
 
       if (refreshResponse.ok) {
@@ -222,9 +218,6 @@ const ManageUserPage = () => {
     setUpdatedEndDate("");
   };
 
-
-
-
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     const yyyy = date.getFullYear();
@@ -232,8 +225,6 @@ const ManageUserPage = () => {
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}/${mm}/${dd}`;
   };
-
-
 
   if (loading) {
     return (
