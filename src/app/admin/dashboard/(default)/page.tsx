@@ -688,6 +688,25 @@ const DashboardPage = () => {
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="ml-auto flex items-center gap-4">
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/admin/logout', {
+                  method: 'GET',
+                  credentials: 'include',
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                  window.location.href = '/login';
+                }
+              } catch (error) {
+                console.error('Logout failed:', error);
+              }
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            Logout
+          </button>
           <Avatar>
             <AvatarImage src="/placeholder-user.jpg" alt="User" />
             <AvatarFallback>TH</AvatarFallback>
@@ -850,7 +869,6 @@ const DashboardPage = () => {
                                       <Avatar className="w-8 h-8">
                                         {user.avatar ? (
                                           <AvatarImage
-
                                             src={user.avatar}
                                             alt="User profile picture"
                                             className="w-full h-full object-cover"
@@ -862,16 +880,16 @@ const DashboardPage = () => {
                                         )}
                                       </Avatar>
                                       <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${user.status === 'active'
-                                          ? 'bg-green-500'
-                                          : user.status === 'locked'
-                                            ? 'bg-red-500'
-                                            : user.status === 'disabled'
-                                              ? 'bg-gray-500'
-                                              : user.status === 'admin'
-                                                ? 'bg-blue-500'
-                                                : user.status === 'pending'
-                                                  ? 'bg-yellow-500'
-                                                  : 'bg-gray-500'
+                                        ? 'bg-green-500'
+                                        : user.status === 'locked'
+                                          ? 'bg-red-500'
+                                          : user.status === 'disabled'
+                                            ? 'bg-gray-500'
+                                            : user.status === 'admin'
+                                              ? 'bg-blue-500'
+                                              : user.status === 'pending'
+                                                ? 'bg-yellow-500'
+                                                : 'bg-gray-500'
                                         }`} />
                                     </div>
                                     <div className="flex flex-col">
@@ -882,16 +900,16 @@ const DashboardPage = () => {
                                     </div>
                                   </div>
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === 'active'
-                                      ? 'bg-green-100 text-green-800'
-                                      : user.status === 'locked'
-                                        ? 'bg-red-100 text-red-800'
-                                        : user.status === 'disabled'
-                                          ? 'bg-gray-100 text-gray-800'
-                                          : user.status === 'admin'
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : user.status === 'pending'
-                                              ? 'bg-yellow-100 text-yellow-800'
-                                              : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-green-100 text-green-800'
+                                    : user.status === 'locked'
+                                      ? 'bg-red-100 text-red-800'
+                                      : user.status === 'disabled'
+                                        ? 'bg-gray-100 text-gray-800'
+                                        : user.status === 'admin'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : user.status === 'pending'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-gray-100 text-gray-800'
                                     }`}>
                                     {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                   </span>
