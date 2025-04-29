@@ -99,15 +99,25 @@ public class GlobalExceptionHandler {
     }
 
     // Handling database connection exceptions
-    @ExceptionHandler({
-            CannotCreateTransactionException.class,
-            CannotGetJdbcConnectionException.class,
-            PSQLException.class
-    })
-    public ResponseEntity<ApiResult<?>> handleGlobalException(CannotCreateTransactionException ex, WebRequest request) {
+    @ExceptionHandler(CannotCreateTransactionException.class)
+    public ResponseEntity<ApiResult<?>> handleCannotCreateTransaction(CannotCreateTransactionException ex) {
+        return buildDbErrorResponse(ex);
+    }
+
+    @ExceptionHandler(CannotGetJdbcConnectionException.class)
+    public ResponseEntity<ApiResult<?>> handleCannotGetJdbcConnection(CannotGetJdbcConnectionException ex) {
+        return buildDbErrorResponse(ex);
+    }
+
+    @ExceptionHandler(PSQLException.class)
+    public ResponseEntity<ApiResult<?>> handlePSQLException(PSQLException ex) {
+        return buildDbErrorResponse(ex);
+    }
+
+    private ResponseEntity<ApiResult<?>> buildDbErrorResponse(Exception ex) {
         ApiResult<?> response = ApiResult.error(ErrorCode.DATABASE_CONNECTION_ERROR.getCode(),
                 ErrorCode.DATABASE_CONNECTION_ERROR.getMessage());
-        log.error("Database connection error: {}", ex.getMessage());
+        log.error("Database connection error: {}", ex.getMessage(), ex);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

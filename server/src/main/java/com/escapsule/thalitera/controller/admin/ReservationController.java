@@ -23,7 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReservationController {
 
-    ReservationService reservationService;
+    private final ReservationService reservationService;
 
     /**
      * Cancel a reservation
