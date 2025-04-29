@@ -8,6 +8,9 @@ const nextConfig = {
       },
     ];
   },
+  images: {
+    domains: ['king.tech'],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
