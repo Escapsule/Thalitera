@@ -7,6 +7,7 @@ import com.escapsule.thalitera.exception.NotificationException;
 import com.escapsule.thalitera.response.ApiResult;
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PSQLException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.CannotGetJdbcConnectionException;
@@ -100,7 +101,8 @@ public class GlobalExceptionHandler {
     // Handling database connection exceptions
     @ExceptionHandler({
             CannotCreateTransactionException.class,
-            CannotGetJdbcConnectionException.class
+            CannotGetJdbcConnectionException.class,
+            PSQLException.class
     })
     public ResponseEntity<ApiResult<?>> handleGlobalException(CannotCreateTransactionException ex, WebRequest request) {
         ApiResult<?> response = ApiResult.error(ErrorCode.DATABASE_CONNECTION_ERROR.getCode(),

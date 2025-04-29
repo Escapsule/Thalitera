@@ -39,6 +39,7 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-not-delete-value: 0
       logic-delete-value: 1
+    banner: false
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.escapsule.thalitera.entity
   type-handlers-package: com.escapsule.thalitera.handler
