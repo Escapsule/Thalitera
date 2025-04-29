@@ -44,10 +44,10 @@ class UserServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @MockitoBean
-    private UserMapper userMapper;   // mock你的Mapper
+    private UserMapper userMapper;
 
     @MockitoBean
-    private LoginHistoryMapper loginHistoryMapper; // 如果Service里面有用到
+    private LoginHistoryMapper loginHistoryMapper;
 
     @MockitoBean
     private RedisTemplate<String, String> redisTemplate;
