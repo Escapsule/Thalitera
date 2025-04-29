@@ -202,10 +202,10 @@ const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) {
     return "Unknown";
   }
-  
+
   try {
     let date: Date;
-    
+
     // Processing+YYYY-MM-DDTHH: mm: ssZ format
     if (dateString.toString().startsWith('+')) {
       const [year, month, day, hour, minute, second] = dateString.toString()
@@ -221,7 +221,7 @@ const formatDate = (dateString: string | null | undefined): string => {
       console.error("Invalid date string:", dateString);
       return "Unknown";
     }
-    
+
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -314,7 +314,7 @@ const DashboardPage = () => {
   const [userSearchQuery, setUserSearchQuery] = useState('')
 
   const roomItemsPerPage = 4;
-  const userItemsPerPage = 5; 
+  const userItemsPerPage = 5;
 
   // Meeting room pagination calculation
   const filteredRooms = rooms
@@ -327,7 +327,7 @@ const DashboardPage = () => {
   );
 
   // User pagination calculation
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(userSearchQuery.toLowerCase())
   )
   const userTotalPages = Math.ceil(filteredUsers.length / userItemsPerPage);
@@ -346,8 +346,8 @@ const DashboardPage = () => {
     setUserCurrentPage(page)
   }
 
-  const [userReservations, setUserReservations] = useState<{[key: string]: any}>({});
-  const [roomReservations, setRoomReservations] = useState<{[key: string]: any}>({});
+  const [userReservations, setUserReservations] = useState<{ [key: string]: any }>({});
+  const [roomReservations, setRoomReservations] = useState<{ [key: string]: any }>({});
 
   /**
    * Get meeting room statistics data
@@ -357,7 +357,7 @@ const DashboardPage = () => {
     if (rooms.length === 0) {
       setIsLoadingRooms(true)
     }
-    
+
     try {
       // Call API to retrieve conference room data
       const response = await fetch(`/api/admin/meetingroom/all`, {
@@ -367,25 +367,25 @@ const DashboardPage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.code === 200) {
         const newRooms = data.data;
-        
+
         // Only update if data has changed
         if (JSON.stringify(rooms) !== JSON.stringify(newRooms)) {
           setRooms(newRooms);
-          
+
           // Only calculate conference rooms whose status is not deleted
           const activeRooms = newRooms.filter((room: Room) => room.status !== 'deleted');
-          
+
           // Count the number of meeting rooms in use
           const activeBookings = activeRooms.filter((room: Room) => room.status === 'using').length;
-          
+
           // Calculate utilization rate: current number of meeting rooms in use divided by total number of active meeting rooms
           const utilizationRate = (activeBookings / activeRooms.length) * 100;
-          
+
           setRoomStats({
             totalRooms: activeRooms.length,
             activeBookings: activeBookings,
@@ -455,7 +455,7 @@ const DashboardPage = () => {
     if (users.length === 0) {
       setIsLoadingUsers(true)
     }
-    
+
     try {
       // Call API to retrieve user data
       const response = await fetch(`/api/admin/users`, {
@@ -465,9 +465,9 @@ const DashboardPage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.code === 200) {
         const formattedUsers = data.data.map((user: any) => ({
           user_id: user.user_id,
@@ -478,11 +478,11 @@ const DashboardPage = () => {
           created_at: user.created_at,
           update_at: user.updated_at
         }));
-        
+
         // Only update if data has changed
         if (JSON.stringify(users) !== JSON.stringify(formattedUsers)) {
           const { bookingsToday } = await getBookingStats();
-          
+
           setUsers(formattedUsers);
           setUserStats({
             totalUsers: formattedUsers.length,
@@ -531,11 +531,11 @@ const DashboardPage = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.code === 200) {
         const now = Math.floor(Date.now() / 1000);
-        const reservationsMap: {[key: string]: any} = {};
-        
+        const reservationsMap: { [key: string]: any } = {};
+
         data.data.forEach((reservation: any) => {
           const userId = reservation.user_id;
           if (!reservationsMap[userId]) {
@@ -544,7 +544,7 @@ const DashboardPage = () => {
 
           let startTime: number;
           let endTime: number;
-          
+
           if (reservation.start_time.toString().startsWith('+')) {
             const [year, month, day, hour, minute, second] = reservation.start_time.toString()
               .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
@@ -578,7 +578,7 @@ const DashboardPage = () => {
             }
           }
         });
-        
+
         setUserReservations(reservationsMap);
       }
     } catch (error) {
@@ -594,11 +594,11 @@ const DashboardPage = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.code === 200) {
         const now = Math.floor(Date.now() / 1000);
-        const reservationsMap: {[key: string]: any} = {};
-        
+        const reservationsMap: { [key: string]: any } = {};
+
         data.data.forEach((reservation: any) => {
           const roomId = reservation.room_id;
           if (!reservationsMap[roomId]) {
@@ -607,7 +607,7 @@ const DashboardPage = () => {
 
           let startTime: number;
           let endTime: number;
-          
+
           if (reservation.start_time.toString().startsWith('+')) {
             const [year, month, day, hour, minute, second] = reservation.start_time.toString()
               .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
@@ -648,7 +648,7 @@ const DashboardPage = () => {
             }
           }
         });
-        
+
         setRoomReservations(reservationsMap);
       }
     } catch (error) {
@@ -662,7 +662,7 @@ const DashboardPage = () => {
     fetchUserStats()
     fetchUserReservations()
     fetchRoomReservations()
-    
+
     // Set a timer to refresh every 5 minutes
     const timer = setInterval(() => {
       fetchRoomStats()
@@ -694,7 +694,7 @@ const DashboardPage = () => {
           </Avatar>
         </div>
       </header>
-      
+
       <div className="flex flex-1 justify-center">
         <main className="flex-1 p-4 md:p-6 min-w-[80vw] max-w-[80vw] mx-auto">
           <div className="space-y-6">
@@ -759,9 +759,8 @@ const DashboardPage = () => {
                                     <h4 className="font-medium">{room.name}</h4>
                                     <p className="text-sm text-gray-500">{room.building}, Floor {room.floor}</p>
                                   </div>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    getRoomStatusInfo(room.status).color
-                                  }`}>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoomStatusInfo(room.status).color
+                                    }`}>
                                     {getRoomStatusInfo(room.status).text}
                                   </span>
                                 </div>
@@ -848,24 +847,32 @@ const DashboardPage = () => {
                                 <div className="flex justify-between items-start mb-2">
                                   <div className="flex items-center gap-2">
                                     <div className="relative">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarFallback className="bg-primary text-primary-foreground">
-                                          {user.username.charAt(0).toUpperCase()}
-                                        </AvatarFallback>
+                                      <Avatar className="w-8 h-8">
+                                        {user.avatar ? (
+                                          <AvatarImage
+
+                                            src={user.avatar}
+                                            alt="User profile picture"
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <AvatarFallback className="bg-primary text-primary-foreground">
+                                            {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                                          </AvatarFallback>
+                                        )}
                                       </Avatar>
-                                      <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
-                                        user.status === 'active' 
-                                          ? 'bg-green-500' 
+                                      <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${user.status === 'active'
+                                          ? 'bg-green-500'
                                           : user.status === 'locked'
-                                          ? 'bg-red-500'
-                                          : user.status === 'disabled'
-                                          ? 'bg-gray-500'
-                                          : user.status === 'admin'
-                                          ? 'bg-blue-500'
-                                          : user.status === 'pending'
-                                          ? 'bg-yellow-500'
-                                          : 'bg-gray-500'
-                                      }`} />
+                                            ? 'bg-red-500'
+                                            : user.status === 'disabled'
+                                              ? 'bg-gray-500'
+                                              : user.status === 'admin'
+                                                ? 'bg-blue-500'
+                                                : user.status === 'pending'
+                                                  ? 'bg-yellow-500'
+                                                  : 'bg-gray-500'
+                                        }`} />
                                     </div>
                                     <div className="flex flex-col">
                                       <div className="flex items-center gap-2">
@@ -874,19 +881,18 @@ const DashboardPage = () => {
                                       <span className="text-xs text-gray-500">Last Active: {user.update_at ? formatDate(user.update_at) : "Unknown"}</span>
                                     </div>
                                   </div>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    user.status === 'active'
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === 'active'
                                       ? 'bg-green-100 text-green-800'
                                       : user.status === 'locked'
-                                      ? 'bg-red-100 text-red-800'
-                                      : user.status === 'disabled'
-                                      ? 'bg-gray-100 text-gray-800'
-                                      : user.status === 'admin'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : user.status === 'pending'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                  }`}>
+                                        ? 'bg-red-100 text-red-800'
+                                        : user.status === 'disabled'
+                                          ? 'bg-gray-100 text-gray-800'
+                                          : user.status === 'admin'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : user.status === 'pending'
+                                              ? 'bg-yellow-100 text-yellow-800'
+                                              : 'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                   </span>
                                 </div>
