@@ -26,6 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface Booking {
   reservation_id: string
@@ -121,21 +122,21 @@ const statusMap = {
 const formatDate = (timestamp: string): string => {
   try {
     // Processing ISO format time with a+sign
-      if (timestamp.startsWith('+')) {
-        // Remove the+sign and parse the year
+    if (timestamp.startsWith('+')) {
+      // Remove the+sign and parse the year
       const year = parseInt(timestamp.substring(1, 6));
       const rest = timestamp.substring(6);
-      
+
       // Adjust the year to the acceptable range (current year)
       const currentYear = new Date().getFullYear();
       const adjustedYear = year % 10000 + currentYear - (currentYear % 10000);
-      
+
       const date = new Date(`${adjustedYear}${rest}`);
       if (isNaN(date.getTime())) {
         console.error('Invalid extended ISO date:', timestamp);
         return "Invalid Date";
       }
-      
+
       // Format the date but keep the original year
       const formattedDate = date.toLocaleString('zh-CN', {
         month: '2-digit',
@@ -144,7 +145,7 @@ const formatDate = (timestamp: string): string => {
         minute: '2-digit',
         hour12: false
       });
-      
+
       return `${year}-${formattedDate}`;
     }
 
@@ -197,7 +198,8 @@ const ManageBookingPage = () => {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
-  
+  const { toast } = useToast()
+
   // Filter Criteria
   const [filters, setFilters] = useState({
     date: '',
@@ -247,16 +249,16 @@ const ManageBookingPage = () => {
         method: 'GET',
         credentials: 'include',
       });
-      
+
       const data = await response.json();
       console.log('Fetched bookings:', data.data);
-      
+
       if (data.code === 200) {
         // De duplication processing: Use Map to ensure that each reservation_id only retains one record
         const uniqueBookings = Array.from(
           new Map(data.data.map((booking: Booking) => [booking.reservation_id, booking])).values()
         ) as Booking[];
-        
+
         setBookings(uniqueBookings);
         setFilteredBookings(uniqueBookings);
       } else {
@@ -276,31 +278,31 @@ const ManageBookingPage = () => {
   // Apply filter
   const applyFilters = () => {
     let result = [...bookings]
-    
+
     if (filters.reservationId) {
-      result = result.filter(booking => 
+      result = result.filter(booking =>
         booking.reservation_id.toLowerCase().includes(filters.reservationId.toLowerCase())
       )
     }
-    
+
     if (filters.date) {
       console.log('Selected date:', filters.date);
       result = result.filter(booking => {
         try {
           let startTime: Date;
-          
+
           // Process extended ISO format with a+sign
           if (booking.start_time.toString().startsWith('+')) {
             // Remove the+sign and parse the year
             const year = parseInt(booking.start_time.toString().substring(1, 6));
             const rest = booking.start_time.toString().substring(6);
-            
+
             // Adjust the year to the acceptable range (current year)
             const currentYear = new Date().getFullYear();
             const adjustedYear = year % 10000 + currentYear - (currentYear % 10000);
-            
+
             startTime = new Date(`${adjustedYear}${rest}`);
-          } 
+          }
           // Process standard ISO format
           else {
             startTime = new Date(booking.start_time);
@@ -316,13 +318,13 @@ const ManageBookingPage = () => {
           // Convert the selected date to the start of the same day
           const selectedDate = new Date(filters.date);
           selectedDate.setHours(0, 0, 0, 0);
-          
+
           // Set the booking start time to the start of the same day
           const bookingDate = new Date(startTime);
           bookingDate.setHours(0, 0, 0, 0);
-          
+
           console.log('Booking date:', bookingDate.toISOString(), 'Selected date:', selectedDate.toISOString());
-          
+
           // Compare dates to see if they are the same
           const isMatch = bookingDate.getTime() === selectedDate.getTime();
           console.log('Date match:', isMatch, 'for booking:', booking.reservation_id);
@@ -333,16 +335,16 @@ const ManageBookingPage = () => {
         }
       });
     }
-    
+
     if (filters.startTime && filters.endTime) {
       const [startHour, startMinute] = filters.startTime.split(':').map(Number)
       const [endHour, endMinute] = filters.endTime.split(':').map(Number)
-      
+
       result = result.filter(booking => {
         try {
           let bookingStart: Date;
           let bookingEnd: Date;
-          
+
           // Process extended ISO format with a+sign
           if (booking.start_time.toString().startsWith('+')) {
             // Process start time
@@ -351,41 +353,41 @@ const ManageBookingPage = () => {
             const currentYear = new Date().getFullYear();
             const adjustedStartYear = startYear % 10000 + currentYear - (currentYear % 10000);
             bookingStart = new Date(`${adjustedStartYear}${startRest}`);
-            
+
             // Process end time
             const endYear = parseInt(booking.end_time.toString().substring(1, 6));
             const endRest = booking.end_time.toString().substring(6);
             const adjustedEndYear = endYear % 10000 + currentYear - (currentYear % 10000);
             bookingEnd = new Date(`${adjustedEndYear}${endRest}`);
-          } 
+          }
           // Process standard ISO format
           else {
             bookingStart = new Date(booking.start_time);
             bookingEnd = new Date(booking.end_time);
           }
-          
+
           if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
             console.error('Invalid time values:', booking.start_time, booking.end_time);
             return false;
           }
-          
+
           const bookingStartHour = bookingStart.getHours()
           const bookingStartMinute = bookingStart.getMinutes()
           const bookingEndHour = bookingEnd.getHours()
           const bookingEndMinute = bookingEnd.getMinutes()
-          
+
           // Convert to minutes for comparison
           const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute
           const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute
           const filterStartMinutes = startHour * 60 + startMinute
           const filterEndMinutes = endHour * 60 + endMinute
-          
+
           // Check if the filter time range is completely included in the booking time range
           const isWithinRange = (
             filterStartMinutes >= bookingStartMinutes && // Filter start time is later than or equal to booking start time
             filterEndMinutes <= bookingEndMinutes       // Filter end time is earlier than or equal to booking end time
           )
-          
+
           console.log('Time range check:', {
             booking: {
               start: `${bookingStartHour}:${bookingStartMinute}`,
@@ -401,7 +403,7 @@ const ManageBookingPage = () => {
             },
             isWithinRange
           });
-          
+
           return isWithinRange;
         } catch (error) {
           console.error('Error processing time range:', error, 'for booking:', booking.reservation_id);
@@ -409,24 +411,24 @@ const ManageBookingPage = () => {
         }
       })
     }
-    
+
     if (filters.roomName) {
-      result = result.filter(booking => 
+      result = result.filter(booking =>
         booking.meeting_room.name.toLowerCase().includes(filters.roomName.toLowerCase())
       )
     }
-    
+
     if (filters.status && filters.status !== 'all') {
       result = result.filter(booking => booking.status === filters.status)
     }
-    
+
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
-      result = result.filter(booking => 
+      result = result.filter(booking =>
         booking.user_name.toLowerCase().includes(searchLower)
       )
     }
-    
+
     // Apply sorting
     if (sortByStatus) {
       result = sortByOperationStatus(result);
@@ -437,7 +439,7 @@ const ManageBookingPage = () => {
     if (sortByCreatedTime) {
       result = sortByCreatedTimeFunc(result);
     }
-    
+
     console.log('Filtered results:', result.length);
     setFilteredBookings(result)
   }
@@ -484,7 +486,7 @@ const ManageBookingPage = () => {
   // Sort by booking time
   const sortByBookingTime = (bookings: Booking[]) => {
     if (!sortByTime) return bookings;
-    
+
     return [...bookings].sort((a, b) => {
       const timeA = new Date(a.start_time).getTime();
       const timeB = new Date(b.start_time).getTime();
@@ -495,7 +497,7 @@ const ManageBookingPage = () => {
   // Sort by created time
   const sortByCreatedTimeFunc = (bookings: Booking[]) => {
     if (!sortByCreatedTime) return bookings;
-    
+
     return [...bookings].sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
       const timeB = new Date(b.created_at).getTime();
@@ -516,25 +518,55 @@ const ManageBookingPage = () => {
   // Add cancel booking function
   const handleCancelBooking = async () => {
     if (!selectedBooking) return
-    
+
     try {
-      // TODO: Actual cancellation API call
-      
-      // Update local state
-      setBookings(prevBookings =>
-        prevBookings.map(booking =>
-          booking.reservation_id === selectedBooking.reservation_id
-            ? { ...booking, status: 'canceled' }
-            : booking
-        )
-      )
-      
-      // Reset state
+      const response = await fetch('/api/admin/reservation/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(selectedBooking.reservation_id), // 直接传UUID字符串
+      });
+
+      const data = await response.json();
+
+      if (data.code === 200 && data.data === "Cancel successful.") {
+        // 更新本地状态
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking.reservation_id === selectedBooking.reservation_id
+              ? { ...booking, status: 'canceled' }
+              : booking
+          )
+        );
+        toast({
+          title: "Success",
+          description: "Booking cancelled successfully",
+          variant: "success",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.data || "Failed to cancel booking",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+
+      // 重置状态
       setIsCancelDialogOpen(false)
       setAdminPassword('')
       setSelectedBooking(null)
     } catch (error) {
       console.error('Failed to cancel booking:', error)
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   }
 
@@ -567,7 +599,7 @@ const ManageBookingPage = () => {
                   Reset Filters
                 </Button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="filter-date">Date</Label>
@@ -583,11 +615,11 @@ const ManageBookingPage = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-start-time">Start Time</Label>
-                  <Select 
-                    value={filters.startTime} 
+                  <Select
+                    value={filters.startTime}
                     onValueChange={(value) => handleFilterChange('startTime', value)}
                   >
                     <SelectTrigger id="filter-start-time" className="h-9">
@@ -600,11 +632,11 @@ const ManageBookingPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-end-time">End Time</Label>
-                  <Select 
-                    value={filters.endTime} 
+                  <Select
+                    value={filters.endTime}
                     onValueChange={(value) => handleFilterChange('endTime', value)}
                   >
                     <SelectTrigger id="filter-end-time" className="h-9">
@@ -617,11 +649,11 @@ const ManageBookingPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-status">Status</Label>
-                  <Select 
-                    value={filters.status} 
+                  <Select
+                    value={filters.status}
                     onValueChange={(value) => handleFilterChange('status', value)}
                   >
                     <SelectTrigger>
@@ -636,7 +668,7 @@ const ManageBookingPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-room">Meeting Room</Label>
                   <div className="relative">
@@ -650,7 +682,7 @@ const ManageBookingPage = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="filter-search">User</Label>
                   <div className="relative">
@@ -699,7 +731,7 @@ const ManageBookingPage = () => {
                                 setSortByCreatedTime(null);
                               }}
                             >
-                              <ArrowUpDown 
+                              <ArrowUpDown
                                 className={`h-4 w-4 ${sortByTime ? 'text-primary' : 'text-gray-400'}`}
                               />
                               <span className="sr-only">
@@ -727,7 +759,7 @@ const ManageBookingPage = () => {
                                 setSortByTime(null);
                               }}
                             >
-                              <ArrowUpDown 
+                              <ArrowUpDown
                                 className={`h-4 w-4 ${sortByCreatedTime ? 'text-primary' : 'text-gray-400'}`}
                               />
                               <span className="sr-only">
@@ -750,7 +782,7 @@ const ManageBookingPage = () => {
                                 setSortByCreatedTime(null);
                               }}
                             >
-                              <ArrowUpDown 
+                              <ArrowUpDown
                                 className={`h-4 w-4 ${sortByStatus ? 'text-primary' : 'text-gray-400'}`}
                               />
                               <span className="sr-only">
@@ -836,7 +868,7 @@ const ManageBookingPage = () => {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {/* Add pagination component */}
                 {filteredBookings.length > 0 && (
                   <div className="flex items-center justify-between px-4 py-4 border-t">
@@ -901,23 +933,22 @@ const ManageBookingPage = () => {
             <div className="flex items-center gap-2">
               <DialogTitle className="text-xl font-bold">Booking Details</DialogTitle>
               {selectedBooking && (
-                <Badge className={`${
-                  selectedBooking.status === 'confirmed' 
-                  ? 'bg-green-100 text-green-800' 
+                <Badge className={`${selectedBooking.status === 'confirmed'
+                  ? 'bg-green-100 text-green-800'
                   : selectedBooking.status === 'pending'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : selectedBooking.status === 'completed'
-                  ? 'bg-blue-100 text-blue-800'
-                  : selectedBooking.status === 'canceled'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-                }`}>
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : selectedBooking.status === 'completed'
+                      ? 'bg-blue-100 text-blue-800'
+                      : selectedBooking.status === 'canceled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                  }`}>
                   {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
                 </Badge>
               )}
             </div>
           </DialogHeader>
-          
+
           {selectedBooking && (
             <div className="space-y-6">
               {/* Meeting Room Information */}
@@ -949,8 +980,8 @@ const ManageBookingPage = () => {
                     <User className="h-5 w-5 text-[lch(17_23_133)]" />
                     <div className="text-sm flex items-center gap-2">
                       <span className="font-medium">Booking User:</span>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="px-2 py-1"
                       >
                         {selectedBooking.user_name}
@@ -964,9 +995,9 @@ const ManageBookingPage = () => {
                       <div className="mt-1 flex flex-wrap gap-2">
                         {selectedBooking.attendees && selectedBooking.attendees.length > 0 ? (
                           selectedBooking.attendees.map((attendee, index) => (
-                            <Badge 
-                              key={index} 
-                              variant="outline" 
+                            <Badge
+                              key={index}
+                              variant="outline"
                               className="px-2 py-1"
                             >
                               {attendee?.username || 'Unknown'}
@@ -1030,18 +1061,8 @@ const ManageBookingPage = () => {
             <p>Are you sure you want to cancel this booking? This action cannot be undone.</p>
             <div className="mt-4 p-4 bg-gray-50 rounded-md">
               <p><strong>Meeting Room:</strong> {selectedBooking?.meeting_room.name}</p>
-              <p><strong>Booking Time:</strong> {selectedBooking && 
+              <p><strong>Booking Time:</strong> {selectedBooking &&
                 `${formatDate(selectedBooking.start_time.toString())} - ${formatDate(selectedBooking.end_time.toString())}`}</p>
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="adminPassword">Please enter the admin password to confirm</Label>
-              <Input
-                id="adminPassword"
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                className="mt-2"
-              />
             </div>
           </div>
           <DialogFooter>
@@ -1051,10 +1072,9 @@ const ManageBookingPage = () => {
             }}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleCancelBooking}
-              disabled={!adminPassword}
             >
               Confirm Cancellation
             </Button>
