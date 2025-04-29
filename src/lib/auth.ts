@@ -96,14 +96,12 @@ export async function login(
     
     // Check if this is an admin login
     if (email === 'admin@xjtlu.edu.cn') {
-      // Add admin email to headers for auth checks
-      headers['admin-email'] = email;
       
       // Use admin login endpoint
       const adminResponse = await fetch(`${getApiUrl()}/admin/login`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ email_address: email, password }),
+        body: JSON.stringify({ email: email, password: password }),
         credentials: 'include',
       });
 

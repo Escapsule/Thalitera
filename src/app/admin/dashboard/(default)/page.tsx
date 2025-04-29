@@ -5,6 +5,7 @@ import { DoorClosed, Calendar, BarChart2, Users2, UserRound, CalendarCheck, User
 import { RoomDetail } from "@/components/admin/meetingroom_detail"
 import RoomCharts from "@/components/admin/RoomCharts"
 import UserDetail from "@/components/admin/user_detail"
+import { getBookingStats } from '@/lib/admin/statistic'
 
 // Define types for room data
 type Room = {
@@ -23,6 +24,14 @@ type Room = {
     coffee_break: boolean | null
     special_notes: string[] | null
   }
+  currentReservation?: {
+    user_id: string
+    username: string
+    start_time: string
+    end_time: string
+    purpose: string
+    status: string
+  }
 }
 
 // Define types for user data
@@ -34,6 +43,15 @@ type User = {
   status: string // active, locked, disabled, admin, pending
   created_at?: string
   update_at?: string
+  currentReservation?: {
+    room_name: string
+    building: string
+    floor: number
+    start_time: string
+    end_time: string
+    purpose: string
+    status: string
+  }
 }
 
 // Pagination props
@@ -74,7 +92,7 @@ const Card = ({ children, title }: CardProps) => (
 const StatCard = ({ title, value, suffix = '', icon, className }: StatCardProps) => (
   <div className="bg-white p-3 rounded-lg shadow-md h-full">
     <div className="flex items-start justify-between mb-1 h-[32px]">
-      <h3 className={`text-gray-500 ${className || 'text-xs'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
+      <h3 className={`text-gray-500 ${className || 'text-sm'} break-words max-w-[70%] line-clamp-2`}>{title}</h3>
       {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
     </div>
     <div className="h-[32px] flex items-center">
@@ -128,10 +146,10 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
         disabled={currentPage === 1}
         className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        previous page
+        Previous
       </button>
       <div className="flex items-center gap-1">
-        <span className="text-xs">page</span>
+        <span className="text-xs">Page</span>
         <input
           title="Page Number"
           type="text"
@@ -141,14 +159,14 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
           onBlur={handleInputSubmit}
           className="w-8 px-1 py-0.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <span className="text-xs">, total {totalPages} pages</span>
+        <span className="text-xs"> of {totalPages} </span>
       </div>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className="px-2 py-0.5 text-xs rounded border disabled:opacity-50"
       >
-        next page
+        Next
       </button>
     </div>
   )
@@ -180,24 +198,85 @@ const getRoomStatusInfo = (status: string) => {
 }
 
 // Helper function to format dates
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) {
+    return "Unknown";
+  }
+  
   try {
-    const date = new Date(dateString);
+    let date: Date;
+    
+    // Processing+YYYY-MM-DDTHH: mm: ssZ format
+    if (dateString.toString().startsWith('+')) {
+      const [year, month, day, hour, minute, second] = dateString.toString()
+        .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
+        .slice(1)
+        .map(Number);
+      date = new Date(year, month - 1, day, hour, minute, second);
+    } else {
+      date = new Date(dateString);
+    }
+
     if (isNaN(date.getTime())) {
+      console.error("Invalid date string:", dateString);
       return "Unknown";
     }
+    
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     });
   } catch (error) {
-    console.error("Date formatting error:", error);
+    console.error("Date formatting error:", error, "for date:", dateString);
     return "Unknown";
   }
 };
+
+/**
+ * Skeleton Screen Component - Meeting Room List
+ */
+const RoomSkeleton = () => (
+  <div className="space-y-4">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="border rounded-lg p-4 animate-pulse">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <div className="h-5 bg-gray-200 rounded w-32 mb-1"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+        </div>
+        <div className="h-4 bg-gray-200 rounded w-48"></div>
+      </div>
+    ))}
+  </div>
+)
+
+/**
+ * Skeleton Screen Component - User List
+ */
+const UserSkeleton = () => (
+  <div className="space-y-4">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <div key={i} className="border rounded-lg p-4 animate-pulse">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-gray-200"></div>
+            <div>
+              <div className="h-5 bg-gray-200 rounded w-24 mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-32"></div>
+            </div>
+          </div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+)
 
 /**
  * Admin dashboard page component
@@ -219,6 +298,8 @@ const DashboardPage = () => {
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   // Meeting room pagination status
   const [roomCurrentPage, setRoomCurrentPage] = useState(1)
@@ -236,9 +317,9 @@ const DashboardPage = () => {
   const userItemsPerPage = 5; 
 
   // Meeting room pagination calculation
-  const filteredRooms = rooms.filter(room => 
-    room.name.toLowerCase().includes(roomSearchQuery.toLowerCase())
-  )
+  const filteredRooms = rooms
+    .filter(room => room.status !== 'deleted')
+    .filter(room => room.name.toLowerCase().includes(roomSearchQuery.toLowerCase()))
   const roomTotalPages = Math.ceil(filteredRooms.length / roomItemsPerPage);
   const currentRooms = filteredRooms.slice(
     (roomCurrentPage - 1) * roomItemsPerPage,
@@ -265,10 +346,18 @@ const DashboardPage = () => {
     setUserCurrentPage(page)
   }
 
+  const [userReservations, setUserReservations] = useState<{[key: string]: any}>({});
+  const [roomReservations, setRoomReservations] = useState<{[key: string]: any}>({});
+
   /**
    * Get meeting room statistics data
    */
   const fetchRoomStats = async () => {
+    // Only set loading state on initial load
+    if (rooms.length === 0) {
+      setIsLoadingRooms(true)
+    }
+    
     try {
       // Call API to retrieve conference room data
       const response = await fetch(`/api/admin/meetingroom/all`, {
@@ -282,23 +371,36 @@ const DashboardPage = () => {
       const data = await response.json();
       
       if (data.code === 200) {
-        // Use the data returned by the API directly
-        const rooms = data.data;
-        setRooms(rooms);
-        setRoomStats({
-          totalRooms: rooms.length,
-          activeBookings: 0, // Not provided in API, temporarily using 0
-          utilizationRate: 0 // Not provided in API, temporarily using 0
-        });
+        const newRooms = data.data;
+        
+        // Only update if data has changed
+        if (JSON.stringify(rooms) !== JSON.stringify(newRooms)) {
+          setRooms(newRooms);
+          
+          // Only calculate conference rooms whose status is not deleted
+          const activeRooms = newRooms.filter((room: Room) => room.status !== 'deleted');
+          
+          // Count the number of meeting rooms in use
+          const activeBookings = activeRooms.filter((room: Room) => room.status === 'using').length;
+          
+          // Calculate utilization rate: current number of meeting rooms in use divided by total number of active meeting rooms
+          const utilizationRate = (activeBookings / activeRooms.length) * 100;
+          
+          setRoomStats({
+            totalRooms: activeRooms.length,
+            activeBookings: activeBookings,
+            utilizationRate: utilizationRate
+          });
+        }
       } else {
-        console.error(data.message || 'Failed to retrieve conference room list');
-        // If the API call fails, use the fallback data
+        console.error(data.message || 'Failed to get meeting room list');
         useFallbackData();
       }
     } catch (error) {
-      console.error('Failed to retrieve conference room statistics:', error);
-      // If the API call fails, use the fallback data
+      console.error('Failed to get meeting room statistics data:', error);
       useFallbackData();
+    } finally {
+      setIsLoadingRooms(false)
     }
   }
 
@@ -349,6 +451,11 @@ const DashboardPage = () => {
   }
 
   const fetchUserStats = async () => {
+    // Only set loading state on initial load
+    if (users.length === 0) {
+      setIsLoadingUsers(true)
+    }
+    
     try {
       // Call API to retrieve user data
       const response = await fetch(`/api/admin/users`, {
@@ -362,7 +469,6 @@ const DashboardPage = () => {
       const data = await response.json();
       
       if (data.code === 200) {
-        // Use the data returned by the API directly
         const formattedUsers = data.data.map((user: any) => ({
           user_id: user.user_id,
           avatar: user.avatar || "",
@@ -370,26 +476,29 @@ const DashboardPage = () => {
           email: user.email,
           status: user.status,
           created_at: user.created_at,
-          update_at: user.update_at
+          update_at: user.updated_at
         }));
         
-        setUsers(formattedUsers);
-        setUserStats({
-          totalUsers: formattedUsers.length,
-          activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
-          bookingsToday: 0 // Not provided in API, temporarily using default value
-        });
-        
-        console.log('Formatted users:', formattedUsers);
+        // Only update if data has changed
+        if (JSON.stringify(users) !== JSON.stringify(formattedUsers)) {
+          const { bookingsToday } = await getBookingStats();
+          
+          setUsers(formattedUsers);
+          setUserStats({
+            totalUsers: formattedUsers.length,
+            activeUsers: formattedUsers.filter((user: User) => user.status === 'active').length,
+            bookingsToday: bookingsToday
+          });
+        }
       } else {
-        console.error(data.message || 'Failed to retrieve user list');
-        // If the API call fails, use the fallback data
+        console.error(data.message || 'Failed to get user list');
         useFallbackUserData();
       }
     } catch (error) {
-      console.error('Failed to retrieve user statistics:', error);
-      // If the API call fails, use the fallback data
+      console.error('Failed to get user statistics data:', error);
       useFallbackUserData();
+    } finally {
+      setIsLoadingUsers(false)
     }
   }
 
@@ -414,16 +523,153 @@ const DashboardPage = () => {
     });
   }
 
+  const fetchUserReservations = async () => {
+    try {
+      const response = await fetch(`/api/admin/reservations`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      
+      if (data.code === 200) {
+        const now = Math.floor(Date.now() / 1000);
+        const reservationsMap: {[key: string]: any} = {};
+        
+        data.data.forEach((reservation: any) => {
+          const userId = reservation.user_id;
+          if (!reservationsMap[userId]) {
+            reservationsMap[userId] = null;
+          }
+
+          let startTime: number;
+          let endTime: number;
+          
+          if (reservation.start_time.toString().startsWith('+')) {
+            const [year, month, day, hour, minute, second] = reservation.start_time.toString()
+              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
+              .slice(1)
+              .map(Number);
+            const date = new Date(year, month - 1, day, hour, minute, second);
+            startTime = Math.floor(date.getTime() / 1000);
+          } else {
+            startTime = Math.floor(new Date(reservation.start_time).getTime() / 1000);
+          }
+
+          if (reservation.end_time.toString().startsWith('+')) {
+            const [year, month, day, hour, minute, second] = reservation.end_time.toString()
+              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
+              .slice(1)
+              .map(Number);
+            const date = new Date(year, month - 1, day, hour, minute, second);
+            endTime = Math.floor(date.getTime() / 1000);
+          } else {
+            endTime = Math.floor(new Date(reservation.end_time).getTime() / 1000);
+          }
+
+          const isConfirmed = reservation.status === 'confirmed';
+          const isCurrentBooking = startTime <= now && endTime > now;
+          const isFutureBooking = startTime > now;
+
+          if (isConfirmed && (isCurrentBooking || isFutureBooking)) {
+            const currentReservation = reservationsMap[userId];
+            if (!currentReservation || startTime < new Date(currentReservation.start_time).getTime() / 1000) {
+              reservationsMap[userId] = reservation;
+            }
+          }
+        });
+        
+        setUserReservations(reservationsMap);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user reservations:', error);
+    }
+  };
+
+  const fetchRoomReservations = async () => {
+    try {
+      const response = await fetch(`/api/admin/reservations`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      
+      if (data.code === 200) {
+        const now = Math.floor(Date.now() / 1000);
+        const reservationsMap: {[key: string]: any} = {};
+        
+        data.data.forEach((reservation: any) => {
+          const roomId = reservation.room_id;
+          if (!reservationsMap[roomId]) {
+            reservationsMap[roomId] = null;
+          }
+
+          let startTime: number;
+          let endTime: number;
+          
+          if (reservation.start_time.toString().startsWith('+')) {
+            const [year, month, day, hour, minute, second] = reservation.start_time.toString()
+              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
+              .slice(1)
+              .map(Number);
+            const date = new Date(year, month - 1, day, hour, minute, second);
+            startTime = Math.floor(date.getTime() / 1000);
+          } else {
+            startTime = Math.floor(new Date(reservation.start_time).getTime() / 1000);
+          }
+
+          if (reservation.end_time.toString().startsWith('+')) {
+            const [year, month, day, hour, minute, second] = reservation.end_time.toString()
+              .match(/\+(\d{5})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z/)!
+              .slice(1)
+              .map(Number);
+            const date = new Date(year, month - 1, day, hour, minute, second);
+            endTime = Math.floor(date.getTime() / 1000);
+          } else {
+            endTime = Math.floor(new Date(reservation.end_time).getTime() / 1000);
+          }
+
+          const isConfirmed = reservation.status === 'confirmed';
+          const isCurrentBooking = startTime <= now && endTime > now;
+          const isFutureBooking = startTime > now;
+
+          if (isConfirmed && (isCurrentBooking || isFutureBooking)) {
+            const currentReservation = reservationsMap[roomId];
+            if (!currentReservation || startTime < new Date(currentReservation.start_time).getTime() / 1000) {
+              reservationsMap[roomId] = {
+                user_id: reservation.user_id,
+                username: reservation.username,
+                start_time: reservation.start_time,
+                end_time: reservation.end_time,
+                purpose: reservation.purpose,
+                status: reservation.status
+              };
+            }
+          }
+        });
+        
+        setRoomReservations(reservationsMap);
+      }
+    } catch (error) {
+      console.error('Failed to fetch room reservations:', error);
+    }
+  };
+
   // When the component is loaded, get the data
   useEffect(() => {
     fetchRoomStats()
     fetchUserStats()
+    fetchUserReservations()
+    fetchRoomReservations()
     
-    // Set the timer to refresh every minute
+    // Set a timer to refresh every 5 minutes
     const timer = setInterval(() => {
       fetchRoomStats()
       fetchUserStats()
-    }, 60000) // Refresh every minute
+      fetchUserReservations()
+      fetchRoomReservations()
+    }, 300000) // Refresh every 5 minutes
 
     return () => clearInterval(timer)
   }, [])
@@ -499,31 +745,35 @@ const DashboardPage = () => {
                       </div>
                       <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
-                          {currentRooms.map((room) => (
-                            <div 
-                              key={room.room_id}
-                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                              onClick={() => handleViewRoom(room)}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h4 className="font-medium">{room.name}</h4>
-                                  <p className="text-sm text-gray-500">{room.building}, Floor {room.floor}</p>
+                          {isLoadingRooms ? (
+                            <RoomSkeleton />
+                          ) : (
+                            currentRooms.map((room) => (
+                              <div
+                                key={room.room_id}
+                                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => handleViewRoom(room)}
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <h4 className="font-medium">{room.name}</h4>
+                                    <p className="text-sm text-gray-500">{room.building}, Floor {room.floor}</p>
+                                  </div>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    getRoomStatusInfo(room.status).color
+                                  }`}>
+                                    {getRoomStatusInfo(room.status).text}
+                                  </span>
                                 </div>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  getRoomStatusInfo(room.status).color
-                                }`}>
-                                  {getRoomStatusInfo(room.status).text}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-gray-400" />
-                                  <span>Capacity: {room.capacity_min} - {room.capacity_max} people</span>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-gray-400" />
+                                    <span>Capacity: {room.capacity_min} - {room.capacity_max} people</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
                       </div>
                       <div className="sticky bottom-0 bg-white border-t">
@@ -586,59 +836,70 @@ const DashboardPage = () => {
                       </div>
                       <div className="flex-1 overflow-y-auto mb-1">
                         <div className="space-y-4">
-                          {currentUsers.map((user) => (
-                            <div
-                              key={user.user_id}
-                              className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                              onClick={() => handleViewUser(user)}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="relative">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {user.username.charAt(0).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
-                                      user.status === 'active' 
-                                        ? 'bg-green-500' 
-                                        : user.status === 'locked'
-                                        ? 'bg-red-500'
-                                        : user.status === 'disabled'
-                                        ? 'bg-gray-500'
-                                        : user.status === 'admin'
-                                        ? 'bg-blue-500'
-                                        : user.status === 'pending'
-                                        ? 'bg-yellow-500'
-                                        : 'bg-gray-500'
-                                    }`} />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{user.username}</span>
+                          {isLoadingUsers ? (
+                            <UserSkeleton />
+                          ) : (
+                            currentUsers.map((user) => (
+                              <div
+                                key={user.user_id}
+                                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => handleViewUser(user)}
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-primary text-primary-foreground">
+                                          {user.username.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
+                                        user.status === 'active' 
+                                          ? 'bg-green-500' 
+                                          : user.status === 'locked'
+                                          ? 'bg-red-500'
+                                          : user.status === 'disabled'
+                                          ? 'bg-gray-500'
+                                          : user.status === 'admin'
+                                          ? 'bg-blue-500'
+                                          : user.status === 'pending'
+                                          ? 'bg-yellow-500'
+                                          : 'bg-gray-500'
+                                      }`} />
                                     </div>
-                                    <span className="text-xs text-gray-500">Last Active: {user.update_at ? formatDate(user.update_at) : "Unknown"}</span>
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{user.username}</span>
+                                      </div>
+                                      <span className="text-xs text-gray-500">Last Active: {user.update_at ? formatDate(user.update_at) : "Unknown"}</span>
+                                    </div>
                                   </div>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    user.status === 'active'
+                                      ? 'bg-green-100 text-green-800'
+                                      : user.status === 'locked'
+                                      ? 'bg-red-100 text-red-800'
+                                      : user.status === 'disabled'
+                                      ? 'bg-gray-100 text-gray-800'
+                                      : user.status === 'admin'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : user.status === 'pending'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                                  </span>
                                 </div>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  user.status === 'active'
-                                    ? 'bg-green-100 text-green-800'
-                                    : user.status === 'locked'
-                                    ? 'bg-red-100 text-red-800'
-                                    : user.status === 'disabled'
-                                    ? 'bg-gray-100 text-gray-800'
-                                    : user.status === 'admin'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : user.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                                </span>
+                                {userReservations[user.user_id] && (
+                                  <div className="mt-2 text-xs pl-10">
+                                    <span className="text-gray-500">Current/Next Booking: </span>
+                                    <span className="font-medium">{userReservations[user.user_id].meeting_room.name}</span>
+                                    <span className="text-gray-500"> ({formatDate(userReservations[user.user_id].start_time)})</span>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
                       </div>
                       <div className="sticky bottom-0 bg-white border-t">

@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
-    
     const backendUrl = String(process.env.NEXT_PUBLIC_BACKEND_URL);
     const headersList = await headers();
     const cookie = headersList.get('cookie') || '';
@@ -11,18 +10,21 @@ export async function POST(request: NextRequest) {
       .find((c: string) => c.trim().startsWith('THALITERA_SESSION_ID='))
       ?.split('=')[1] || '';
 
-    // Get query parameters from request body (all optional)
-    const body = await request.json().catch(() => ({}));
+    // Get form data from request
+    const formData = await request.formData();
     
-    console.log("add meeting room:", body);
+    console.log('Uploading file with form data:', {
+      action: formData.get('action'),
+      roomId: formData.get('roomId'),
+      file: formData.get('file') ? 'File present' : 'No file'
+    });
 
-    const response = await fetch(`${backendUrl}/admin/meetingroom/add`, {
+    const response = await fetch(`${backendUrl}/files/upload`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Cookie': `THALITERA_SESSION_ID=${sessionId}`,
       },
-      body: JSON.stringify(body),
+      body: formData,
       credentials: 'include',
     });
 
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         code: 500,
-        message: 'Failed to add meeting room',
+        message: 'Failed to upload file',
         data: null,
         timestamp: Date.now(),
       },

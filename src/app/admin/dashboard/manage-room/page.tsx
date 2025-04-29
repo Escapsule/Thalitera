@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
 import RoomForm from './RoomForm'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -42,6 +43,7 @@ interface MeetingRoom {
     special_notes: string[]
   }
   created_by?: ''
+  image?: string
 }
 
 const getBackendUrl = () => {
@@ -63,15 +65,15 @@ const statusMap = {
 
 const ManageRoomPage = () => {
   // State definitions
-  const [rooms, setRooms] = useState<MeetingRoom[]>([]) 
-  const [loading, setLoading] = useState(true) 
+  const [rooms, setRooms] = useState<MeetingRoom[]>([])
+  const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false)
-  
+
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [adminPassword, setAdminPassword] = useState('')
-  const [passwordError, setPasswordError] = useState('') 
+  const [passwordError, setPasswordError] = useState('')
 
   // Add filtering states
   const [filteredRooms, setFilteredRooms] = useState<MeetingRoom[]>([])
@@ -79,7 +81,7 @@ const ManageRoomPage = () => {
     name: '',
     building: '',
     status: 'all',
-    capacity: '', 
+    capacity: '',
     hasProjector: false,
     hasCoffeeBreak: false,
     minWhiteboard: '',
@@ -103,6 +105,9 @@ const ManageRoomPage = () => {
     }
   })
 
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+
   // Get meeting room list
   const fetchRooms = async () => {
     setLoading(true)
@@ -110,16 +115,36 @@ const ManageRoomPage = () => {
       console.log(`${localStorage.getItem('cookie')}`, `${localStorage.getItem('token')}`)
       const backendUrl = getBackendUrl();
       console.log('Request backend URL:', backendUrl);
-      
+
       const response = await fetch(`/api/admin/meetingroom/all`, {
         method: 'GET',
         credentials: 'include',
       });
-      
+
       const data = await response.json()
       console.log(data)
       if (data.code === 200) {
-        const activeRooms = (data.data || []).filter((room: MeetingRoom) => room.status !== 'deleted');
+        const processedRooms = (data.data || []).map((room: any) => {
+          return {
+            room_id: room.roomId || room.room_id,
+            name: room.name,
+            capacity_min: room.capacityMin || room.capacity_min,
+            capacity_max: room.capacityMax || room.capacity_max,
+            building: room.building,
+            floor: room.floor,
+            status: room.status,
+            image: room.image,
+            facilities: {
+              projector: room.facilities?.projector || false,
+              whiteboard: room.facilities?.whiteboard || room.facilities?.whiteBoard || 0,
+              power_sockets: room.facilities?.powerSockets || room.facilities?.power_sockets || 0,
+              coffee_break: room.facilities?.coffeeBreak || room.facilities?.coffee_break || false,
+              special_notes: room.facilities?.specialNotes || room.facilities?.special_notes || [],
+            },
+            created_by: room.createdBy || room.created_by,
+          };
+        });
+        const activeRooms = processedRooms.filter((room: MeetingRoom) => room.status !== 'deleted');
         setRooms(activeRooms)
         setFilteredRooms(activeRooms)
         console.log("get room list successfully!")
@@ -135,22 +160,46 @@ const ManageRoomPage = () => {
 
   const addRoom = async (roomData: Partial<MeetingRoom>) => {
     setLoading(true);
-    const response = await fetch(`/api/admin/meetingroom/add`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(roomData),
-    });
-    const data = await response.json();
-    if (data.code === 200) {
-      fetchRooms();
-      return true;
-    } else {
-      console.error(data.message || 'Failed to add meeting room');
-      alert(data.message || 'Failed to add meeting room');
+    try {
+      const response = await fetch(`/api/admin/meetingroom/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(roomData),
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        fetchRooms();
+        toast({
+          title: "Success",
+          description: "Meeting room added successfully",
+          variant: "success",
+          duration: 3000,
+        });
+        return true;
+      } else {
+        console.error(data.message || 'Failed to add meeting room');
+        toast({
+          title: "Error",
+          description: data.message || 'Failed to add meeting room',
+          variant: "destructive",
+          duration: 3000,
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to add meeting room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add meeting room",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -170,10 +219,10 @@ const ManageRoomPage = () => {
       alert('Room name cannot exceed 16 characters');
       return false;
     }
-    const isDuplicate = rooms.some(existingRoom => 
+    const isDuplicate = rooms.some(existingRoom =>
       existingRoom.name === room.name && existingRoom.room_id !== room.room_id
     );
-    
+
     if (isDuplicate) {
       alert('Room name already exists. Please choose a different name');
       return false;
@@ -190,15 +239,12 @@ const ManageRoomPage = () => {
 
       const roomToAdd = {
         ...newRoom,
-        // created_by: "admin"
       };
 
       const success = await addRoom(roomToAdd);
 
       if (success) {
-        alert('Meeting room added successfully');
         setIsAddDialogOpen(false);
-
         setNewRoom({
           name: '',
           building: '',
@@ -216,45 +262,73 @@ const ManageRoomPage = () => {
         });
       }
     } catch (error) {
-      alert('Failed to modify meeting room');
+      toast({
+        title: "Error",
+        description: "Failed to add meeting room",
+        variant: "destructive",
+      });
       console.error(error);
     }
   }
 
   const modifyRoom = async (roomData: MeetingRoom) => {
     setLoading(true);
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`/api/admin/meetingroom/modify`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        room_id: roomData.room_id,
-        name: roomData.name,
-        capacity_min: roomData.capacity_min,
-        capacity_max: roomData.capacity_max,
-        building: roomData.building,
-        floor: roomData.floor,
-        status: roomData.status,
-        facilities: {
-          projector: roomData.facilities.projector,
-          whiteboard: roomData.facilities.whiteboard,
-          power_sockets: roomData.facilities.power_sockets,
-          coffee_break: roomData.facilities.coffee_break,
-          special_notes: roomData.facilities.special_notes,
+    try {
+      const response = await fetch(`/api/admin/meetingroom/modify`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }),
-    });
-    const data = await response.json();
-    if (data.code === 200) {
-      fetchRooms();
-      return true;
-    } else {
-      console.error(data.message || 'Failed to modify meeting room');
-      alert(data.message || 'Failed to modify meeting room');
+        body: JSON.stringify({
+          room_id: roomData.room_id,
+          name: roomData.name,
+          capacity_min: roomData.capacity_min,
+          capacity_max: roomData.capacity_max,
+          building: roomData.building,
+          floor: roomData.floor,
+          status: roomData.status,
+          image: roomData.image,
+          facilities: {
+            projector: roomData.facilities.projector,
+            whiteboard: roomData.facilities.whiteboard,
+            power_sockets: roomData.facilities.power_sockets,
+            coffee_break: roomData.facilities.coffee_break,
+            special_notes: roomData.facilities.special_notes,
+          },
+        }),
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        fetchRooms();
+        toast({
+          title: "Success",
+          description: "Meeting room modified successfully",
+          variant: "success",
+          duration: 3000,
+        });
+        return true;
+      } else {
+        console.error(data.message || 'Failed to modify meeting room');
+        toast({
+          title: "Error",
+          description: data.message || 'Failed to modify meeting room',
+          variant: "destructive",
+          duration: 3000,
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to modify meeting room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to modify meeting room",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -266,93 +340,119 @@ const ManageRoomPage = () => {
         return;
       }
 
-      const success = await modifyRoom(selectedRoom);
+      const roomToUpdate = { ...selectedRoom };
+
+      if (selectedRoom.image && selectedRoom.image.startsWith('data:')) {
+        try {
+          const response = await fetch(selectedRoom.image);
+          const blob = await response.blob();
+          const file = new File([blob], 'room-image.jpg', { type: blob.type });
+
+          const imageUrl = await uploadFile(file, 'meeting_room', selectedRoom.room_id);
+          roomToUpdate.image = imageUrl;
+        } catch (error) {
+          console.error('Failed to upload image:', error);
+          toast({
+            title: "Error",
+            description: "Failed to upload image. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const success = await modifyRoom(roomToUpdate);
 
       if (success) {
         setIsModifyDialogOpen(false);
-        setTimeout(() => {
-          alert('Meeting room modified successfully');
-        }, 100);
       }
     } catch (error) {
-      alert('Failed to modify meeting room');
-      console.error(error)
+      toast({
+        title: "Error",
+        description: "Failed to modify meeting room",
+        variant: "destructive",
+      });
+      console.error(error);
     }
   }
 
   const deleteRoom = async (roomId: string, password: string) => {
-      setLoading(true);
-      try {
-        const backendUrl = getBackendUrl();
-        const confirmResponse = await fetch(`${backendUrl}/admin/operation-confirm`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'text/plain', 
-          },
-          body: password, 
-        });
-    
-        const confirmData = await confirmResponse.json();
-    
-        if (confirmData.code !== 200) {
-          // Password error reminder
-          setPasswordError('Incorrect password. Please try again.');
-          setLoading(false);
-          return false;
-        }
-        setPasswordError('');
-        
-        const deleteResponse = await fetch(`${backendUrl}/admin/meetingroom/delete`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([roomId]),
-        });
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/meetingroom/delete`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          room_ids: [roomId],
+          adminPassword: password
+        }),
+      });
 
-      
-        const data = await deleteResponse.json();
-        if (data.code === 200) {
-          fetchRooms();
-          return true;
+      const data = await response.json();
+
+      if (data.code === 200) {
+        fetchRooms();
+        toast({
+          title: "Success",
+          description: "Meeting room deleted successfully",
+          variant: "success",
+          duration: 3000,
+        });
+        return true;
+      } else {
+        if (data.message && data.message.includes('password')) {
+          setPasswordError('Incorrect password. Please try again.');
+          toast({
+            title: "Warning",
+            description: "Incorrect password. Please try again.",
+            variant: "warning",
+            duration: 3000,
+          });
         } else {
-          alert(data.message || 'Failed to delete meeting room');
-          return false;
+          toast({
+            title: "Error",
+            description: data.message || 'Failed to delete meeting room',
+            variant: "destructive",
+            duration: 3000,
+          });
         }
-      } catch (error) {
-        alert(`Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`);
         return false;
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    
+    } catch (error) {
+      console.error('Delete room error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete meeting room: ${error instanceof Error ? error.message : String(error)}`,
+        variant: "destructive",
+        duration: 3000,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteRoom = async () => {
     if (!selectedRoom) return;
     if (!adminPassword) {
-      alert('Please enter the admin password.');
+      setPasswordError('Please enter admin password');
       return;
     }
-  
+
     try {
       const success = await deleteRoom(selectedRoom.room_id, adminPassword);
       if (success) {
-        alert('Deleted successfully');
         setIsDeleteDialogOpen(false);
         setAdminPassword('');
-        setRooms(rooms.filter(room => room.room_id !== selectedRoom.room_id));
-      } else {
-        alert('Failed to delete meeting room');
+        setPasswordError('');
       }
     } catch (error) {
-      alert('Failed to delete meeting room');
       console.error(error);
     }
   };
-  
 
   // About filters
   const applyFilters = () => {
@@ -426,6 +526,37 @@ const ManageRoomPage = () => {
     }));
   }
 
+  const uploadFile = async (file: File, action: 'meeting_room', roomId?: string) => {
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('action', action);
+      if (roomId) {
+        formData.append('roomId', roomId);
+      }
+
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.code === 200) {
+        return data.data.url;
+      } else {
+        throw new Error(data.message || 'Failed to upload file');
+      }
+    } finally {
+      // Reset upload state after a short delay to show completion
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 500);
+    }
+  };
+
   // Load data when component mounts
   useEffect(() => {
     fetchRooms()
@@ -452,11 +583,86 @@ const ManageRoomPage = () => {
                     Add Meeting Room
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Add New Meeting Room</DialogTitle>
                   </DialogHeader>
-                  <RoomForm room={newRoom} setRoom={setNewRoom} />
+                  <div className="grid gap-4 py-4 overflow-y-auto pr-2">
+                    <RoomForm room={newRoom} setRoom={setNewRoom} />
+
+                    {/* upload pictures */}
+                    <div className="mt-4 border-t border-gray-200 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-room-image">Room Image</Label>
+                        <div className="flex flex-col gap-4">
+                          <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                            {isUploading ? (
+                              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                              </div>
+                            ) : newRoom?.image ? (
+                              <img
+                                src={newRoom.image}
+                                alt="Meeting room image"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "https://via.placeholder.com/600x400?text=No+Image";
+                                }}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                                <div className="text-center">
+                                  <div className="text-sm font-medium">No image selected</div>
+                                  <div className="text-xs">Click to upload an image</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              disabled={isUploading}
+                            >
+                              {isUploading ? (
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>Uploading...</span>
+                                </div>
+                              ) : (
+                                'Upload Image'
+                              )}
+                            </Button>
+                            <input
+                              type="file"
+                              id="new-room-image"
+                              accept="image/*"
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              disabled={isUploading}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  try {
+                                    const imageUrl = await uploadFile(file, 'meeting_room');
+                                    setNewRoom({
+                                      ...newRoom,
+                                      image: imageUrl
+                                    });
+                                  } catch (error) {
+                                    console.error('Failed to upload image:', error);
+                                    alert('Failed to upload image. Please try again.');
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <DialogFooter>
                     <Button onClick={handleAddRoom}>Confirm</Button>
                   </DialogFooter>
@@ -592,14 +798,14 @@ const ManageRoomPage = () => {
                         <TableHead className="w-[15%]">Location</TableHead>
                         <TableHead className="w-[10%]">Capacity</TableHead>
                         <TableHead className="w-[15%]">Status</TableHead>
-                        <TableHead className="w-[25%]">Facilities</TableHead>
-                        <TableHead className="w-[15%]">Feedback</TableHead>
+                        <TableHead className="w-[35%]">Facilities</TableHead>
+                        <TableHead className="w-[10%]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredRooms.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                             No meeting room data available
                           </TableCell>
                         </TableRow>
@@ -619,11 +825,11 @@ const ManageRoomPage = () => {
                                 {room.facilities?.projector && (
                                   <Badge variant="outline">Projector</Badge>
                                 )}
-                                {room.facilities?.whiteboard > 0 && (
-                                  <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
-                                )}
                                 {room.facilities?.coffee_break && (
                                   <Badge variant="outline">Coffee Break</Badge>
+                                )}
+                                {room.facilities?.whiteboard > 0 && (
+                                  <Badge variant="outline">Whiteboard x{room.facilities.whiteboard}</Badge>
                                 )}
                                 {room.facilities?.power_sockets > 0 && (
                                   <Badge variant="outline">Power Sockets x{room.facilities.power_sockets}</Badge>
@@ -631,14 +837,7 @@ const ManageRoomPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="text-sm">
-                                <a href="#" className="text-blue-600 hover:text-blue-800 underline">
-                                  View
-                                </a>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -716,11 +915,11 @@ const ManageRoomPage = () => {
 
       {/* Edit meeting room dialog */}
       <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Meeting Room</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 overflow-y-auto pr-2">
             <div className="space-y-2">
               <Label htmlFor="edit-room_id">Room ID</Label>
               <Input
@@ -730,7 +929,7 @@ const ManageRoomPage = () => {
                 className="bg-gray-100"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Room Name</Label>
@@ -915,6 +1114,79 @@ const ManageRoomPage = () => {
                     }}
                   />
                   <p className="text-xs text-gray-500">Separate multiple notes with commas</p>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-2"></div>
+
+                {/* Upload meeting room pictures */}
+                <div className="space-y-2">
+                  <Label htmlFor="room-image">Room Image</Label>
+                  <div className="flex flex-col gap-4">
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                      {isUploading ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      ) : selectedRoom?.image ? (
+                        <img
+                          src={selectedRoom.image}
+                          alt="Meeting room image"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://via.placeholder.com/600x400?text=No+Image";
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                          <div className="text-center">
+                            <div className="text-sm font-medium">No image selected</div>
+                            <div className="text-xs">Click to upload an image</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Uploading...</span>
+                          </div>
+                        ) : (
+                          'Upload Image'
+                        )}
+                      </Button>
+                      <input
+                        type="file"
+                        id="room-image"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        disabled={isUploading}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file && selectedRoom) {
+                            try {
+                              const imageUrl = await uploadFile(file, 'meeting_room', selectedRoom.room_id);
+                              setSelectedRoom({
+                                ...selectedRoom,
+                                image: imageUrl
+                              });
+                            } catch (error) {
+                              console.error('Failed to upload image:', error);
+                              alert('Failed to upload image. Please try again.');
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

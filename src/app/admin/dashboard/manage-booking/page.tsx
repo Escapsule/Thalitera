@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Search, Calendar, ArrowUpDown } from 'lucide-react'
+import { Loader2, Search, Calendar, ArrowUpDown, DoorClosed, MapPin, User, UserPlus, Clock, CalendarDays, Target } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from 'date-fns'
@@ -26,32 +26,87 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-// Definition of booking record types
-interface Attendee {
-  user_id: string
-  avatar: string
-  username: string
-  email: string
-  status: string
-  created_at: string // Timestamp
-  updated_at: string // Timestamp
-}
-
 interface Booking {
   reservation_id: string
-  room_id: string
-  room_name: string
-  building: string
-  floor: number
-  user_id: string 
-  user_name: string 
-  start_time: string // Timestamp
-  end_time: string // Timestamp
-  created_at: string // Timestamp
-  updated_at: string // Timestamp
-  attendees: Attendee[]
+  meeting_room: {
+    room_id: string
+    image: string
+    name: string
+    status: string // 'active' | 'maintenance' | 'using' | 'booked' | 'deleted'
+    capacity_min: number
+    capacity_max: number
+    building: string
+    floor: string
+    facilities: {
+      projector: boolean | null
+      whiteboard: number | null
+      power_sockets: number | null
+      coffee_break: boolean | null
+      special_notes: string[] | null
+      [key: string]: boolean | number | string[] | null
+    }
+    [key: string]: string | number | {
+      projector: boolean | null
+      whiteboard: number | null
+      power_sockets: number | null
+      coffee_break: boolean | null
+      special_notes: string[] | null
+      [key: string]: boolean | number | string[] | null
+    }
+  }
+  user_id: string
+  user_name: string
+  start_time: number
+  end_time: number
+  created_at: number
+  updated_at: number
+  attendees: Array<{
+    user_id: string
+    avatar: string
+    username: string
+    email: string
+    status: string
+    created_at: number
+    updated_at: number
+    [key: string]: string | number
+  }>
   purpose: string
   status: 'pending' | 'confirmed' | 'canceled' | 'completed'
+  [key: string]: string | number | {
+    room_id: string
+    image: string
+    name: string
+    status: string
+    capacity_min: number
+    capacity_max: number
+    building: string
+    floor: string
+    facilities: {
+      projector: boolean | null
+      whiteboard: number | null
+      power_sockets: number | null
+      coffee_break: boolean | null
+      special_notes: string[] | null
+      [key: string]: boolean | number | string[] | null
+    }
+    [key: string]: string | number | {
+      projector: boolean | null
+      whiteboard: number | null
+      power_sockets: number | null
+      coffee_break: boolean | null
+      special_notes: string[] | null
+      [key: string]: boolean | number | string[] | null
+    }
+  } | Array<{
+    user_id: string
+    avatar: string
+    username: string
+    email: string
+    status: string
+    created_at: number
+    updated_at: number
+    [key: string]: string | number
+  }>
 }
 
 // status
@@ -159,7 +214,8 @@ const ManageBookingPage = () => {
 
   // Sorting
   const [sortByStatus, setSortByStatus] = useState(false)
-  const [sortByReservationId, setSortByReservationId] = useState(false)
+  const [sortByTime, setSortByTime] = useState<'asc' | 'desc' | null>(null)
+  const [sortByCreatedTime, setSortByCreatedTime] = useState<'asc' | 'desc' | null>('desc')
 
   // Cancel Dialog
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
@@ -168,6 +224,7 @@ const ManageBookingPage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [pageInput, setPageInput] = useState<string>('1');
 
   // Add pagination calculation logic
   const indexOfLastItem = currentPage * itemsPerPage
@@ -177,7 +234,8 @@ const ManageBookingPage = () => {
 
   // Add page change handler
   const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber)
+    setCurrentPage(pageNumber);
+    setPageInput(pageNumber.toString());
   }
 
   // Get a list of booking records
@@ -193,8 +251,13 @@ const ManageBookingPage = () => {
       console.log('Fetched bookings:', data.data);
       
       if (data.code === 200) {
-        setBookings(data.data);
-        setFilteredBookings(data.data);
+        // De duplication processing: Use Map to ensure that each reservation_id only retains one record
+        const uniqueBookings = Array.from(
+          new Map(data.data.map((booking: Booking) => [booking.reservation_id, booking])).values()
+        ) as Booking[];
+        
+        setBookings(uniqueBookings);
+        setFilteredBookings(uniqueBookings);
       } else {
         console.error(data.message || 'Failed to retrieve booking records');
         setBookings([]);
@@ -226,10 +289,10 @@ const ManageBookingPage = () => {
           let startTime: Date;
           
           // Process extended ISO format with a+sign
-          if (booking.start_time.startsWith('+')) {
+          if (booking.start_time.toString().startsWith('+')) {
             // Remove the+sign and parse the year
-            const year = parseInt(booking.start_time.substring(1, 6));
-            const rest = booking.start_time.substring(6);
+            const year = parseInt(booking.start_time.toString().substring(1, 6));
+            const rest = booking.start_time.toString().substring(6);
             
             // Adjust the year to the acceptable range (current year)
             const currentYear = new Date().getFullYear();
@@ -280,17 +343,17 @@ const ManageBookingPage = () => {
           let bookingEnd: Date;
           
           // Process extended ISO format with a+sign
-          if (booking.start_time.startsWith('+')) {
+          if (booking.start_time.toString().startsWith('+')) {
             // Process start time
-            const startYear = parseInt(booking.start_time.substring(1, 6));
-            const startRest = booking.start_time.substring(6);
+            const startYear = parseInt(booking.start_time.toString().substring(1, 6));
+            const startRest = booking.start_time.toString().substring(6);
             const currentYear = new Date().getFullYear();
             const adjustedStartYear = startYear % 10000 + currentYear - (currentYear % 10000);
             bookingStart = new Date(`${adjustedStartYear}${startRest}`);
             
             // Process end time
-            const endYear = parseInt(booking.end_time.substring(1, 6));
-            const endRest = booking.end_time.substring(6);
+            const endYear = parseInt(booking.end_time.toString().substring(1, 6));
+            const endRest = booking.end_time.toString().substring(6);
             const adjustedEndYear = endYear % 10000 + currentYear - (currentYear % 10000);
             bookingEnd = new Date(`${adjustedEndYear}${endRest}`);
           } 
@@ -348,7 +411,7 @@ const ManageBookingPage = () => {
     
     if (filters.roomName) {
       result = result.filter(booking => 
-        booking.room_name.toLowerCase().includes(filters.roomName.toLowerCase())
+        booking.meeting_room.name.toLowerCase().includes(filters.roomName.toLowerCase())
       )
     }
     
@@ -363,14 +426,15 @@ const ManageBookingPage = () => {
       )
     }
     
-    // Booking ID sorting
-    if (sortByReservationId) {
-      result = sortByBookingId(result)
-    }
-    
-    // Status sorting
+    // Apply sorting
     if (sortByStatus) {
-      result = sortByOperationStatus(result)
+      result = sortByOperationStatus(result);
+    }
+    if (sortByTime) {
+      result = sortByBookingTime(result);
+    }
+    if (sortByCreatedTime) {
+      result = sortByCreatedTimeFunc(result);
     }
     
     console.log('Filtered results:', result.length);
@@ -416,14 +480,26 @@ const ManageBookingPage = () => {
     return bookings
   }
 
-  // Booking ID sorting
-  const sortByBookingId = (bookings: Booking[]) => {
-    if (sortByReservationId) {
-      return [...bookings].sort((a, b) => 
-        b.reservation_id.localeCompare(a.reservation_id) // Descending order
-      )
-    }
-    return bookings
+  // Sort by booking time
+  const sortByBookingTime = (bookings: Booking[]) => {
+    if (!sortByTime) return bookings;
+    
+    return [...bookings].sort((a, b) => {
+      const timeA = new Date(a.start_time).getTime();
+      const timeB = new Date(b.start_time).getTime();
+      return sortByTime === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }
+
+  // Sort by created time
+  const sortByCreatedTimeFunc = (bookings: Booking[]) => {
+    if (!sortByCreatedTime) return bookings;
+    
+    return [...bookings].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortByCreatedTime === 'asc' ? timeA - timeB : timeB - timeA;
+    });
   }
 
   // Load data
@@ -434,7 +510,7 @@ const ManageBookingPage = () => {
   // Apply filter
   useEffect(() => {
     applyFilters()
-  }, [filters, bookings, sortByStatus, sortByReservationId])
+  }, [filters, bookings, sortByStatus, sortByTime, sortByCreatedTime])
 
   // Add cancel booking function
   const handleCancelBooking = async () => {
@@ -460,6 +536,18 @@ const ManageBookingPage = () => {
       console.error('Failed to cancel booking:', error)
     }
   }
+
+  // Modify time option generation function
+  const generateTimeOptions = () => {
+    return Array.from({ length: 48 }, (_, i) => {
+      const hour = Math.floor(i / 2)
+      const minute = (i % 2) * 30
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    })
+  }
+
+  // Add time option status
+  const timeOptions = generateTimeOptions()
 
   return (
     <div className="flex min-h-[95cvh] flex-col py-6 ml-12">
@@ -497,24 +585,36 @@ const ManageBookingPage = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="filter-start-time">Start Time</Label>
-                  <Input
-                    id="filter-start-time"
-                    type="time"
-                    value={filters.startTime}
-                    onChange={(e) => handleFilterChange('startTime', e.target.value)}
-                    className="w-[120px]"
-                  />
+                  <Select 
+                    value={filters.startTime} 
+                    onValueChange={(value) => handleFilterChange('startTime', value)}
+                  >
+                    <SelectTrigger id="filter-start-time" className="h-9">
+                      <SelectValue placeholder="Select start time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.slice(0, -1).map((time) => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="filter-end-time">End Time</Label>
-                  <Input
-                    id="filter-end-time"
-                    type="time"
-                    value={filters.endTime}
-                    onChange={(e) => handleFilterChange('endTime', e.target.value)}
-                    className="w-[120px]"
-                  />
+                  <Select 
+                    value={filters.endTime} 
+                    onValueChange={(value) => handleFilterChange('endTime', value)}
+                  >
+                    <SelectTrigger id="filter-end-time" className="h-9">
+                      <SelectValue placeholder="Select end time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.filter(time => time > filters.startTime).map((time) => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -538,12 +638,16 @@ const ManageBookingPage = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="filter-room">Meeting Room</Label>
-                  <Input
-                    id="filter-room"
-                    placeholder="Search room"
-                    value={filters.roomName}
-                    onChange={(e) => handleFilterChange('roomName', e.target.value)}
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                    <Input
+                      id="filter-room"
+                      placeholder="Search room"
+                      value={filters.roomName}
+                      onChange={(e) => handleFilterChange('roomName', e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -569,14 +673,69 @@ const ManageBookingPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="h-[700px] overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[20%]">Meeting Room</TableHead>
-                        <TableHead className="w-[15%]">User</TableHead>
-                        <TableHead className="w-[20%]">Booking Time</TableHead>
-                        <TableHead className="w-[15%]">Status</TableHead>
+                        <TableHead className="w-[12%]">Meeting Room</TableHead>
+                        <TableHead className="w-[13%]">User</TableHead>
+                        <TableHead className="w-[25%]">
+                          <div className="flex items-center justify-between">
+                            Booking Time
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 ml-2"
+                              onClick={() => {
+                                if (sortByTime === 'asc') {
+                                  setSortByTime('desc');
+                                } else if (sortByTime === 'desc') {
+                                  setSortByTime(null);
+                                } else {
+                                  setSortByTime('asc');
+                                }
+                                setSortByStatus(false);
+                                setSortByCreatedTime(null);
+                              }}
+                            >
+                              <ArrowUpDown 
+                                className={`h-4 w-4 ${sortByTime ? 'text-primary' : 'text-gray-400'}`}
+                              />
+                              <span className="sr-only">
+                                Sort by booking time
+                              </span>
+                            </Button>
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[15%]">
+                          <div className="flex items-center justify-between">
+                            Created Time
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 ml-2"
+                              onClick={() => {
+                                if (sortByCreatedTime === 'asc') {
+                                  setSortByCreatedTime('desc');
+                                } else if (sortByCreatedTime === 'desc') {
+                                  setSortByCreatedTime(null);
+                                } else {
+                                  setSortByCreatedTime('asc');
+                                }
+                                setSortByStatus(false);
+                                setSortByTime(null);
+                              }}
+                            >
+                              <ArrowUpDown 
+                                className={`h-4 w-4 ${sortByCreatedTime ? 'text-primary' : 'text-gray-400'}`}
+                              />
+                              <span className="sr-only">
+                                Sort by created time
+                              </span>
+                            </Button>
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[10%]">Status</TableHead>
                         <TableHead className="w-[15%]">
                           <div className="flex items-center justify-between">
                             Operation
@@ -584,7 +743,11 @@ const ManageBookingPage = () => {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 ml-2"
-                              onClick={() => setSortByStatus(!sortByStatus)}
+                              onClick={() => {
+                                setSortByStatus(!sortByStatus);
+                                setSortByTime(null);
+                                setSortByCreatedTime(null);
+                              }}
                             >
                               <ArrowUpDown 
                                 className={`h-4 w-4 ${sortByStatus ? 'text-primary' : 'text-gray-400'}`}
@@ -600,53 +763,64 @@ const ManageBookingPage = () => {
                     <TableBody>
                       {currentBookings.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                             No booking records
                           </TableCell>
                         </TableRow>
                       ) : (
-                        currentBookings.map((booking) => (
-                          <TableRow key={booking.reservation_id}>
-                            <TableCell>{booking.room_name}</TableCell>
-                            <TableCell>
-                              <span className="font-medium">{booking.user_name}</span>
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(booking.start_time)} - {formatDate(booking.end_time)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={statusMap[booking.status]?.color || ''}>
-                                {statusMap[booking.status]?.label || booking.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-start gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedBooking(booking)
-                                    setIsDetailDialogOpen(true)
-                                  }}
-                                >
-                                  Details
-                                </Button>
-                                {booking.status === 'pending' && (
+                        <>
+                          {currentBookings.map((booking, index) => (
+                            <TableRow key={`${booking.reservation_id}-${index}`}>
+                              <TableCell>{booking.meeting_room.name}</TableCell>
+                              <TableCell>
+                                <span className="font-medium">{booking.user_name}</span>
+                              </TableCell>
+                              <TableCell>
+                                {formatDate(booking.start_time.toString())} - {formatDate(booking.end_time.toString())}
+                              </TableCell>
+                              <TableCell>
+                                {formatDate(booking.created_at.toString())}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={statusMap[booking.status]?.color || ''}>
+                                  {statusMap[booking.status]?.label || booking.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-start gap-2">
                                   <Button
-                                    variant="destructive"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => {
                                       setSelectedBooking(booking)
-                                      setIsCancelDialogOpen(true)
+                                      setIsDetailDialogOpen(true)
                                     }}
                                   >
-                                    Cancel
+                                    Details
                                   </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                  {booking.status === 'pending' && (
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedBooking(booking)
+                                        setIsCancelDialogOpen(true)
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Add blank lines*/}
+                          {currentBookings.length < 10 && Array(10 - currentBookings.length).fill(0).map((_, index) => (
+                            <TableRow key={`empty-${index}`} className="h-[64px]">
+                              <TableCell colSpan={6}></TableCell>
+                            </TableRow>
+                          ))}
+                        </>
                       )}
                     </TableBody>
                   </Table>
@@ -667,19 +841,31 @@ const ManageBookingPage = () => {
                       >
                         Previous
                       </Button>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <Button
-                          key={pageNum}
-                          variant={pageNum === currentPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-8 ${
-                            pageNum === currentPage ? 'bg-primary text-primary-foreground' : ''
-                          }`}
-                        >
-                          {pageNum}
-                        </Button>
-                      ))}
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          value={pageInput}
+                          onChange={(e) => {
+                            setPageInput(e.target.value);
+                            const page = parseInt(e.target.value);
+                            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                              handlePageChange(page);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseInt(value) < 1) {
+                              handlePageChange(1);
+                            } else if (parseInt(value) > totalPages) {
+                              handlePageChange(totalPages);
+                            }
+                          }}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-sm text-gray-500">/ {totalPages}</span>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -699,66 +885,121 @@ const ManageBookingPage = () => {
 
       {/* Booking Details Dialogue Box*/}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-[600px]">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Booking Details</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-xl font-bold">Booking Details</DialogTitle>
+              {selectedBooking && (
+                <Badge className={`${
+                  selectedBooking.status === 'confirmed' 
+                  ? 'bg-green-100 text-green-800' 
+                  : selectedBooking.status === 'pending'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : selectedBooking.status === 'completed'
+                  ? 'bg-blue-100 text-blue-800'
+                  : selectedBooking.status === 'canceled'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
+                </Badge>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedBooking && (
-            <div className="py-4">
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-semibold text-gray-500 mb-3">Booking Information</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-gray-500">Meeting Room</label>
-                      <p className="font-medium">{selectedBooking.room_name}</p>
+            <div className="space-y-6">
+              {/* Meeting Room Information */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-lg font-medium mb-4">Meeting Room Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <DoorClosed className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Name: </span>
+                      {selectedBooking.meeting_room.name}
                     </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Booking User</label>
-                      <p className="font-medium">{selectedBooking.user_name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Location: </span>
+                      {selectedBooking.meeting_room.building}, Floor {selectedBooking.meeting_room.floor}
                     </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Booking Time</label>
-                      <p className="font-medium">
-                        {formatDate(selectedBooking.start_time)} - {formatDate(selectedBooking.end_time)}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Created Time</label>
-                      <p className="font-medium">{formatDate(selectedBooking.created_at)}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Updated Time</label>
-                      <p className="font-medium">{formatDate(selectedBooking.updated_at)}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Purpose</label>
-                      <p className="font-medium">{selectedBooking.purpose}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Status</label>
-                      <Badge className={`mt-1 ${statusMap[selectedBooking.status]?.color || ''}`}>
-                        {statusMap[selectedBooking.status]?.label || selectedBooking.status}
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking User Information */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-lg font-medium mb-4">Booking User Information</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm flex items-center gap-2">
+                      <span className="font-medium">Booking User:</span>
+                      <Badge 
+                        variant="outline" 
+                        className="px-2 py-1"
+                      >
+                        {selectedBooking.user_name}
                       </Badge>
                     </div>
-                    <div>
-                      <label className="text-sm text-gray-500">Attendees</label>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {selectedBooking?.attendees && selectedBooking.attendees.length > 0 ? (
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Attendees: </span>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {selectedBooking.attendees && selectedBooking.attendees.length > 0 ? (
                           selectedBooking.attendees.map((attendee, index) => (
                             <Badge 
                               key={index} 
                               variant="outline" 
                               className="px-2 py-1"
                             >
-                              {attendee?.username || 'Unknown User'}
+                              {attendee?.username || 'Unknown'}
                             </Badge>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500 italic">No attendees</p>
+                          <p className="text-sm text-gray-500 italic">No Attendees</p>
                         )}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking Information */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-lg font-medium mb-4">Booking Information</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Booking Time: </span>
+                      {formatDate(selectedBooking.start_time.toString())} - {formatDate(selectedBooking.end_time.toString())}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Created Time: </span>
+                      {formatDate(selectedBooking.created_at.toString())}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Update Time: </span>
+                      {formatDate(selectedBooking.updated_at.toString())}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-[lch(17_23_133)]" />
+                    <div className="text-sm">
+                      <span className="font-medium">Purpose: </span>
+                      {selectedBooking.purpose}
                     </div>
                   </div>
                 </div>
@@ -777,9 +1018,9 @@ const ManageBookingPage = () => {
           <div className="py-4">
             <p>Are you sure you want to cancel this booking? This action cannot be undone.</p>
             <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <p><strong>Meeting Room:</strong> {selectedBooking?.room_name}</p>
+              <p><strong>Meeting Room:</strong> {selectedBooking?.meeting_room.name}</p>
               <p><strong>Booking Time:</strong> {selectedBooking && 
-                `${formatDate(selectedBooking.start_time)} - ${formatDate(selectedBooking.end_time)}`}</p>
+                `${formatDate(selectedBooking.start_time.toString())} - ${formatDate(selectedBooking.end_time.toString())}`}</p>
             </div>
             <div className="mt-4">
               <Label htmlFor="adminPassword">Please enter the admin password to confirm</Label>
