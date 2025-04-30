@@ -18,7 +18,6 @@ spring:
       maximum-pool-size: 20
       schema: public
   mail:
-    host: smtp.163.com
   data:
     redis:
       port: 6379

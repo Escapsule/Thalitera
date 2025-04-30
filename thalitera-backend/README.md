@@ -11,6 +11,7 @@ spring:
     username: PROD_USERNAME  # database username
     password: PROD_PASSWORD  # database password
   mail:
+    host: 
     username: xxx@xxx.com
     password: abcdefghijklmnopqrstuvwxyz
     protocol: smtp

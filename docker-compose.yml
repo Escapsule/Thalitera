@@ -19,6 +19,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=Thalitera
       - SPRING_DATASOURCE_PASSWORD=@ThaliteraHelloWorld!
       - SPRING_REDIS_HOST=redis
+      - MAIL_HOST=
       - MAIL_USERNAME=
       - MAIL_PASSWORD=
       - BASE_URL=
