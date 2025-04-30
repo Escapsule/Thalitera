@@ -1,0 +1,14 @@
+package com.escapsule.thalitera.properties;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+@Data
+@ConfigurationProperties(prefix = "spring.config")
+@Component
+public class ConfigProperties {
+    private String baseUrl;
+
+    private String projectName;
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.escapsule.thalitera.mapper.UserMapper">
+
+    <select id="getUsersByEmails" resultType="com.escapsule.thalitera.entity.User">
+        SELECT * FROM users WHERE email IN
+        <foreach item="email" collection="emails" open="(" separator="," close=")">
+            #{email}
+        </foreach>
+    </select>
+    <select id="getUsersByIds" resultType="com.escapsule.thalitera.entity.User">
+        SELECT * FROM users WHERE user_id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.escapsule.thalitera.mapper.MeetingRoomMapper">
+    <select id="getActiveMeetingRoomsByFilter" resultType="com.escapsule.thalitera.entity.MeetingRoom">
+        SELECT * FROM meeting_rooms
+        WHERE
+            status = 'active'
+            <if test="attendeesCount != null">
+                AND capacity_min &lt;= #{attendeesCount} AND capacity_max &gt;= #{attendeesCount}
+            </if>
+            <if test="building != null">
+                AND building = #{building}
+            </if>
+            <if test="floor != null">
+                AND floor = #{floor}
+            </if>
+            <if test="facilities != null">
+                AND facilities @> '{"projector": ${facilities.projector}}'
+                <if test="facilities.whiteboard != null">
+                    AND (facilities->>'whiteboard')::int &gt;= #{facilities.whiteboard, jdbcType=INTEGER}
+                </if>
+                <if test="facilities.powerSockets != null">
+                    AND (facilities->>'power_sockets')::int &gt;= #{facilities.powerSockets, jdbcType=INTEGER}
+                </if>
+                AND facilities @> '{"coffee_break": ${facilities.coffeeBreak}}'
+                <if test="facilities.getSpecialNotes() != null">
+                    <foreach collection="facilities.specialNotes" item="note" separator=" AND ">
+                        facilities @> '{"special_notes": #{note}}'
+                    </foreach>
+                </if>
+            </if>
+    </select>
+    <insert id="addMeetingRoom">
+        INSERT INTO meeting_rooms (room_id, name, capacity_min, capacity_max, building, floor, status, created_by, created_at, updated_at, image, facilities)
+        VALUES (#{roomId}, #{name}, #{capacityMin}, #{capacityMax}, #{building}, #{floor}, #{status}, #{createdBy}, #{createdAt}, #{updatedAt}, #{image},
+            '{
+                <trim suffixOverrides=",">
+                    <if test="facilities.projector != null">
+                        "projector": ${facilities.projector},
+                    </if>
+                    <if test="facilities.whiteboard != null">
+                        "whiteboard": ${facilities.whiteboard},
+                    </if>
+                    <if test="facilities.powerSockets != null">
+                        "power_sockets": ${facilities.powerSockets},
+                    </if>
+                    <if test="facilities.coffeeBreak != null">
+                        "coffee_break": ${facilities.coffeeBreak},
+                    </if>
+                    <if test="facilities.specialNotes != null">
+                        "special_notes": [
+                            <foreach collection="facilities.specialNotes" item="note" separator=",">
+                                "${note}"
+                            </foreach>
+                        ],
+                    </if>
+                </trim>
+            }'::jsonb
+        )
+    </insert>
+    <update id="updateMeetingRoom">
+        UPDATE
+            meeting_rooms
+        SET
+            name = #{name},
+            capacity_min = #{capacityMin},
+            capacity_max = #{capacityMax},
+            building = #{building},
+            floor = #{floor},
+            status = #{status},
+            updated_at = #{updatedAt},
+            image = #{image},
+            facilities = '{
+                <trim suffixOverrides=",">
+                    <if test="facilities.projector != null">
+                        "projector": ${facilities.projector},
+                    </if>
+                    <if test="facilities.whiteboard != null">
+                        "whiteboard": ${facilities.whiteboard},
+                    </if>
+                    <if test="facilities.powerSockets != null">
+                        "power_sockets": ${facilities.powerSockets},
+                    </if>
+                    <if test="facilities.coffeeBreak != null">
+                        "coffee_break": ${facilities.coffeeBreak},
+                    </if>
+                    <if test="facilities.specialNotes != null">
+                        "special_notes": [
+                            <foreach collection="facilities.specialNotes" item="note" separator=",">
+                                "${note}"
+                            </foreach>
+                        ],
+                    </if>
+                </trim>
+            }'::jsonb
+        WHERE
+            room_id = #{roomId}
+    </update>
+    <update id="batchDeleteMeetingRoom">
+        <selectKey keyProperty="affectedRows" resultType="int">
+            SELECT COUNT(*) FROM meeting_rooms WHERE room_id IN
+            <foreach collection="roomIds" item="roomId" open="(" separator="," close=")">
+                #{roomId}
+            </foreach>
+        </selectKey>
+        UPDATE meeting_rooms
+        SET status = 'deleted',
+        updated_at = now()
+        WHERE room_id IN
+        <foreach collection="roomIds" item="roomId" open="(" separator="," close=")">
+            #{roomId}
+        </foreach>
+    </update>
+
+</mapper>

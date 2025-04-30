@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" shutdownHook="disable">
+    <Appenders>
+        <Console name="RAINBOW_CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout
+                    disableAnsi="false"
+                    noConsoleNoAnsi="false"
+                    pattern="%style{%d{yyyy-MM-dd HH:mm:ss.SSS}}{bright_cyan bold} \
+%style{[%20.20t]}{magenta underline} \
+%highlight{%-5level}{ERROR=white bg_red bold, WARN=black bg_yellow, INFO=green bold, DEBUG=bright_blue, TRACE=white bg_blue} \
+%style{%-46c{1.}}{bright_yellow bold} \
+%style{▶}{bright_green bold} \
+%highlight{%msg}{FATAL=white bg_red bold, ERROR=red bold, WARN=yellow, INFO=green, DEBUG=blue, TRACE=magenta}%n%ex"
+            />
+        </Console>
+        <!-- File output that is rolled over daily. -->
+        <RollingFile name="PROFESSIONAL_FILE"
+                     fileName="logs/thalitera.log"
+                     filePattern="logs/thalitera-%d{yyyy-MM-dd}-%i.log.gz"
+                     createOnDemand="false"
+                     append="true"
+        >
+            <PatternLayout>
+                <Pattern>%d{ISO8601} [%t] %-5level %logger{36} %X{reqId} - %msg%n%throwable{short}</Pattern>
+            </PatternLayout>
+            <Policies>
+                <!-- Roll it once every day. -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <!-- Option: Limit the size of individual files. -->
+                <SizeBasedTriggeringPolicy size="200 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10" compressionLevel="9"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="RAINBOW_CONSOLE"/>
+            <AppenderRef ref="PROFESSIONAL_FILE"/>
+        </Root>
+    </Loggers>
+</Configuration>

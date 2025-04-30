@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Password Reset | Thalitera</title>
+    <!-- 保留原有全部样式 -->
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        a {
+            text-decoration: none;
+        }
+        body {
+            margin: 0;
+            padding: 60px 0;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f9 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.65;
+            color: #2d3436;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.98);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2d3436 0%, #4a5362 100%);
+            padding: 32px;
+            text-align: center;
+        }
+        .logo {
+            height: 56px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .logo:hover {
+            transform: rotate(-8deg) scale(1.05);
+        }
+        .content {
+            padding: 48px 40px;
+        }
+        .cta-wrapper {
+            position: relative;
+            justify-content: center;
+            display: flex;
+            margin: 32px auto;
+            padding: 24px;
+            background: rgba(74,144,226,0.05);
+            border-radius: 12px;
+        }
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(74,144,226,0.25);
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74,144,226,0.35);
+        }
+        .security-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #e3fcef;
+            color: #2d9d78;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        .feature-list {
+            text-align: left;
+            margin: 32px auto;
+            max-width: 480px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .dynamic-link {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 1px dashed #4a90e2;
+            border-radius: 6px;
+            margin: 16px 0;
+            transition: background 0.3s ease;
+        }
+        /* 在原有样式基础上新增 */
+        .code-card {
+            padding: 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(74,144,226,0.15);
+            box-shadow: 0 8px 24px rgba(74,144,226,0.1);
+            margin: 40px auto;
+            max-width: 360px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .code-card:hover {
+            transform: translateY(-2px);
+        }
+        .captcha-image {
+            border: 2px solid #e3ecf7;
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            margin: 20px auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .expiry-tag {
+            display: inline-block;
+            padding: 6px 16px;
+            background: #fff3d6;
+            color: #d48a00;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .info-card {
+            padding: 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(74,144,226,0.15);
+            box-shadow: 0 8px 24px rgba(74,144,226,0.1);
+            margin: 40px auto;
+            max-width: 480px;
+            text-align: left;
+            position: relative;
+        }
+        .info-item {
+            margin: 16px 0;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .time-remaining {
+            color: #d48a00;
+            font-weight: 600;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://k1ng-image.oss-cn-hongkong.aliyuncs.com/%E9%BB%91%E7%8C%AB.svg"
+             alt="Thalitera"
+             class="logo">
+    </div>
+
+    <div class="content">
+        <div class="security-badge" style="background:#e3fcef;color:#2d9d78;">
+            ⏰ Meeting Reminder
+        </div>
+
+        <h2 style="margin:0 0 8px 0;font-weight:700;color:#2d3436">
+            <span class="time-remaining" th:text="'Your meeting starts in ' + ${target_time} + ' minutes'"></span>
+        </h2>
+
+        <!-- 会议信息卡片 -->
+        <div class="info-card">
+            <div class="info-item">
+                <strong>📅 Time:</strong>
+                <span th:text="${#temporals.format(start_time, 'yyyy-MM-dd HH:mm')} + ' - ' + ${#temporals.format(start_time, 'yyyy-MM-dd HH:mm')}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>📍 Location:</strong>
+                <span th:text="${building} + ' ' + ${floor} + 'F · ' + ${room_name}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>👤 Organizer:</strong>
+                <span th:text="${creator}"></span>
+            </div>
+
+            <div class="info-item">
+                <strong>👥 Attendees (</span><span th:text="${attendees.size()}"></span>):</strong>
+                <div th:each="attendee : ${attendees}" th:text="${attendee}"
+                     style="margin:4px 0;color:#636e72;"></div>
+            </div>
+
+            <div class="info-item">
+                <strong>🎯 Purpose:</strong>
+                <p th:text="${purpose}" style="margin:4px 0;color:#636e72;"></p>
+            </div>
+        </div>
+
+        <div class="cta-wrapper">
+            <a th:href="${base_url}" class="cta-button">
+                🚪 Join Meeting
+            </a>
+        </div>
+
+        <div class="feature-list">
+            <div style="display:flex;align-items:center;margin:12px 0">
+                <span style="font-size:20px;margin-right:12px">📌</span>
+                <div>
+                    <h3 style="margin:0;font-size:15px">Need to modify?</h3>
+                    <p style="margin:4px 0;color:#636e72;font-size:14px">
+                        <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none;">
+                            Update reservation details
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div style="padding:24px;border-top:1px solid #eee">
+
+            <p style="margin:8px 0;color:#636e72;font-size:13px">
+                © 2025 Thalitera Technologies ·
+                <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none">Privacy Policy</a>
+                ·
+                <a th:href="${base_url}" style="color:#4a90e2;text-decoration:none">Support</a>
+            </p>
+            <p style="margin:16px 0 0 0;color:#b2bec3;font-size:12px">
+                Please do not reply to this automated message
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</body>
+</html>

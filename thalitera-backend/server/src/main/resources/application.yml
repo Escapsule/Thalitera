@@ -1,0 +1,64 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  profiles:
+    active: dev  # active profile
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  application:
+    name: Thalitera-Backend
+#  autoconfigure:
+#    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 20
+      schema: public
+  mail:
+    host: smtp.163.com
+  data:
+    redis:
+      port: 6379
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    enabled: true
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.log4j2.Log4j2Impl
+    auto-mapping-behavior: full
+    jdbc-type-for-null: 'null'
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+    banner: false
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.escapsule.thalitera.entity
+  type-handlers-package: com.escapsule.thalitera.handler
+oss:
+server:
+  tomcat:
+    max-swallow-size: 100MB
+logging:
+  level:
+    com.escapsule.thalitera.mapper: debug
+timer:
+  scheduled-tasks:
+    tasks:
+      - name: Delete Expired Pending User Task
+        cron: "0 */30 * * * *"
+        enabled: true
+      - name: Remind User Meeting is About to Start Task
+        cron: "0 */10 * * * *"
+        enabled: true
+      - name: Mark the completed meeting
+        cron: "0 */30 * * * *"
+        enabled: true
