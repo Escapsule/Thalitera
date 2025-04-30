@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
+@RestController("UserReservationController")
 @RequestMapping("/user/meetingroom")
 @Slf4j
 @RequiredArgsConstructor
@@ -140,8 +140,8 @@ public class ReservationController {
         if (user == null) {
             throw new BaseException(ErrorCode.USER_NOT_LOGIN);
         }
-        boolean success = reservationService.cancelReservation(reservationId, user.getUserId());
-        log.info("User {} canceled a meeting room booking: {}", user.getUserId(), reservationId);
+        boolean success = reservationService.cancelReservation(reservationId, user);
+        log.info("User {} canceled a meeting room booking: {}", user.getUsername(), reservationId);
         if (success) {
             return ApiResult.success("Cancel successful.");
         } else {

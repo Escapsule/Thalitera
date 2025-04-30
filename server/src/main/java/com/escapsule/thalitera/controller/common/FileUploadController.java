@@ -30,14 +30,15 @@ public class FileUploadController {
     @PostMapping("/upload")
     public ApiResult<FileUploadResponseVO> upload(@RequestParam MultipartFile file,
                                                   @RequestParam String action,
-                                                  @RequestParam(required = false) UUID roomId,
+                                                  @RequestParam(required = false) String roomId,
                                                   HttpSession session) {
         User user  = Optional.ofNullable((User) session.getAttribute("user"))
                 .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_LOGIN));
+        UUID uuid = roomId != null ? UUID.fromString(roomId) : null;
         FileUploadRequestDTO dto = FileUploadRequestDTO.builder()
                 .file(file)
                 .action(action)
-                .roomId(roomId)
+                .roomId(uuid)
                 .uploadedBy(user.getUserId())
                 .build();
         return ApiResult.success(fileUploadService.upload(dto));

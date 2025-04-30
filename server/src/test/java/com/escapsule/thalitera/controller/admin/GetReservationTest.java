@@ -1,6 +1,5 @@
-package com.escapsule.thalitera.admin;
+package com.escapsule.thalitera.controller.admin;
 
-import com.escapsule.thalitera.controller.admin.AdminController;
 import com.escapsule.thalitera.entity.User;
 import com.escapsule.thalitera.service.AdminService;
 import com.escapsule.thalitera.service.ReservationService;
@@ -10,11 +9,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,10 +26,10 @@ public class GetReservationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private AdminService adminService;
 
-    @MockBean
+    @MockitoBean
     private ReservationService reservationService;
 
     @Autowired
