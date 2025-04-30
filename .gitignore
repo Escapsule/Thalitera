@@ -56,7 +56,6 @@ yarn-error.log*
 
 # Spring Boot  
 /thalitera-backend/application-dev.yml
-/thalitera-backend/application-prod.yml
 
 # SSL  
 /thalitera-backend/server/src/main/resources/ssl/

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  #  Next.js
+  frontend:
+    build: ./thalitera-frontend
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8080
+    networks:
+      - my-network
+    depends_on:
+      - backend
+
+  # Spring Boot 3
+  backend:
+    build: ./thalitera-backend
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/thalitera
+      - SPRING_DATASOURCE_USERNAME=Thalitera
+      - SPRING_DATASOURCE_PASSWORD=@ThaliteraHelloWorld!
+      - SPRING_REDIS_HOST=redis
+      - MAIL_USERNAME=
+      - MAIL_PASSWORD=
+      - BASE_URL=
+      - OSS_ENDPOINT=
+      - OSS_ACCESS_KEY=
+      - OSS_SECRET_KEY=
+      - OSS_BUCKET=
+    volumes:
+      - ./thalitera-backend/logs:/app/logs
+    networks:
+      - my-network
+    depends_on:
+      - postgres
+      - redis
+
+  # Nginx
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./thalitera-nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - my-network
+    depends_on:
+      - frontend
+      - backend
+
+  # PostgreSQL
+  postgres:
+    image: postgis/postgis:17-3.4
+    environment:
+      POSTGRES_DB: thalitera
+      POSTGRES_USER: Thalitera
+      POSTGRES_PASSWORD: @ThaliteraHelloWorld!
+    volumes:
+      - ./thalitera-postgres/data:/var/lib/postgresql/data
+      - ./thalitera-postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - my-network
+    command: ["postgres"]
+
+  # Redis
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    networks:
+      - my-network
+
+volumes:
+  redis_data:
+
+networks:
+  my-network:
+    driver: bridge

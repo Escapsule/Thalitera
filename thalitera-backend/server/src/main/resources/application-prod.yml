@@ -1,0 +1,31 @@
+# application-prod.yml
+spring:
+  config:
+    base-url: ${BASE_URL}
+    activate:
+      on-profile: prod
+    project-name: Thalitera
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  mail:
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 3000
+      mail.smtp.writetimeout: 5000
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST}
+      password:
+      database: 0
+oss:
+  endpoint: ${OSS_ENDPOINT}
+  access-key: ${OSS_ACCESS_KEY}
+  secret-key: ${OSS_SECRET_KEY}
+  bucket: ${OSS_BUCKET}

@@ -7,7 +7,6 @@ RUN npm install --force
 COPY . .
 RUN npm run build
 
-# 生产镜像
 FROM node:20-alpine
 WORKDIR /app
 

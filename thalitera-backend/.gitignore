@@ -37,7 +37,6 @@ build/
 .DS_Store
 
 application-dev.yml
-application-prod.yml
 
 
 /server/src/main/resources/ssl/
