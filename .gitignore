@@ -1,0 +1,92 @@
+.DS_Store
+*.pem
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+.env*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Thalitera-backend
+# ─────────────────────────────────────────────────────────────────────────────
+
+/thalitera-backend/target/
+/thalitera-backend/tmp/
+/thalitera-backend/logs/
+
+# Maven wrapper
+!/thalitera-backend/.mvn/wrapper/maven-wrapper.jar
+
+!/thalitera-backend/**/src/main/**/target/
+/thalitera-backend/**/src/main/**/target/*
+!/thalitera-backend/**/src/test/**/target/
+/thalitera-backend/**/src/test/**/target/*
+
+# STS
+/thalitera-backend/.apt_generated
+/thalitera-backend/.classpath
+/thalitera-backend/.factorypath
+/thalitera-backend/.project
+/thalitera-backend/.settings
+/thalitera-backend/.springBeans
+/thalitera-backend/.sts4-cache
+
+# IntelliJ IDEA
+/thalitera-backend/.idea
+/thalitera-backend/*.iws
+/thalitera-backend/*.iml
+/thalitera-backend/*.ipr
+
+# NetBeans
+/thalitera-backend/nbproject/private/
+/thalitera-backend/nbbuild/
+/thalitera-backend/dist/
+/thalitera-backend/nbdist/
+/thalitera-backend/.nb-gradle/
+/thalitera-backend/build/
+/!thalitera-backend/**/src/main/**/build/
+/thalitera-backend/**/src/main/**/build/*
+/!thalitera-backend/**/src/test/**/build/
+/thalitera-backend/**/src/test/**/build/*
+
+# VS Code
+/thalitera-backend/.vscode/
+
+# Spring Boot  
+/thalitera-backend/application-dev.yml
+/thalitera-backend/application-prod.yml
+
+# SSL  
+/thalitera-backend/server/src/main/resources/ssl/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Thalitera-frontend
+# ─────────────────────────────────────────────────────────────────────────────
+
+/thalitera-frontend/node_modules/
+/thalitera-frontend/.pnp
+/thalitera-frontend/.pnp.*
+
+# Yarn Plug’n’Play
+/thalitera-frontend/.yarn/*
+!/thalitera-frontend/.yarn/patches
+!/thalitera-frontend/.yarn/plugins
+!/thalitera-frontend/.yarn/releases
+!/thalitera-frontend/.yarn/versions
+
+/thalitera-frontend/coverage/
+/thalitera-frontend/.next/
+/thalitera-frontend/out/
+/thalitera-frontend/build/
+
+# VS Code
+/thalitera-frontend/.vscode/
+
+# Vercel
+/thalitera-frontend/.vercel
+
+# TypeScript、Next.js
+/thalitera-frontend/*.tsbuildinfo
+/thalitera-frontend/next-env.d.ts
