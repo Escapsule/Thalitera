@@ -205,18 +205,32 @@ const ManageRoomPage = () => {
 
   const validateRoomData = (room: Partial<MeetingRoom>) => {
     if (!room.name || !room.building || !room.capacity_min || !room.capacity_max) {
-      alert('Please fill in all required information');
+      toast({
+        title: "Error",
+        description: "Please fill in all required information",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
     }
 
     if (room.capacity_min! > room.capacity_max!) {
-      alert('Minimum capacity cannot be greater than maximum capacity');
+      toast({
+        title: "Error",
+        description: "Minimum capacity cannot be greater than maximum capacity",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
     }
 
-
     if (room.name.length > 16) {
-      alert('Room name cannot exceed 16 characters');
+      toast({
+        title: "Error",
+        description: "Room name cannot exceed 16 characters",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
     }
     const isDuplicate = rooms.some(existingRoom =>
@@ -224,7 +238,12 @@ const ManageRoomPage = () => {
     );
 
     if (isDuplicate) {
-      alert('Room name already exists. Please choose a different name');
+      toast({
+        title: "Error",
+        description: "Room name already exists. Please choose a different name",
+        variant: "destructive",
+        duration: 3000,
+      });
       return false;
     }
 
@@ -652,7 +671,12 @@ const ManageRoomPage = () => {
                                     });
                                   } catch (error) {
                                     console.error('Failed to upload image:', error);
-                                    alert('Failed to upload image. Please try again.');
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to upload image. Please try again.",
+                                      variant: "destructive",
+                                      duration: 3000,
+                                    });
                                   }
                                 }
                               }}
@@ -1180,7 +1204,12 @@ const ManageRoomPage = () => {
                               });
                             } catch (error) {
                               console.error('Failed to upload image:', error);
-                              alert('Failed to upload image. Please try again.');
+                              toast({
+                                title: "Error",
+                                description: "Failed to upload image. Please try again.",
+                                variant: "destructive",
+                                duration: 3000,
+                              });
                             }
                           }
                         }}
